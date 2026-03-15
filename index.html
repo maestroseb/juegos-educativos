@@ -365,9 +365,9 @@
 <script>
 // ==================== CONFIG ====================
 const DIFFICULTIES = {
-    easy:   { orbSpeed: 2.5, optionCount: 3, spawnSpread: 3, orbSize: 1.0 },
-    medium: { orbSpeed: 3.5, optionCount: 4, spawnSpread: 3.5, orbSize: 0.9 },
-    hard:   { orbSpeed: 5.0, optionCount: 4, spawnSpread: 4, orbSize: 0.8 }
+    easy:   { orbSpeed: 2.5, optionCount: 3, spawnSpread: 5, orbSize: 1.0 },
+    medium: { orbSpeed: 3.5, optionCount: 4, spawnSpread: 6, orbSize: 0.9 },
+    hard:   { orbSpeed: 5.0, optionCount: 4, spawnSpread: 7, orbSize: 0.8 }
 };
 
 const LEVELS = [
@@ -466,94 +466,63 @@ const gridHelper = new THREE.GridHelper(30, 30, 0x1a1a4e, 0x141440);
 gridHelper.position.y = -0.5;
 scene.add(gridHelper);
 
-// ==================== NUMBER TEXTURE ON SPHERE ====================
-function createNumberTexture(text, baseColor) {
-    const size = 512;
+// ==================== BILLBOARD NUMBER SPRITE ====================
+// Creates a sprite that always faces the camera so the number is always readable
+function createNumberSprite(text, scale) {
+    const size = 256;
     const c = document.createElement('canvas');
     c.width = size;
     c.height = size;
     const ctx = c.getContext('2d');
 
-    // Gradient background circle
-    const grad = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
-    grad.addColorStop(0, lightenColor(baseColor, 40));
-    grad.addColorStop(0.7, baseColor);
-    grad.addColorStop(1, darkenColor(baseColor, 30));
-    ctx.fillStyle = grad;
-    ctx.beginPath();
-    ctx.arc(size/2, size/2, size/2, 0, Math.PI * 2);
-    ctx.fill();
+    // Transparent background — the sphere behind provides the color
+    ctx.clearRect(0, 0, size, size);
 
-    // Glossy highlight
-    const gloss = ctx.createRadialGradient(size*0.35, size*0.3, 0, size*0.4, size*0.35, size*0.35);
-    gloss.addColorStop(0, 'rgba(255,255,255,0.4)');
-    gloss.addColorStop(1, 'rgba(255,255,255,0)');
-    ctx.fillStyle = gloss;
-    ctx.beginPath();
-    ctx.arc(size*0.38, size*0.33, size*0.25, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Number text with outline
-    const fontSize = text.length > 2 ? 180 : 220;
+    // Number text
+    const fontSize = text.length > 2 ? 100 : 130;
     ctx.font = `bold ${fontSize}px "Segoe UI", Arial, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
-    // Dark shadow
-    ctx.fillStyle = 'rgba(0,0,0,0.4)';
-    ctx.fillText(text, size/2 + 3, size/2 + 3);
+    // Black outline for readability
+    ctx.strokeStyle = 'rgba(0,0,0,0.7)';
+    ctx.lineWidth = 8;
+    ctx.strokeText(text, size / 2, size / 2);
 
-    // White text
+    // White fill
     ctx.fillStyle = '#ffffff';
-    ctx.fillText(text, size/2, size/2);
-
-    // Bright stroke
-    ctx.strokeStyle = 'rgba(255,255,255,0.6)';
-    ctx.lineWidth = 2;
-    ctx.strokeText(text, size/2, size/2);
+    ctx.fillText(text, size / 2, size / 2);
 
     const texture = new THREE.CanvasTexture(c);
-    texture.minFilter = THREE.LinearMipmapLinearFilter;
+    texture.minFilter = THREE.LinearFilter;
     texture.magFilter = THREE.LinearFilter;
-    return texture;
+
+    const mat = new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: true, depthWrite: false });
+    const sprite = new THREE.Sprite(mat);
+    sprite.scale.set(scale * 1.6, scale * 1.6, 1);
+    return sprite;
 }
 
-function lightenColor(hex, percent) {
-    const r = parseInt(hex.slice(1,3), 16);
-    const g = parseInt(hex.slice(3,5), 16);
-    const b = parseInt(hex.slice(5,7), 16);
-    return `rgb(${Math.min(255, r + percent)}, ${Math.min(255, g + percent)}, ${Math.min(255, b + percent)})`;
-}
-
-function darkenColor(hex, percent) {
-    const r = parseInt(hex.slice(1,3), 16);
-    const g = parseInt(hex.slice(3,5), 16);
-    const b = parseInt(hex.slice(5,7), 16);
-    return `rgb(${Math.max(0, r - percent)}, ${Math.max(0, g - percent)}, ${Math.max(0, b - percent)})`;
-}
-
-const ORB_COLORS = ['#ff6b6b', '#70a1ff', '#ffa502', '#a55eea', '#ff6348', '#2ed573', '#eccc68', '#1e90ff'];
+const ORB_COLORS_INT = [0xff6b6b, 0x70a1ff, 0xffa502, 0xa55eea, 0xff6348, 0x2ed573, 0xeccc68, 0x1e90ff];
 
 // ==================== ANSWER ORBS ====================
 let answerOrbs = [];
 
 function createAnswerOrb(value, startPos, isCorrect) {
     const config = DIFFICULTIES[gameState.difficulty];
-    const colorHex = ORB_COLORS[Math.floor(Math.random() * ORB_COLORS.length)];
-    const colorInt = parseInt(colorHex.slice(1), 16);
+    const colorInt = ORB_COLORS_INT[Math.floor(Math.random() * ORB_COLORS_INT.length)];
 
     const group = new THREE.Group();
 
-    // Main sphere with number texture baked in
+    // Solid colored sphere
     const sphereGeo = new THREE.SphereGeometry(config.orbSize, 32, 32);
-    const texture = createNumberTexture(String(value), colorHex);
     const sphereMat = new THREE.MeshPhongMaterial({
-        map: texture,
+        color: colorInt,
         emissive: colorInt,
-        emissiveIntensity: 0.15,
-        shininess: 80,
+        emissiveIntensity: 0.2,
+        shininess: 100,
         transparent: true,
-        opacity: 0.95
+        opacity: 0.9
     });
     const sphere = new THREE.Mesh(sphereGeo, sphereMat);
     sphere.castShadow = true;
@@ -561,16 +530,17 @@ function createAnswerOrb(value, startPos, isCorrect) {
 
     // Glow ring
     const ringGeo = new THREE.TorusGeometry(config.orbSize * 1.2, 0.03, 16, 48);
-    const ringMat = new THREE.MeshBasicMaterial({
-        color: colorInt,
-        transparent: true,
-        opacity: 0.4
-    });
+    const ringMat = new THREE.MeshBasicMaterial({ color: colorInt, transparent: true, opacity: 0.4 });
     const ring = new THREE.Mesh(ringGeo, ringMat);
     ring.rotation.x = Math.PI / 2;
     group.add(ring);
 
-    // Point light for glow effect
+    // Billboard number sprite — always faces camera
+    const label = createNumberSprite(String(value), config.orbSize);
+    label.position.z = 0; // centered, sprite auto-faces camera
+    group.add(label);
+
+    // Point light for glow
     const glow = new THREE.PointLight(colorInt, 0.4, 4);
     group.add(glow);
 
@@ -583,7 +553,13 @@ function createAnswerOrb(value, startPos, isCorrect) {
         wobblePhase: Math.random() * Math.PI * 2,
         wobbleAmplitude: 0.2 + Math.random() * 0.3,
         hit: false,
-        missed: false
+        missed: false,
+        // Baseball physics (activated on punch)
+        launched: false,
+        launchVelocity: new THREE.Vector3(),
+        angularVelocity: new THREE.Vector3(),
+        bounceCount: 0,
+        launchTime: 0
     };
 
     scene.add(group);
@@ -911,15 +887,26 @@ function generateQuestion() {
         [options[i], options[j]] = [options[j], options[i]];
     }
 
-    // Spawn orbs coming from the back, spread across lanes
+    // Spawn orbs coming from the back, well separated in lanes
     clearAnswerOrbs();
     const spread = config.spawnSpread;
+    // Pre-compute Y positions ensuring minimum vertical separation
+    const yPositions = [];
+    for (let i = 0; i < numOptions; i++) {
+        let y;
+        let tries = 0;
+        do {
+            y = 0.5 + Math.random() * 2.5;
+            tries++;
+        } while (tries < 20 && yPositions.some(py => Math.abs(py - y) < 1.0));
+        yPositions.push(y);
+    }
     options.forEach((val, i) => {
         const t = numOptions === 1 ? 0 : (i / (numOptions - 1)) * 2 - 1;
         const x = t * spread;
-        const y = 1.2 + (Math.random() - 0.5) * 1.5;
-        // Stagger Z spawn so they don't all come at once
-        const z = ORB_SPAWN_Z - i * 2.5;
+        const y = yPositions[i];
+        // More Z stagger so orbs arrive one by one
+        const z = ORB_SPAWN_Z - i * 4;
         const pos = new THREE.Vector3(x, y, z);
         answerOrbs.push(createAnswerOrb(val, pos, val === answer));
     });
@@ -937,6 +924,13 @@ function selectAnswer(orb) {
     const feedback = document.getElementById('feedback');
     const flash = document.getElementById('hit-flash');
 
+    // Find which hand hit (for launch direction)
+    const hands = [handWorld.left, handWorld.right];
+    let hitHand = orb.position.clone(); // fallback
+    for (const h of hands) {
+        if (h && h.distanceTo(orb.position) < HIT_DISTANCE * 1.5) { hitHand = h; break; }
+    }
+
     if (isCorrect) {
         gameState.combo++;
         if (gameState.combo > gameState.maxCombo) gameState.maxCombo = gameState.combo;
@@ -951,10 +945,13 @@ function selectAnswer(orb) {
         setTimeout(() => flash.className = '', 300);
 
         spawnCelebration(orb.position);
+        playSound('bat');
         playSound('correct');
 
-        // Explode the hit orb
-        explodeOrb(orb);
+        // Baseball bat launch!
+        orb.children[0].material.emissive.setHex(0x2ed573);
+        orb.children[0].material.emissiveIntensity = 0.6;
+        launchOrb(orb, hitHand);
 
         // Mark remaining orbs to fade out
         answerOrbs.forEach(o => {
@@ -970,19 +967,22 @@ function selectAnswer(orb) {
         flash.className = 'red';
         setTimeout(() => flash.className = '', 300);
 
-        // Shatter the wrong orb
+        // Launch the wrong orb away + shatter particles
+        playSound('bat');
         spawnShatter(orb.position, orb.userData.color);
-        explodeOrb(orb);
+        orb.children[0].material.emissive.setHex(0xff4757);
+        orb.children[0].material.emissiveIntensity = 0.6;
+        launchOrb(orb, hitHand);
 
         playSound('wrong');
 
-        // Highlight correct orb (make it glow bright green)
+        // Highlight correct orb (glow green)
         answerOrbs.forEach(o => {
             if (o.userData.isCorrect && !o.userData.hit) {
                 o.children[0].material.emissive.setHex(0x2ed573);
                 o.children[0].material.emissiveIntensity = 0.8;
-                o.userData.missed = true; // will fade out
-            } else if (!o.userData.hit) {
+                o.userData.missed = true;
+            } else if (o !== orb && !o.userData.hit) {
                 o.userData.missed = true;
             }
         });
@@ -992,13 +992,109 @@ function selectAnswer(orb) {
     gameState.nextQuestionDelay = isCorrect ? 1.0 : 1.8;
 }
 
-function explodeOrb(orb) {
-    // Quick scale-up and fade
-    const startScale = orb.scale.x;
-    const startTime = performance.now();
-    function animateExplode() {
-        const elapsed = (performance.now() - startTime) / 300;
-        if (elapsed >= 1) {
+// ==================== BASEBALL BAT PHYSICS ====================
+const GRAVITY = -12;
+const FLOOR_Y = -0.5;
+const BOUNCE_DAMPING = 0.5;   // energy kept per bounce
+const SPIN_DAMPING = 0.98;
+const AIR_DRAG = 0.99;
+const MAX_BOUNCES = 3;
+
+function launchOrb(orb, handPos) {
+    // Calculate launch direction: from hand toward and past the orb, then deflected upward
+    // like a baseball bat hitting the ball
+    const hitDir = orb.position.clone().sub(handPos).normalize();
+
+    // Add upward launch angle (like upper-cutting the ball)
+    hitDir.y = 0.6 + Math.random() * 0.3;
+    // Push it away from the player (positive Z away, or random side)
+    hitDir.z = -(1.5 + Math.random());
+    // Lateral deflection based on which side of center the orb is
+    hitDir.x += (orb.position.x > 0 ? 1 : -1) * (0.5 + Math.random() * 0.5);
+    hitDir.normalize();
+
+    const launchSpeed = 15 + Math.random() * 8; // strong hit
+    orb.userData.launched = true;
+    orb.userData.launchVelocity.copy(hitDir.multiplyScalar(launchSpeed));
+    orb.userData.launchTime = performance.now();
+
+    // Random spin like a spinning ball
+    orb.userData.angularVelocity.set(
+        (Math.random() - 0.5) * 15,
+        (Math.random() - 0.5) * 15,
+        (Math.random() - 0.5) * 10
+    );
+}
+
+function updateLaunchedOrbs(dt) {
+    for (let i = answerOrbs.length - 1; i >= 0; i--) {
+        const orb = answerOrbs[i];
+        if (!orb.userData.launched) continue;
+
+        const vel = orb.userData.launchVelocity;
+        const angVel = orb.userData.angularVelocity;
+
+        // Gravity
+        vel.y += GRAVITY * dt;
+
+        // Air drag
+        vel.multiplyScalar(AIR_DRAG);
+
+        // Move
+        orb.position.x += vel.x * dt;
+        orb.position.y += vel.y * dt;
+        orb.position.z += vel.z * dt;
+
+        // Spin
+        orb.rotation.x += angVel.x * dt;
+        orb.rotation.y += angVel.y * dt;
+        orb.rotation.z += angVel.z * dt;
+        angVel.multiplyScalar(SPIN_DAMPING);
+
+        // Floor bounce
+        const orbRadius = DIFFICULTIES[gameState.difficulty].orbSize * orb.scale.x;
+        if (orb.position.y - orbRadius < FLOOR_Y && vel.y < 0) {
+            orb.position.y = FLOOR_Y + orbRadius;
+            vel.y = -vel.y * BOUNCE_DAMPING;
+            vel.x *= 0.8;
+            vel.z *= 0.8;
+            // Extra spin on bounce
+            angVel.x += (Math.random() - 0.5) * 5;
+            angVel.z += (Math.random() - 0.5) * 5;
+            orb.userData.bounceCount++;
+
+            playSound('whoosh');
+        }
+
+        // Fade out after time or bounces
+        const age = (performance.now() - orb.userData.launchTime) / 1000;
+        if (age > 2.5 || orb.userData.bounceCount >= MAX_BOUNCES) {
+            const fadeStart = orb.userData.bounceCount >= MAX_BOUNCES ? 0 : 2.5;
+            const fadeAlpha = orb.userData.bounceCount >= MAX_BOUNCES
+                ? Math.max(0, 1 - (age - (orb.userData.launchTime / 1000)) * 2)
+                : Math.max(0, 1 - (age - fadeStart) * 2);
+
+            orb.traverse(child => {
+                if (child.material && child.material.opacity !== undefined) {
+                    child.material.opacity *= 0.92;
+                }
+            });
+
+            if ((orb.children[0] && orb.children[0].material.opacity < 0.02) || age > 4) {
+                orb.traverse(child => {
+                    if (child.geometry) child.geometry.dispose();
+                    if (child.material) {
+                        if (child.material.map) child.material.map.dispose();
+                        child.material.dispose();
+                    }
+                });
+                scene.remove(orb);
+                answerOrbs.splice(i, 1);
+            }
+        }
+
+        // Off-screen cleanup
+        if (Math.abs(orb.position.x) > 30 || orb.position.z < -30 || orb.position.z > 30) {
             orb.traverse(child => {
                 if (child.geometry) child.geometry.dispose();
                 if (child.material) {
@@ -1007,17 +1103,9 @@ function explodeOrb(orb) {
                 }
             });
             scene.remove(orb);
-            return;
+            answerOrbs.splice(i, 1);
         }
-        orb.scale.setScalar(startScale + elapsed * 2);
-        orb.traverse(child => {
-            if (child.material && child.material.opacity !== undefined) {
-                child.material.opacity = 1 - elapsed;
-            }
-        });
-        requestAnimationFrame(animateExplode);
     }
-    animateExplode();
 }
 
 function onOrbMissed() {
@@ -1079,6 +1167,27 @@ function playSound(type) {
         gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
         osc.start(); osc.stop(audioCtx.currentTime + 0.15);
+    } else if (type === 'bat') {
+        // Punchy bat crack sound
+        const noise = audioCtx.createBufferSource();
+        const bufferSize = audioCtx.sampleRate * 0.08;
+        const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.1));
+        noise.buffer = buffer;
+        const noiseGain = audioCtx.createGain();
+        noiseGain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+        noiseGain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
+        noise.connect(noiseGain);
+        noiseGain.connect(audioCtx.destination);
+        noise.start();
+        // Also a low thump
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(60, audioCtx.currentTime + 0.1);
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.12);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.12);
     }
 }
 
@@ -1182,15 +1291,21 @@ document.querySelectorAll('.difficulty-btn').forEach(btn => {
     });
 });
 
-// Keyboard fallback
+// Keyboard fallback — simulate a punch from a default position
 document.addEventListener('keydown', (e) => {
     if (gameState.screen !== 'playing' || gameState.answering) return;
     const num = parseInt(e.key);
-    if (num >= 1 && num <= answerOrbs.length) {
-        const orb = answerOrbs[num - 1];
-        if (!orb.userData.hit && !orb.userData.missed) {
-            selectAnswer(orb);
-        }
+    // Find active (non-hit, non-missed, non-launched) orbs sorted by Z (closest first)
+    const active = answerOrbs
+        .filter(o => !o.userData.hit && !o.userData.missed && !o.userData.launched)
+        .sort((a, b) => b.position.z - a.position.z);
+    if (num >= 1 && num <= active.length) {
+        const orb = active[num - 1];
+        // Set a temporary fake hand position near the orb for launch direction
+        const fakeHand = orb.position.clone().add(new THREE.Vector3(0, -0.5, 1));
+        handWorld.left = fakeHand;
+        selectAnswer(orb);
+        handWorld.left = null;
     }
 });
 
@@ -1229,6 +1344,8 @@ function animate() {
 
         for (let i = answerOrbs.length - 1; i >= 0; i--) {
             const orb = answerOrbs[i];
+            // Skip launched orbs — they're handled by updateLaunchedOrbs
+            if (orb.userData.launched) continue;
             if (orb.userData.hit) continue;
 
             if (orb.userData.missed) {
@@ -1257,11 +1374,9 @@ function animate() {
             // Move forward (toward camera)
             orb.position.z += orb.userData.velocity.z * dt;
 
-            // Wobble animation
+            // Gentle wobble (no rotation — sprite must stay readable)
             const phase = orb.userData.wobblePhase + now * 0.002;
             orb.position.y += Math.sin(phase) * 0.003;
-            orb.rotation.y += dt * 0.8;
-            orb.rotation.x += dt * 0.3;
 
             // Ring pulsing
             if (orb.children[1]) {
@@ -1280,8 +1395,11 @@ function animate() {
             }
         }
 
-        // Check if all active orbs are gone/missed
-        const activeOrbs = answerOrbs.filter(o => !o.userData.hit && !o.userData.missed);
+        // Update launched orbs (baseball physics)
+        updateLaunchedOrbs(dt);
+
+        // Check if all active orbs are gone/missed (not counting launched ones)
+        const activeOrbs = answerOrbs.filter(o => !o.userData.hit && !o.userData.missed && !o.userData.launched);
         if (activeOrbs.length === 0 && !gameState.answering) {
             onOrbMissed();
         }
