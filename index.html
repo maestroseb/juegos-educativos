@@ -686,8 +686,12 @@ function buildAvatar() {
 }
 buildAvatar();
 
-// 3D hand world positions (for collision with orbs)
+// 3D hand world positions and velocity tracking (for punch detection)
 let handWorld = { left: null, right: null };
+let handPrev = { left: null, right: null };
+let handVelocity = { left: new THREE.Vector3(), right: new THREE.Vector3() };
+let handSpeed = { left: 0, right: 0 };
+const PUNCH_SPEED_THRESHOLD = 3.0; // minimum hand speed to register a punch
 
 function updateAvatar(landmarks) {
     if (!landmarks) { avatar.visible = false; handWorld.left = null; handWorld.right = null; return; }
@@ -734,9 +738,31 @@ function updateAvatar(landmarks) {
     avatarParts.leftHand.position.copy(lw);
     avatarParts.rightHand.position.copy(rw);
 
-    // Store world positions for collision detection
-    handWorld.left = (lWrist.visibility > 0.5) ? lw.clone() : null;
-    handWorld.right = (rWrist.visibility > 0.5) ? rw.clone() : null;
+    // Store world positions and compute velocity for punch detection
+    const newLeft = (lWrist.visibility > 0.5) ? lw.clone() : null;
+    const newRight = (rWrist.visibility > 0.5) ? rw.clone() : null;
+
+    // Velocity = change in position (we call this every pose frame ~30fps)
+    const velDt = 1 / 30; // approximate pose framerate
+    if (newLeft && handPrev.left) {
+        handVelocity.left.copy(newLeft).sub(handPrev.left).divideScalar(velDt);
+        handSpeed.left = handVelocity.left.length();
+    } else {
+        handVelocity.left.set(0, 0, 0);
+        handSpeed.left = 0;
+    }
+    if (newRight && handPrev.right) {
+        handVelocity.right.copy(newRight).sub(handPrev.right).divideScalar(velDt);
+        handSpeed.right = handVelocity.right.length();
+    } else {
+        handVelocity.right.set(0, 0, 0);
+        handSpeed.right = 0;
+    }
+
+    handPrev.left = newLeft ? newLeft.clone() : null;
+    handPrev.right = newRight ? newRight.clone() : null;
+    handWorld.left = newLeft;
+    handWorld.right = newRight;
 }
 
 // ==================== MEDIAPIPE POSE ====================
@@ -812,6 +838,14 @@ function updateHandCursors() {
         leftHandEl.style.display = 'block';
         leftHandEl.style.left = handScreen.left.x + 'px';
         leftHandEl.style.top = handScreen.left.y + 'px';
+        // Glow when hand is fast enough to punch
+        if (handSpeed.left >= PUNCH_SPEED_THRESHOLD) {
+            leftHandEl.style.boxShadow = '0 0 25px #ffd700, 0 0 50px rgba(255,215,0,0.4)';
+            leftHandEl.style.borderColor = '#ffd700';
+        } else {
+            leftHandEl.style.boxShadow = '0 0 15px rgba(255,107,107,0.3)';
+            leftHandEl.style.borderColor = '#ff6b6b';
+        }
     } else {
         leftHandEl.style.display = 'none';
     }
@@ -819,29 +853,44 @@ function updateHandCursors() {
         rightHandEl.style.display = 'block';
         rightHandEl.style.left = handScreen.right.x + 'px';
         rightHandEl.style.top = handScreen.right.y + 'px';
+        if (handSpeed.right >= PUNCH_SPEED_THRESHOLD) {
+            rightHandEl.style.boxShadow = '0 0 25px #ffd700, 0 0 50px rgba(255,215,0,0.4)';
+            rightHandEl.style.borderColor = '#ffd700';
+        } else {
+            rightHandEl.style.boxShadow = '0 0 15px rgba(112,161,255,0.3)';
+            rightHandEl.style.borderColor = '#70a1ff';
+        }
     } else {
         rightHandEl.style.display = 'none';
     }
 }
 
 // ==================== COLLISION: PUNCH DETECTION ====================
+// Requires both proximity AND hand moving fast enough (actual punching motion)
 function checkPunchCollision() {
     if (gameState.answering || gameState.screen !== 'playing') return;
 
     const hands = [handWorld.left, handWorld.right];
+    const speeds = [handSpeed.left, handSpeed.right];
+    const velocities = [handVelocity.left, handVelocity.right];
     const handEls = [leftHandEl, rightHandEl];
+    const sides = ['left', 'right'];
 
     for (let h = 0; h < hands.length; h++) {
         if (!hands[h]) continue;
+        // Hand must be moving fast enough — this is what makes it a punch!
+        if (speeds[h] < PUNCH_SPEED_THRESHOLD) continue;
 
         for (const orb of answerOrbs) {
-            if (orb.userData.hit || orb.userData.missed) continue;
+            if (orb.userData.hit || orb.userData.missed || orb.userData.launched) continue;
 
             const dist = hands[h].distanceTo(orb.position);
             if (dist < HIT_DISTANCE) {
-                // PUNCH HIT!
+                // PUNCH HIT! Store the hand velocity for realistic launch
                 handEls[h].classList.add('punching');
                 setTimeout(() => handEls[h].classList.remove('punching'), 200);
+                orb.userData.punchVelocity = velocities[h].clone();
+                orb.userData.punchHand = sides[h];
                 selectAnswer(orb);
                 return;
             }
@@ -924,12 +973,10 @@ function selectAnswer(orb) {
     const feedback = document.getElementById('feedback');
     const flash = document.getElementById('hit-flash');
 
-    // Find which hand hit (for launch direction)
-    const hands = [handWorld.left, handWorld.right];
-    let hitHand = orb.position.clone(); // fallback
-    for (const h of hands) {
-        if (h && h.distanceTo(orb.position) < HIT_DISTANCE * 1.5) { hitHand = h; break; }
-    }
+    // Get punch velocity stored during collision detection
+    const punchVel = orb.userData.punchVelocity || new THREE.Vector3(0, 2, -5);
+    const hitHandSide = orb.userData.punchHand || 'left';
+    const hitHand = handWorld[hitHandSide] || orb.position.clone().add(new THREE.Vector3(0, -0.5, 1));
 
     if (isCorrect) {
         gameState.combo++;
@@ -951,7 +998,7 @@ function selectAnswer(orb) {
         // Baseball bat launch!
         orb.children[0].material.emissive.setHex(0x2ed573);
         orb.children[0].material.emissiveIntensity = 0.6;
-        launchOrb(orb, hitHand);
+        launchOrb(orb, hitHand, punchVel);
 
         // Mark remaining orbs to fade out
         answerOrbs.forEach(o => {
@@ -972,7 +1019,7 @@ function selectAnswer(orb) {
         spawnShatter(orb.position, orb.userData.color);
         orb.children[0].material.emissive.setHex(0xff4757);
         orb.children[0].material.emissiveIntensity = 0.6;
-        launchOrb(orb, hitHand);
+        launchOrb(orb, hitHand, punchVel);
 
         playSound('wrong');
 
@@ -1000,20 +1047,28 @@ const SPIN_DAMPING = 0.98;
 const AIR_DRAG = 0.99;
 const MAX_BOUNCES = 3;
 
-function launchOrb(orb, handPos) {
-    // Calculate launch direction: from hand toward and past the orb, then deflected upward
-    // like a baseball bat hitting the ball
-    const hitDir = orb.position.clone().sub(handPos).normalize();
+function launchOrb(orb, handPos, punchVelocity) {
+    // Use actual hand velocity as the base launch direction for realism
+    let hitDir;
+    if (punchVelocity && punchVelocity.length() > 0.1) {
+        // Real punch: use the hand's movement direction
+        hitDir = punchVelocity.clone().normalize();
+        // Ensure it goes away from player (negative Z) and upward
+        hitDir.y = Math.max(hitDir.y, 0.3) + 0.3;
+        hitDir.z = Math.min(hitDir.z, -0.5);
+        hitDir.normalize();
+    } else {
+        // Fallback (keyboard): computed direction
+        hitDir = orb.position.clone().sub(handPos).normalize();
+        hitDir.y = 0.6 + Math.random() * 0.3;
+        hitDir.z = -(1.5 + Math.random());
+        hitDir.x += (orb.position.x > 0 ? 1 : -1) * (0.5 + Math.random() * 0.5);
+        hitDir.normalize();
+    }
 
-    // Add upward launch angle (like upper-cutting the ball)
-    hitDir.y = 0.6 + Math.random() * 0.3;
-    // Push it away from the player (positive Z away, or random side)
-    hitDir.z = -(1.5 + Math.random());
-    // Lateral deflection based on which side of center the orb is
-    hitDir.x += (orb.position.x > 0 ? 1 : -1) * (0.5 + Math.random() * 0.5);
-    hitDir.normalize();
-
-    const launchSpeed = 15 + Math.random() * 8; // strong hit
+    // Launch speed scales with how fast the hand was moving (harder punch = further launch)
+    const handSpeedFactor = punchVelocity ? Math.min(punchVelocity.length() / 8, 2.5) : 1;
+    const launchSpeed = (12 + Math.random() * 5) * handSpeedFactor;
     orb.userData.launched = true;
     orb.userData.launchVelocity.copy(hitDir.multiplyScalar(launchSpeed));
     orb.userData.launchTime = performance.now();
@@ -1295,15 +1350,18 @@ document.querySelectorAll('.difficulty-btn').forEach(btn => {
 document.addEventListener('keydown', (e) => {
     if (gameState.screen !== 'playing' || gameState.answering) return;
     const num = parseInt(e.key);
-    // Find active (non-hit, non-missed, non-launched) orbs sorted by Z (closest first)
     const active = answerOrbs
         .filter(o => !o.userData.hit && !o.userData.missed && !o.userData.launched)
         .sort((a, b) => b.position.z - a.position.z);
     if (num >= 1 && num <= active.length) {
         const orb = active[num - 1];
-        // Set a temporary fake hand position near the orb for launch direction
+        // Simulate punch with fake hand position and velocity
         const fakeHand = orb.position.clone().add(new THREE.Vector3(0, -0.5, 1));
         handWorld.left = fakeHand;
+        orb.userData.punchVelocity = new THREE.Vector3(
+            (Math.random() - 0.5) * 3, 2, -6
+        );
+        orb.userData.punchHand = 'left';
         selectAnswer(orb);
         handWorld.left = null;
     }
