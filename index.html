@@ -1,0 +1,1301 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multiplication Pose Challenge</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            overflow: hidden;
+            background: #0a0a2e;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: white;
+        }
+        #game-canvas { position: fixed; top: 0; left: 0; z-index: 1; }
+        #webcam-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 10;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 12px;
+            overflow: hidden;
+            width: 240px;
+            height: 180px;
+            background: #000;
+        }
+        #webcam { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+        #pose-canvas {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            transform: scaleX(-1);
+        }
+        #hud {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 10;
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            pointer-events: none;
+        }
+        #hud > div { pointer-events: auto; }
+        .hud-box {
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 12px;
+            padding: 10px 20px;
+        }
+        #score-display { font-size: 24px; font-weight: bold; }
+        #score-display span { color: #ffd700; }
+        #combo-display {
+            font-size: 16px;
+            color: #ff6b6b;
+            margin-top: 4px;
+        }
+        #level-display { font-size: 18px; text-align: right; }
+        #level-display .level-num { color: #7bed9f; font-size: 24px; font-weight: bold; }
+        #timer-display { font-size: 20px; text-align: center; }
+        #timer-display .time { color: #70a1ff; font-size: 28px; font-weight: bold; }
+        #question-display {
+            position: fixed;
+            top: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            text-align: center;
+            pointer-events: none;
+        }
+        #question-text {
+            font-size: 56px;
+            font-weight: bold;
+            text-shadow: 0 0 30px rgba(255,255,255,0.5), 0 4px 8px rgba(0,0,0,0.5);
+            letter-spacing: 4px;
+        }
+        #feedback {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 15;
+            font-size: 72px;
+            font-weight: bold;
+            opacity: 0;
+            transition: opacity 0.3s;
+            text-shadow: 0 0 40px currentColor;
+            pointer-events: none;
+        }
+        #feedback.correct { color: #2ed573; }
+        #feedback.wrong { color: #ff4757; }
+        #feedback.show { opacity: 1; }
+
+        /* Menu / Overlay screens */
+        .overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            z-index: 20;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(10, 10, 46, 0.92);
+            backdrop-filter: blur(8px);
+        }
+        .overlay.hidden { display: none; }
+        .overlay h1 {
+            font-size: 52px;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #ffd700, #ff6b6b, #7bed9f, #70a1ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .overlay h2 { font-size: 28px; margin-bottom: 30px; opacity: 0.8; }
+        .overlay p { font-size: 18px; opacity: 0.7; margin-bottom: 20px; max-width: 500px; text-align: center; line-height: 1.6; }
+        .btn {
+            padding: 15px 40px;
+            font-size: 22px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin: 8px;
+        }
+        .btn:hover { transform: scale(1.05); }
+        .btn-primary {
+            background: linear-gradient(135deg, #ffd700, #ffaa00);
+            color: #1a1a2e;
+            box-shadow: 0 4px 20px rgba(255, 215, 0, 0.4);
+        }
+        .btn-secondary {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            border: 2px solid rgba(255,255,255,0.3);
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: rgba(255,255,255,0.08);
+            border-radius: 12px;
+            padding: 15px 25px;
+            text-align: center;
+        }
+        .stat-card .value { font-size: 36px; font-weight: bold; color: #ffd700; }
+        .stat-card .label { font-size: 14px; opacity: 0.6; margin-top: 4px; }
+        #hand-cursors {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 5;
+            pointer-events: none;
+        }
+        .hand-cursor {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: 3px solid white;
+            transform: translate(-50%, -50%);
+            transition: left 0.08s, top 0.08s;
+            display: none;
+        }
+        .hand-cursor.left { background: rgba(255, 107, 107, 0.4); border-color: #ff6b6b; }
+        .hand-cursor.right { background: rgba(112, 161, 255, 0.4); border-color: #70a1ff; }
+        .hand-cursor.hovering {
+            width: 65px;
+            height: 65px;
+            box-shadow: 0 0 20px currentColor;
+        }
+        .hand-cursor .progress-ring {
+            position: absolute;
+            top: -5px; left: -5px;
+            width: calc(100% + 10px);
+            height: calc(100% + 10px);
+        }
+        .hand-cursor .progress-ring circle {
+            fill: none;
+            stroke-width: 3;
+            stroke-linecap: round;
+            transform: rotate(-90deg);
+            transform-origin: center;
+        }
+        #camera-prompt {
+            position: fixed;
+            bottom: 220px;
+            right: 20px;
+            z-index: 10;
+            background: rgba(0,0,0,0.7);
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            opacity: 0.8;
+        }
+        .difficulty-selector {
+            display: flex;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        .difficulty-btn {
+            padding: 10px 24px;
+            border-radius: 8px;
+            border: 2px solid rgba(255,255,255,0.2);
+            background: rgba(255,255,255,0.05);
+            color: white;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.2s;
+        }
+        .difficulty-btn:hover, .difficulty-btn.active {
+            border-color: #ffd700;
+            background: rgba(255, 215, 0, 0.15);
+        }
+    </style>
+</head>
+<body>
+
+<!-- Three.js Canvas -->
+<canvas id="game-canvas"></canvas>
+
+<!-- Hand cursors overlay -->
+<div id="hand-cursors">
+    <div class="hand-cursor left" id="left-hand">
+        <svg class="progress-ring" viewBox="0 0 60 60">
+            <circle cx="30" cy="30" r="27" stroke="rgba(255,107,107,0.3)" />
+            <circle cx="30" cy="30" r="27" stroke="#ff6b6b" id="left-progress"
+                stroke-dasharray="170" stroke-dashoffset="170" />
+        </svg>
+    </div>
+    <div class="hand-cursor right" id="right-hand">
+        <svg class="progress-ring" viewBox="0 0 60 60">
+            <circle cx="30" cy="30" r="27" stroke="rgba(112,161,255,0.3)" />
+            <circle cx="30" cy="30" r="27" stroke="#70a1ff" id="right-progress"
+                stroke-dasharray="170" stroke-dashoffset="170" />
+        </svg>
+    </div>
+</div>
+
+<!-- Webcam -->
+<div id="webcam-container">
+    <video id="webcam" autoplay playsinline></video>
+    <canvas id="pose-canvas"></canvas>
+</div>
+<div id="camera-prompt">Webcam: Iniciando...</div>
+
+<!-- HUD -->
+<div id="hud" class="hidden">
+    <div class="hud-box">
+        <div id="score-display">Puntos: <span id="score-value">0</span></div>
+        <div id="combo-display" class="hidden">Combo x<span id="combo-value">0</span></div>
+    </div>
+    <div class="hud-box">
+        <div id="timer-display">
+            <div class="time" id="timer-value">30</div>
+            <div style="font-size:12px;opacity:0.6">segundos</div>
+        </div>
+    </div>
+    <div class="hud-box">
+        <div id="level-display">
+            Nivel <span class="level-num" id="level-value">1</span>
+            <div style="font-size:13px;opacity:0.6" id="table-display">Tabla del 2</div>
+        </div>
+    </div>
+</div>
+
+<!-- Question -->
+<div id="question-display" class="hidden">
+    <div id="question-text">7 &times; 8 = ?</div>
+</div>
+
+<!-- Feedback -->
+<div id="feedback"></div>
+
+<!-- Main Menu -->
+<div class="overlay" id="menu-screen">
+    <h1>Multiplication Pose</h1>
+    <h2>Challenge</h2>
+    <p>Usa tu cuerpo para responder preguntas de multiplicar. Mueve tus manos frente a la c&aacute;mara para seleccionar la respuesta correcta.</p>
+    <div class="difficulty-selector">
+        <button class="difficulty-btn active" data-difficulty="easy">F&aacute;cil</button>
+        <button class="difficulty-btn" data-difficulty="medium">Normal</button>
+        <button class="difficulty-btn" data-difficulty="hard">Dif&iacute;cil</button>
+    </div>
+    <button class="btn btn-primary" id="btn-start">Jugar</button>
+</div>
+
+<!-- Level Complete -->
+<div class="overlay hidden" id="level-complete-screen">
+    <h2 id="level-complete-title">Nivel Completado!</h2>
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="value" id="lc-correct">0</div>
+            <div class="label">Correctas</div>
+        </div>
+        <div class="stat-card">
+            <div class="value" id="lc-wrong">0</div>
+            <div class="label">Incorrectas</div>
+        </div>
+        <div class="stat-card">
+            <div class="value" id="lc-combo">0</div>
+            <div class="label">Mejor Combo</div>
+        </div>
+        <div class="stat-card">
+            <div class="value" id="lc-score">0</div>
+            <div class="label">Puntos</div>
+        </div>
+    </div>
+    <button class="btn btn-primary" id="btn-next-level">Siguiente Nivel</button>
+    <button class="btn btn-secondary" id="btn-menu-from-level">Men&uacute; Principal</button>
+</div>
+
+<!-- Game Over -->
+<div class="overlay hidden" id="gameover-screen">
+    <h2>Juego Terminado!</h2>
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="value" id="go-score">0</div>
+            <div class="label">Puntuaci&oacute;n Final</div>
+        </div>
+        <div class="stat-card">
+            <div class="value" id="go-level">1</div>
+            <div class="label">Nivel Alcanzado</div>
+        </div>
+        <div class="stat-card">
+            <div class="value" id="go-correct">0</div>
+            <div class="label">Correctas</div>
+        </div>
+        <div class="stat-card">
+            <div class="value" id="go-combo">0</div>
+            <div class="label">Mejor Combo</div>
+        </div>
+    </div>
+    <button class="btn btn-primary" id="btn-restart">Jugar de Nuevo</button>
+    <button class="btn btn-secondary" id="btn-menu-from-gameover">Men&uacute; Principal</button>
+</div>
+
+<!-- Libraries -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/pose.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1675466862/camera_utils.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3.1675466124/drawing_utils.js"></script>
+
+<script>
+// ==================== GAME CONFIG ====================
+const DIFFICULTIES = {
+    easy:   { timePerQuestion: 15, optionCount: 3, moveSpeed: 0, selectTime: 0.8 },
+    medium: { timePerQuestion: 10, optionCount: 4, moveSpeed: 0.3, selectTime: 0.6 },
+    hard:   { timePerQuestion: 7,  optionCount: 4, moveSpeed: 0.7, selectTime: 0.5 }
+};
+
+const LEVELS = [
+    { tables: [2], name: "Tabla del 2" },
+    { tables: [3], name: "Tabla del 3" },
+    { tables: [4], name: "Tabla del 4" },
+    { tables: [5], name: "Tabla del 5" },
+    { tables: [2, 3, 4, 5], name: "Tablas 2-5" },
+    { tables: [6], name: "Tabla del 6" },
+    { tables: [7], name: "Tabla del 7" },
+    { tables: [8], name: "Tabla del 8" },
+    { tables: [9], name: "Tabla del 9" },
+    { tables: [6, 7, 8, 9], name: "Tablas 6-9" },
+    { tables: [10, 11, 12], name: "Tablas 10-12" },
+    { tables: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], name: "Todas las tablas" }
+];
+
+const QUESTIONS_PER_LEVEL = 8;
+const POINTS_BASE = 100;
+const COMBO_MULTIPLIER = 50;
+
+// ==================== GAME STATE ====================
+let gameState = {
+    screen: 'menu', // menu, playing, levelComplete, gameOver
+    difficulty: 'easy',
+    level: 0,
+    score: 0,
+    combo: 0,
+    maxCombo: 0,
+    correctCount: 0,
+    wrongCount: 0,
+    totalCorrect: 0,
+    totalWrong: 0,
+    currentQuestion: null,
+    options: [],
+    questionTimer: 0,
+    questionIndex: 0,
+    answering: false
+};
+
+// ==================== THREE.JS SETUP ====================
+const canvas = document.getElementById('game-canvas');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
+camera.position.set(0, 2, 8);
+camera.lookAt(0, 1, 0);
+
+// Lighting
+const ambientLight = new THREE.AmbientLight(0x404060, 0.6);
+scene.add(ambientLight);
+
+const mainLight = new THREE.DirectionalLight(0xffffff, 0.8);
+mainLight.position.set(5, 10, 7);
+mainLight.castShadow = true;
+scene.add(mainLight);
+
+const pointLight1 = new THREE.PointLight(0xff6b6b, 0.5, 20);
+pointLight1.position.set(-5, 5, 3);
+scene.add(pointLight1);
+
+const pointLight2 = new THREE.PointLight(0x70a1ff, 0.5, 20);
+pointLight2.position.set(5, 5, 3);
+scene.add(pointLight2);
+
+// Background particles
+const starsGeometry = new THREE.BufferGeometry();
+const starsCount = 500;
+const starsPositions = new Float32Array(starsCount * 3);
+for (let i = 0; i < starsCount * 3; i++) {
+    starsPositions[i] = (Math.random() - 0.5) * 60;
+}
+starsGeometry.setAttribute('position', new THREE.BufferAttribute(starsPositions, 3));
+const starsMaterial = new THREE.PointsMaterial({ color: 0xffffff, size: 0.08, transparent: true, opacity: 0.6 });
+const stars = new THREE.Points(starsGeometry, starsMaterial);
+scene.add(stars);
+
+// Floor grid
+const gridHelper = new THREE.GridHelper(20, 20, 0x1a1a4e, 0x1a1a4e);
+gridHelper.position.y = -1;
+scene.add(gridHelper);
+
+// ==================== 3D TEXT (using sprites) ====================
+function createTextSprite(text, options = {}) {
+    const {
+        fontSize = 64,
+        fontWeight = 'bold',
+        color = '#ffffff',
+        bgColor = null,
+        bgRadius = 20,
+        padding = 20
+    } = options;
+
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    ctx.font = `${fontWeight} ${fontSize}px "Segoe UI", Arial, sans-serif`;
+    const metrics = ctx.measureText(text);
+    const textWidth = metrics.width;
+    const textHeight = fontSize;
+
+    canvas.width = textWidth + padding * 2;
+    canvas.height = textHeight + padding * 2;
+
+    if (bgColor) {
+        ctx.fillStyle = bgColor;
+        roundRect(ctx, 0, 0, canvas.width, canvas.height, bgRadius);
+        ctx.fill();
+    }
+
+    ctx.font = `${fontWeight} ${fontSize}px "Segoe UI", Arial, sans-serif`;
+    ctx.fillStyle = color;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.minFilter = THREE.LinearFilter;
+    const spriteMaterial = new THREE.SpriteMaterial({ map: texture, transparent: true });
+    const sprite = new THREE.Sprite(spriteMaterial);
+    const aspect = canvas.width / canvas.height;
+    sprite.scale.set(aspect * 1.2, 1.2, 1);
+    return sprite;
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+}
+
+// ==================== ANSWER ORBS ====================
+let answerOrbs = [];
+
+function createAnswerOrb(value, position, isCorrect) {
+    const group = new THREE.Group();
+
+    // Glowing sphere
+    const sphereGeo = new THREE.SphereGeometry(0.7, 32, 32);
+    const sphereMat = new THREE.MeshPhongMaterial({
+        color: isCorrect ? 0x2ed573 : getRandomColor(),
+        emissive: isCorrect ? 0x1a8a47 : 0x333355,
+        emissiveIntensity: 0.3,
+        transparent: true,
+        opacity: 0.85,
+        shininess: 100
+    });
+    const sphere = new THREE.Mesh(sphereGeo, sphereMat);
+    sphere.castShadow = true;
+    group.add(sphere);
+
+    // Outer ring
+    const ringGeo = new THREE.TorusGeometry(0.85, 0.04, 16, 32);
+    const ringMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.3 });
+    const ring = new THREE.Mesh(ringGeo, ringMat);
+    group.add(ring);
+
+    // Number label
+    const label = createTextSprite(String(value), {
+        fontSize: 80,
+        fontWeight: 'bold',
+        color: '#ffffff'
+    });
+    label.position.z = 0.1;
+    group.add(label);
+
+    group.position.copy(position);
+    group.userData = {
+        value, isCorrect,
+        basePosition: position.clone(),
+        hoverProgress: 0,
+        phase: Math.random() * Math.PI * 2,
+        selected: false
+    };
+
+    scene.add(group);
+    return group;
+}
+
+function getRandomColor() {
+    const colors = [0xff6b6b, 0x70a1ff, 0xffa502, 0xa55eea, 0xff6348, 0x1e90ff, 0xeccc68];
+    return colors[Math.floor(Math.random() * colors.length)];
+}
+
+function clearAnswerOrbs() {
+    answerOrbs.forEach(orb => {
+        orb.traverse(child => {
+            if (child.geometry) child.geometry.dispose();
+            if (child.material) {
+                if (child.material.map) child.material.map.dispose();
+                child.material.dispose();
+            }
+        });
+        scene.remove(orb);
+    });
+    answerOrbs = [];
+}
+
+// ==================== CELEBRATION PARTICLES ====================
+let particles = [];
+
+function spawnCelebration(position, color) {
+    const count = 30;
+    for (let i = 0; i < count; i++) {
+        const geo = new THREE.SphereGeometry(0.06, 8, 8);
+        const mat = new THREE.MeshBasicMaterial({
+            color: [0xffd700, 0x2ed573, 0xff6b6b, 0x70a1ff, 0xffa502][Math.floor(Math.random() * 5)],
+            transparent: true
+        });
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.position.copy(position);
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 2 + Math.random() * 4;
+        const upSpeed = 3 + Math.random() * 3;
+        mesh.userData = {
+            velocity: new THREE.Vector3(
+                Math.cos(angle) * speed,
+                upSpeed,
+                Math.sin(angle) * speed * 0.5
+            ),
+            life: 1.0,
+            decay: 0.6 + Math.random() * 0.8
+        };
+        scene.add(mesh);
+        particles.push(mesh);
+    }
+}
+
+function updateParticles(dt) {
+    for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.userData.velocity.y -= 9.8 * dt;
+        p.position.add(p.userData.velocity.clone().multiplyScalar(dt));
+        p.userData.life -= p.userData.decay * dt;
+        p.material.opacity = Math.max(0, p.userData.life);
+        p.scale.setScalar(Math.max(0.1, p.userData.life));
+
+        if (p.userData.life <= 0) {
+            p.geometry.dispose();
+            p.material.dispose();
+            scene.remove(p);
+            particles.splice(i, 1);
+        }
+    }
+}
+
+// ==================== AVATAR (simple stick figure) ====================
+const avatar = new THREE.Group();
+avatar.visible = false;
+scene.add(avatar);
+
+const avatarParts = {};
+function buildAvatar() {
+    const headGeo = new THREE.SphereGeometry(0.25, 16, 16);
+    const bodyMat = new THREE.MeshPhongMaterial({ color: 0x70a1ff, emissive: 0x1a3a6e, emissiveIntensity: 0.2 });
+    avatarParts.head = new THREE.Mesh(headGeo, bodyMat);
+    avatarParts.head.position.y = 2;
+    avatar.add(avatarParts.head);
+
+    const torsoGeo = new THREE.CylinderGeometry(0.15, 0.12, 1, 8);
+    avatarParts.torso = new THREE.Mesh(torsoGeo, bodyMat);
+    avatarParts.torso.position.y = 1.3;
+    avatar.add(avatarParts.torso);
+
+    function createLimb() {
+        const geo = new THREE.CylinderGeometry(0.06, 0.06, 0.6, 6);
+        return new THREE.Mesh(geo, bodyMat);
+    }
+    avatarParts.leftArm = createLimb();
+    avatarParts.rightArm = createLimb();
+    avatarParts.leftLeg = createLimb();
+    avatarParts.rightLeg = createLimb();
+    avatar.add(avatarParts.leftArm, avatarParts.rightArm, avatarParts.leftLeg, avatarParts.rightLeg);
+
+    // Hand spheres (glowing)
+    const handMat = new THREE.MeshPhongMaterial({ color: 0xffd700, emissive: 0xffa500, emissiveIntensity: 0.5 });
+    const handGeo = new THREE.SphereGeometry(0.12, 12, 12);
+    avatarParts.leftHand = new THREE.Mesh(handGeo, handMat.clone());
+    avatarParts.rightHand = new THREE.Mesh(handGeo, handMat.clone());
+    avatar.add(avatarParts.leftHand, avatarParts.rightHand);
+
+    avatar.position.set(0, -1, 4);
+}
+buildAvatar();
+
+function updateAvatar(landmarks) {
+    if (!landmarks) { avatar.visible = false; return; }
+    avatar.visible = true;
+
+    const lShoulder = landmarks[11];
+    const rShoulder = landmarks[12];
+    const lElbow = landmarks[13];
+    const rElbow = landmarks[14];
+    const lWrist = landmarks[15];
+    const rWrist = landmarks[16];
+    const lHip = landmarks[23];
+    const rHip = landmarks[24];
+
+    // Map normalized coordinates to 3D space
+    function mapPos(lm) {
+        return new THREE.Vector3(
+            -(lm.x - 0.5) * 4,
+            -(lm.y - 0.5) * 3 + 1.5,
+            0
+        );
+    }
+
+    const ls = mapPos(lShoulder), rs = mapPos(rShoulder);
+    const le = mapPos(lElbow), re = mapPos(rElbow);
+    const lw = mapPos(lWrist), rw = mapPos(rWrist);
+    const lh = mapPos(lHip), rh = mapPos(rHip);
+
+    // Head
+    const neck = ls.clone().add(rs).multiplyScalar(0.5);
+    avatarParts.head.position.copy(neck.clone().add(new THREE.Vector3(0, 0.35, 0)));
+
+    // Torso
+    const hip = lh.clone().add(rh).multiplyScalar(0.5);
+    const torsoCenter = neck.clone().add(hip).multiplyScalar(0.5);
+    avatarParts.torso.position.copy(torsoCenter);
+    const torsoLength = neck.distanceTo(hip);
+    avatarParts.torso.scale.y = torsoLength / 1;
+
+    // Arms - position between joints
+    function positionLimb(limb, from, to) {
+        const center = from.clone().add(to).multiplyScalar(0.5);
+        limb.position.copy(center);
+        const dir = to.clone().sub(from);
+        const length = dir.length();
+        limb.scale.y = length / 0.6;
+        const axis = new THREE.Vector3(0, 1, 0);
+        const quat = new THREE.Quaternion().setFromUnitVectors(axis, dir.normalize());
+        limb.quaternion.copy(quat);
+    }
+
+    positionLimb(avatarParts.leftArm, ls, le);
+    positionLimb(avatarParts.rightArm, rs, re);
+    positionLimb(avatarParts.leftLeg, lh, lh.clone().add(new THREE.Vector3(0, -0.8, 0)));
+    positionLimb(avatarParts.rightLeg, rh, rh.clone().add(new THREE.Vector3(0, -0.8, 0)));
+
+    avatarParts.leftHand.position.copy(lw);
+    avatarParts.rightHand.position.copy(rw);
+}
+
+// ==================== MEDIAPIPE POSE ====================
+let poseResults = null;
+let cameraReady = false;
+
+const videoElement = document.getElementById('webcam');
+const poseCanvas = document.getElementById('pose-canvas');
+const poseCtx = poseCanvas.getContext('2d');
+
+const pose = new Pose({
+    locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/${file}`
+});
+
+pose.setOptions({
+    modelComplexity: 1,
+    smoothLandmarks: true,
+    enableSegmentation: false,
+    minDetectionConfidence: 0.5,
+    minTrackingConfidence: 0.5
+});
+
+pose.onResults((results) => {
+    poseResults = results;
+
+    // Draw pose on mini canvas
+    poseCanvas.width = poseCanvas.offsetWidth;
+    poseCanvas.height = poseCanvas.offsetHeight;
+    poseCtx.clearRect(0, 0, poseCanvas.width, poseCanvas.height);
+
+    if (results.poseLandmarks) {
+        drawConnectors(poseCtx, results.poseLandmarks, POSE_CONNECTIONS, { color: 'rgba(255,255,255,0.4)', lineWidth: 2 });
+        drawLandmarks(poseCtx, results.poseLandmarks, { color: '#ffd700', lineWidth: 1, radius: 3 });
+    }
+});
+
+async function startCamera() {
+    const cameraPrompt = document.getElementById('camera-prompt');
+    try {
+        const mpCamera = new Camera(videoElement, {
+            onFrame: async () => {
+                await pose.send({ image: videoElement });
+            },
+            width: 640,
+            height: 480
+        });
+        await mpCamera.start();
+        cameraReady = true;
+        cameraPrompt.textContent = 'Webcam: Activa';
+        cameraPrompt.style.color = '#2ed573';
+    } catch (err) {
+        console.error('Camera error:', err);
+        cameraPrompt.textContent = 'Webcam: No disponible (usa teclado 1-4)';
+        cameraPrompt.style.color = '#ff6b6b';
+    }
+}
+startCamera();
+
+// ==================== HAND TRACKING -> SCREEN POSITION ====================
+let handPositions = { left: null, right: null };
+
+function updateHandPositions() {
+    if (!poseResults || !poseResults.poseLandmarks) {
+        handPositions.left = null;
+        handPositions.right = null;
+        return;
+    }
+
+    const lm = poseResults.poseLandmarks;
+    // Wrist landmarks: 15 (left), 16 (right)
+    // Mirror X because webcam is mirrored
+    if (lm[15] && lm[15].visibility > 0.5) {
+        handPositions.left = {
+            x: (1 - lm[15].x) * window.innerWidth,
+            y: lm[15].y * window.innerHeight
+        };
+    } else {
+        handPositions.left = null;
+    }
+
+    if (lm[16] && lm[16].visibility > 0.5) {
+        handPositions.right = {
+            x: (1 - lm[16].x) * window.innerWidth,
+            y: lm[16].y * window.innerHeight
+        };
+    } else {
+        handPositions.right = null;
+    }
+}
+
+// ==================== HAND CURSOR UI ====================
+const leftHandEl = document.getElementById('left-hand');
+const rightHandEl = document.getElementById('right-hand');
+const leftProgressEl = document.getElementById('left-progress');
+const rightProgressEl = document.getElementById('right-progress');
+
+function updateHandCursors() {
+    if (handPositions.left) {
+        leftHandEl.style.display = 'block';
+        leftHandEl.style.left = handPositions.left.x + 'px';
+        leftHandEl.style.top = handPositions.left.y + 'px';
+    } else {
+        leftHandEl.style.display = 'none';
+    }
+    if (handPositions.right) {
+        rightHandEl.style.display = 'block';
+        rightHandEl.style.left = handPositions.right.x + 'px';
+        rightHandEl.style.top = handPositions.right.y + 'px';
+    } else {
+        rightHandEl.style.display = 'none';
+    }
+}
+
+// ==================== COLLISION DETECTION ====================
+const raycaster = new THREE.Raycaster();
+let hoverState = { orb: null, progress: 0 };
+
+function checkHandOrbCollision(dt) {
+    if (gameState.answering || gameState.screen !== 'playing') return;
+
+    const config = DIFFICULTIES[gameState.difficulty];
+    let closestOrb = null;
+    let minDist = Infinity;
+
+    // Check both hands against all orbs
+    [handPositions.left, handPositions.right].forEach(hand => {
+        if (!hand) return;
+
+        const mouse = new THREE.Vector2(
+            (hand.x / window.innerWidth) * 2 - 1,
+            -(hand.y / window.innerHeight) * 2 + 1
+        );
+        raycaster.setFromCamera(mouse, camera);
+
+        answerOrbs.forEach(orb => {
+            const sphere = orb.children[0]; // The sphere mesh
+            const intersects = raycaster.intersectObject(sphere);
+            if (intersects.length > 0 && intersects[0].distance < minDist) {
+                minDist = intersects[0].distance;
+                closestOrb = orb;
+            }
+        });
+    });
+
+    if (closestOrb) {
+        if (hoverState.orb === closestOrb) {
+            hoverState.progress += dt / config.selectTime;
+            // Visual feedback on orb
+            const sphere = closestOrb.children[0];
+            sphere.material.emissiveIntensity = 0.3 + hoverState.progress * 0.7;
+            const scale = 1 + hoverState.progress * 0.3;
+            closestOrb.scale.setScalar(scale);
+
+            // Update cursor progress rings
+            const dashOffset = 170 - (hoverState.progress * 170);
+            leftProgressEl.style.strokeDashoffset = dashOffset;
+            rightProgressEl.style.strokeDashoffset = dashOffset;
+            leftHandEl.classList.add('hovering');
+            rightHandEl.classList.add('hovering');
+
+            if (hoverState.progress >= 1) {
+                selectAnswer(closestOrb);
+            }
+        } else {
+            resetHover();
+            hoverState.orb = closestOrb;
+            hoverState.progress = 0;
+        }
+    } else {
+        resetHover();
+    }
+}
+
+function resetHover() {
+    if (hoverState.orb) {
+        const sphere = hoverState.orb.children[0];
+        sphere.material.emissiveIntensity = 0.3;
+        hoverState.orb.scale.setScalar(1);
+    }
+    hoverState.orb = null;
+    hoverState.progress = 0;
+    leftProgressEl.style.strokeDashoffset = 170;
+    rightProgressEl.style.strokeDashoffset = 170;
+    leftHandEl.classList.remove('hovering');
+    rightHandEl.classList.remove('hovering');
+}
+
+// ==================== GAME LOGIC ====================
+function generateQuestion() {
+    const level = LEVELS[gameState.level];
+    const table = level.tables[Math.floor(Math.random() * level.tables.length)];
+    const multiplier = Math.floor(Math.random() * 10) + 1;
+    const answer = table * multiplier;
+
+    gameState.currentQuestion = { table, multiplier, answer };
+
+    const config = DIFFICULTIES[gameState.difficulty];
+    const numOptions = config.optionCount;
+
+    // Generate wrong answers
+    const wrongAnswers = new Set();
+    while (wrongAnswers.size < numOptions - 1) {
+        let wrong;
+        const r = Math.random();
+        if (r < 0.3) {
+            wrong = table * (multiplier + (Math.random() > 0.5 ? 1 : -1));
+        } else if (r < 0.6) {
+            wrong = answer + Math.floor(Math.random() * 10) - 5;
+        } else {
+            wrong = (table + (Math.random() > 0.5 ? 1 : -1)) * multiplier;
+        }
+        if (wrong > 0 && wrong !== answer && !wrongAnswers.has(wrong)) {
+            wrongAnswers.add(wrong);
+        }
+    }
+
+    const options = [answer, ...wrongAnswers];
+    // Shuffle
+    for (let i = options.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [options[i], options[j]] = [options[j], options[i]];
+    }
+
+    // Position orbs in an arc
+    clearAnswerOrbs();
+    const spread = numOptions <= 3 ? 2.5 : 3;
+    options.forEach((val, i) => {
+        const t = numOptions === 1 ? 0 : (i / (numOptions - 1)) * 2 - 1;
+        const x = t * spread;
+        const y = 1.5 + Math.cos(t * Math.PI * 0.3) * 0.5;
+        const z = -1 + Math.abs(t) * 0.5;
+        const pos = new THREE.Vector3(x, y, z);
+        const orb = createAnswerOrb(val, pos, val === answer);
+        answerOrbs.push(orb);
+    });
+
+    // Update question display
+    document.getElementById('question-text').textContent = `${table} × ${multiplier} = ?`;
+    gameState.questionTimer = DIFFICULTIES[gameState.difficulty].timePerQuestion;
+    gameState.answering = false;
+}
+
+function selectAnswer(orb) {
+    if (gameState.answering) return;
+    gameState.answering = true;
+    resetHover();
+
+    const isCorrect = orb.userData.isCorrect;
+    const feedback = document.getElementById('feedback');
+
+    if (isCorrect) {
+        // Correct answer!
+        gameState.combo++;
+        if (gameState.combo > gameState.maxCombo) gameState.maxCombo = gameState.combo;
+        const points = POINTS_BASE + (gameState.combo - 1) * COMBO_MULTIPLIER;
+        gameState.score += points;
+        gameState.correctCount++;
+        gameState.totalCorrect++;
+
+        feedback.textContent = `+${points}`;
+        feedback.className = 'correct show';
+        spawnCelebration(orb.position, 0x2ed573);
+
+        // Flash correct orb green
+        orb.children[0].material.color.setHex(0x2ed573);
+        orb.children[0].material.emissive.setHex(0x1a8a47);
+        orb.children[0].material.emissiveIntensity = 1;
+
+        playSound('correct');
+    } else {
+        // Wrong answer
+        gameState.combo = 0;
+        gameState.wrongCount++;
+        gameState.totalWrong++;
+
+        feedback.textContent = `${gameState.currentQuestion.answer}`;
+        feedback.className = 'wrong show';
+
+        // Flash wrong orb red, highlight correct
+        orb.children[0].material.color.setHex(0xff4757);
+        orb.children[0].material.emissiveIntensity = 1;
+
+        answerOrbs.forEach(o => {
+            if (o.userData.isCorrect) {
+                o.children[0].material.color.setHex(0x2ed573);
+                o.children[0].material.emissive.setHex(0x1a8a47);
+                o.children[0].material.emissiveIntensity = 1;
+                o.scale.setScalar(1.5);
+            }
+        });
+
+        playSound('wrong');
+    }
+
+    // Update HUD
+    updateHUD();
+
+    // Next question after delay
+    setTimeout(() => {
+        feedback.className = '';
+        gameState.questionIndex++;
+
+        if (gameState.questionIndex >= QUESTIONS_PER_LEVEL) {
+            showLevelComplete();
+        } else {
+            generateQuestion();
+        }
+    }, isCorrect ? 1200 : 2000);
+}
+
+function timeOut() {
+    if (gameState.answering) return;
+    gameState.answering = true;
+    gameState.combo = 0;
+    gameState.wrongCount++;
+    gameState.totalWrong++;
+
+    const feedback = document.getElementById('feedback');
+    feedback.textContent = `Tiempo! = ${gameState.currentQuestion.answer}`;
+    feedback.className = 'wrong show';
+
+    // Highlight correct answer
+    answerOrbs.forEach(o => {
+        if (o.userData.isCorrect) {
+            o.children[0].material.color.setHex(0x2ed573);
+            o.children[0].material.emissive.setHex(0x1a8a47);
+            o.children[0].material.emissiveIntensity = 1;
+            o.scale.setScalar(1.5);
+        }
+    });
+
+    playSound('wrong');
+    updateHUD();
+
+    setTimeout(() => {
+        feedback.className = '';
+        gameState.questionIndex++;
+
+        if (gameState.questionIndex >= QUESTIONS_PER_LEVEL) {
+            showLevelComplete();
+        } else {
+            generateQuestion();
+        }
+    }, 2000);
+}
+
+// ==================== SOUNDS (Web Audio API) ====================
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+function playSound(type) {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+
+    if (type === 'correct') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(523, audioCtx.currentTime);
+        osc.frequency.setValueAtTime(659, audioCtx.currentTime + 0.1);
+        osc.frequency.setValueAtTime(784, audioCtx.currentTime + 0.2);
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+        osc.start(audioCtx.currentTime);
+        osc.stop(audioCtx.currentTime + 0.4);
+    } else if (type === 'wrong') {
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+        osc.frequency.setValueAtTime(150, audioCtx.currentTime + 0.15);
+        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+        osc.start(audioCtx.currentTime);
+        osc.stop(audioCtx.currentTime + 0.3);
+    } else if (type === 'levelup') {
+        osc.type = 'sine';
+        [523, 659, 784, 1047].forEach((freq, i) => {
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime + i * 0.12);
+        });
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.6);
+        osc.start(audioCtx.currentTime);
+        osc.stop(audioCtx.currentTime + 0.6);
+    }
+}
+
+// ==================== HUD UPDATE ====================
+function updateHUD() {
+    document.getElementById('score-value').textContent = gameState.score;
+    document.getElementById('level-value').textContent = gameState.level + 1;
+    document.getElementById('table-display').textContent = LEVELS[gameState.level].name;
+
+    const comboEl = document.getElementById('combo-display');
+    if (gameState.combo > 1) {
+        comboEl.classList.remove('hidden');
+        document.getElementById('combo-value').textContent = gameState.combo;
+    } else {
+        comboEl.classList.add('hidden');
+    }
+}
+
+// ==================== SCREEN MANAGEMENT ====================
+function showScreen(screenId) {
+    document.querySelectorAll('.overlay').forEach(el => el.classList.add('hidden'));
+    if (screenId) document.getElementById(screenId).classList.remove('hidden');
+}
+
+function startGame() {
+    // Resume audio context on user interaction
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+
+    gameState.screen = 'playing';
+    gameState.level = 0;
+    gameState.score = 0;
+    gameState.combo = 0;
+    gameState.maxCombo = 0;
+    gameState.totalCorrect = 0;
+    gameState.totalWrong = 0;
+    startLevel();
+}
+
+function startLevel() {
+    gameState.correctCount = 0;
+    gameState.wrongCount = 0;
+    gameState.questionIndex = 0;
+    gameState.combo = 0;
+
+    showScreen(null);
+    document.getElementById('hud').classList.remove('hidden');
+    document.getElementById('question-display').classList.remove('hidden');
+    updateHUD();
+    generateQuestion();
+}
+
+function showLevelComplete() {
+    gameState.screen = 'levelComplete';
+    clearAnswerOrbs();
+    document.getElementById('hud').classList.add('hidden');
+    document.getElementById('question-display').classList.add('hidden');
+
+    document.getElementById('lc-correct').textContent = gameState.correctCount;
+    document.getElementById('lc-wrong').textContent = gameState.wrongCount;
+    document.getElementById('lc-combo').textContent = gameState.maxCombo;
+    document.getElementById('lc-score').textContent = gameState.score;
+
+    const title = document.getElementById('level-complete-title');
+    if (gameState.level >= LEVELS.length - 1) {
+        title.textContent = 'Has completado todas las tablas!';
+        document.getElementById('btn-next-level').style.display = 'none';
+    } else {
+        title.textContent = `Nivel ${gameState.level + 1} Completado!`;
+        document.getElementById('btn-next-level').style.display = 'inline-block';
+    }
+
+    showScreen('level-complete-screen');
+    playSound('levelup');
+}
+
+function nextLevel() {
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    gameState.level = Math.min(gameState.level + 1, LEVELS.length - 1);
+    gameState.screen = 'playing';
+    startLevel();
+}
+
+function showMenu() {
+    gameState.screen = 'menu';
+    clearAnswerOrbs();
+    document.getElementById('hud').classList.add('hidden');
+    document.getElementById('question-display').classList.add('hidden');
+    showScreen('menu-screen');
+}
+
+function showGameOver() {
+    gameState.screen = 'gameOver';
+    clearAnswerOrbs();
+    document.getElementById('hud').classList.add('hidden');
+    document.getElementById('question-display').classList.add('hidden');
+
+    document.getElementById('go-score').textContent = gameState.score;
+    document.getElementById('go-level').textContent = gameState.level + 1;
+    document.getElementById('go-correct').textContent = gameState.totalCorrect;
+    document.getElementById('go-combo').textContent = gameState.maxCombo;
+
+    showScreen('gameover-screen');
+}
+
+// ==================== EVENT LISTENERS ====================
+document.getElementById('btn-start').addEventListener('click', startGame);
+document.getElementById('btn-next-level').addEventListener('click', nextLevel);
+document.getElementById('btn-menu-from-level').addEventListener('click', showMenu);
+document.getElementById('btn-restart').addEventListener('click', startGame);
+document.getElementById('btn-menu-from-gameover').addEventListener('click', showMenu);
+
+// Difficulty selector
+document.querySelectorAll('.difficulty-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.difficulty-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        gameState.difficulty = btn.dataset.difficulty;
+    });
+});
+
+// Keyboard fallback (1-4 to select answers)
+document.addEventListener('keydown', (e) => {
+    if (gameState.screen !== 'playing' || gameState.answering) return;
+    const num = parseInt(e.key);
+    if (num >= 1 && num <= answerOrbs.length) {
+        selectAnswer(answerOrbs[num - 1]);
+    }
+});
+
+// Resize
+window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// ==================== ANIMATION LOOP ====================
+let lastTime = performance.now();
+
+function animate() {
+    requestAnimationFrame(animate);
+    const now = performance.now();
+    const dt = Math.min((now - lastTime) / 1000, 0.1);
+    lastTime = now;
+
+    // Update pose tracking
+    updateHandPositions();
+    updateHandCursors();
+
+    // Update avatar
+    if (poseResults && poseResults.poseLandmarks) {
+        updateAvatar(poseResults.poseLandmarks);
+    } else {
+        avatar.visible = false;
+    }
+
+    // Rotate stars slowly
+    stars.rotation.y += dt * 0.02;
+    stars.rotation.x += dt * 0.01;
+
+    // Animate answer orbs
+    const config = DIFFICULTIES[gameState.difficulty];
+    answerOrbs.forEach((orb, i) => {
+        if (!orb.userData.selected) {
+            // Float animation
+            const phase = orb.userData.phase + now * 0.001;
+            orb.position.y = orb.userData.basePosition.y + Math.sin(phase) * 0.15;
+
+            // Gentle rotation
+            orb.children[1].rotation.x = Math.sin(phase * 0.7) * 0.3;
+            orb.children[1].rotation.y = phase * 0.5;
+
+            // Movement (for harder difficulties)
+            if (config.moveSpeed > 0) {
+                orb.position.x = orb.userData.basePosition.x + Math.sin(phase * 0.3 + i) * config.moveSpeed;
+            }
+        }
+    });
+
+    // Timer countdown
+    if (gameState.screen === 'playing' && !gameState.answering) {
+        gameState.questionTimer -= dt;
+        document.getElementById('timer-value').textContent = Math.max(0, Math.ceil(gameState.questionTimer));
+
+        if (gameState.questionTimer <= 3) {
+            document.getElementById('timer-value').style.color = '#ff4757';
+        } else {
+            document.getElementById('timer-value').style.color = '#70a1ff';
+        }
+
+        if (gameState.questionTimer <= 0) {
+            timeOut();
+        }
+    }
+
+    // Hand-orb collision
+    checkHandOrbCollision(dt);
+
+    // Particles
+    updateParticles(dt);
+
+    // Pulsing lights
+    pointLight1.intensity = 0.3 + Math.sin(now * 0.002) * 0.2;
+    pointLight2.intensity = 0.3 + Math.cos(now * 0.002) * 0.2;
+
+    renderer.render(scene, camera);
+}
+
+animate();
+</script>
+</body>
+</html>
