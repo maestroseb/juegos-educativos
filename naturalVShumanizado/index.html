@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Paisajes Naturales vs Humanizados</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: white;
+            min-height: 100vh;
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+
+        /* ── Start Screen ── */
+        #start-screen {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #064e3b 100%);
+            z-index: 100;
+            padding: 20px;
+            text-align: center;
+        }
+
+        #start-screen h1 {
+            font-size: clamp(1.8rem, 5vw, 3.5rem);
+            margin-bottom: 10px;
+            background: linear-gradient(to right, #4ade80, #38bdf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        #start-screen p {
+            font-size: clamp(0.9rem, 2.5vw, 1.15rem);
+            color: #94a3b8;
+            max-width: 550px;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+
+        .mode-buttons {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .mode-btn {
+            padding: 16px 32px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: white;
+            border: none;
+            border-radius: 16px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .mode-btn:hover { transform: translateY(-3px); }
+
+        .mode-btn.quick {
+            background: linear-gradient(135deg, #10b981, #059669);
+            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+        }
+        .mode-btn.full {
+            background: linear-gradient(135deg, #3b82f6, #6366f1);
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+        }
+
+        /* ── Game Screen ── */
+        #game-screen {
+            display: none;
+            position: fixed;
+            inset: 0;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 20px;
+            background: rgba(0,0,0,0.3);
+            backdrop-filter: blur(10px);
+            z-index: 10;
+        }
+
+        .score-box {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #4ade80;
+        }
+
+        .progress-text {
+            font-size: 0.95rem;
+            color: #94a3b8;
+        }
+
+        .home-btn {
+            padding: 8px 18px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            background: rgba(239, 68, 68, 0.7);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .home-btn:hover { background: rgba(239, 68, 68, 1); }
+
+        /* Progress bar */
+        .progress-bar-container {
+            height: 5px;
+            background: rgba(255,255,255,0.1);
+        }
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(to right, #4ade80, #38bdf8);
+            transition: width 0.4s ease;
+            width: 0%;
+        }
+
+        /* Game area */
+        .game-area {
+            flex: 1;
+            display: flex;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Drop zones */
+        .drop-zone {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.3s, transform 0.2s;
+            position: relative;
+            z-index: 1;
+        }
+
+        .drop-zone-natural {
+            background: rgba(16, 185, 129, 0.08);
+            border-right: 2px dashed rgba(16, 185, 129, 0.3);
+        }
+
+        .drop-zone-humanizado {
+            background: rgba(245, 158, 11, 0.08);
+            border-left: 2px dashed rgba(245, 158, 11, 0.3);
+        }
+
+        .drop-zone.drag-over-natural {
+            background: rgba(16, 185, 129, 0.25);
+        }
+        .drop-zone.drag-over-humanizado {
+            background: rgba(245, 158, 11, 0.25);
+        }
+
+        .zone-icon {
+            font-size: clamp(2.5rem, 6vw, 4rem);
+            margin-bottom: 10px;
+            opacity: 0.8;
+        }
+
+        .zone-label {
+            font-size: clamp(0.9rem, 2.5vw, 1.3rem);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            opacity: 0.7;
+        }
+
+        .zone-sublabel {
+            font-size: clamp(0.65rem, 1.5vw, 0.8rem);
+            opacity: 0.4;
+            margin-top: 5px;
+        }
+
+        .drop-zone-natural .zone-label { color: #4ade80; }
+        .drop-zone-humanizado .zone-label { color: #fbbf24; }
+
+        /* Image card */
+        .image-card {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 50;
+            width: clamp(200px, 45vw, 400px);
+            max-height: 65vh;
+            background: #1e293b;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+            overflow: hidden;
+            cursor: grab;
+            transition: box-shadow 0.2s;
+            touch-action: none;
+        }
+
+        .image-card:active { cursor: grabbing; }
+
+        .image-card.dragging {
+            box-shadow: 0 30px 80px rgba(0,0,0,0.8);
+            transition: none;
+        }
+
+        .image-card img {
+            width: 100%;
+            height: auto;
+            max-height: 60vh;
+            object-fit: cover;
+            display: block;
+            pointer-events: none;
+        }
+
+        .card-hint {
+            text-align: center;
+            padding: 10px;
+            font-size: 0.85rem;
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        /* Feedback overlay */
+        .feedback-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 200;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+        }
+
+        .feedback-overlay.show { display: flex; }
+
+        .feedback-msg {
+            padding: 20px 50px;
+            border-radius: 20px;
+            font-size: clamp(1.3rem, 4vw, 2rem);
+            font-weight: 800;
+            animation: feedbackPop 0.6s ease forwards;
+        }
+
+        .feedback-msg.correct {
+            background: rgba(16, 185, 129, 0.9);
+            color: white;
+        }
+        .feedback-msg.incorrect {
+            background: rgba(239, 68, 68, 0.9);
+            color: white;
+        }
+
+        @keyframes feedbackPop {
+            0% { transform: scale(0.5); opacity: 0; }
+            50% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* ── Results Screen ── */
+        #results-screen {
+            display: none;
+            position: fixed;
+            inset: 0;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            z-index: 100;
+            padding: 20px;
+            text-align: center;
+        }
+
+        #results-screen h2 {
+            font-size: clamp(2rem, 5vw, 3rem);
+            margin-bottom: 10px;
+        }
+
+        .results-score {
+            font-size: clamp(3rem, 8vw, 5rem);
+            font-weight: 900;
+            background: linear-gradient(to right, #4ade80, #38bdf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin: 10px 0;
+        }
+
+        .results-detail {
+            font-size: 1.1rem;
+            color: #94a3b8;
+            margin-bottom: 5px;
+        }
+
+        .results-stars {
+            font-size: 3rem;
+            margin: 15px 0 25px;
+        }
+
+        .results-mistakes {
+            max-width: 600px;
+            width: 100%;
+            max-height: 30vh;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .results-mistakes h3 {
+            font-size: 1rem;
+            color: #f87171;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .mistake-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 12px;
+            background: rgba(239, 68, 68, 0.1);
+            border-radius: 10px;
+            margin-bottom: 6px;
+        }
+
+        .mistake-item img {
+            width: 60px;
+            height: 40px;
+            object-fit: cover;
+            border-radius: 6px;
+        }
+
+        .mistake-item span {
+            font-size: 0.85rem;
+            color: #cbd5e1;
+        }
+
+        .play-again-btn {
+            padding: 16px 40px;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: white;
+            background: linear-gradient(135deg, #10b981, #059669);
+            border: none;
+            border-radius: 16px;
+            cursor: pointer;
+            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+            transition: transform 0.2s;
+        }
+        .play-again-btn:hover { transform: translateY(-3px); }
+
+        /* Center divider line */
+        .center-divider {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 50%;
+            width: 2px;
+            background: rgba(255,255,255,0.08);
+            z-index: 0;
+        }
+
+        /* Swipe hint arrows */
+        .swipe-arrows {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 2rem;
+            opacity: 0.15;
+            z-index: 2;
+            pointer-events: none;
+        }
+        .arrow-left { left: 15px; color: #4ade80; }
+        .arrow-right { right: 15px; color: #fbbf24; }
+    </style>
+</head>
+<body>
+
+<!-- ── Start Screen ── -->
+<div id="start-screen">
+    <h1>Paisajes Naturales vs Humanizados</h1>
+    <p>
+        Arrastra cada imagen hacia la zona correcta.<br>
+        Los <strong style="color:#4ade80">paisajes naturales</strong> no han sido modificados por el ser humano.
+        Los <strong style="color:#fbbf24">paisajes humanizados</strong> han sido transformados por la actividad humana.
+    </p>
+    <div class="mode-buttons">
+        <button class="mode-btn quick" onclick="startGame(10)">Partida rapida (10)</button>
+        <button class="mode-btn full" onclick="startGame(0)">Todas las imagenes</button>
+    </div>
+</div>
+
+<!-- ── Game Screen ── -->
+<div id="game-screen">
+    <div class="game-header">
+        <div>
+            <div class="score-box" id="score-display">0 / 0</div>
+            <div class="progress-text" id="progress-display">Imagen 1 de 10</div>
+        </div>
+        <button class="home-btn" onclick="goHome()">Volver</button>
+    </div>
+    <div class="progress-bar-container">
+        <div class="progress-bar-fill" id="progress-bar"></div>
+    </div>
+
+    <div class="game-area" id="game-area">
+        <div class="drop-zone drop-zone-natural" id="zone-natural">
+            <div class="zone-icon">🌿</div>
+            <div class="zone-label">Natural</div>
+            <div class="zone-sublabel">Sin modificar por el ser humano</div>
+        </div>
+        <div class="center-divider"></div>
+        <div class="drop-zone drop-zone-humanizado" id="zone-humanizado">
+            <div class="zone-icon">🏗️</div>
+            <div class="zone-label">Humanizado</div>
+            <div class="zone-sublabel">Transformado por el ser humano</div>
+        </div>
+
+        <div class="swipe-arrows arrow-left">◀</div>
+        <div class="swipe-arrows arrow-right">▶</div>
+
+        <div class="image-card" id="image-card">
+            <img id="card-image" src="" alt="Paisaje">
+            <div class="card-hint">Arrastra hacia un lado</div>
+        </div>
+    </div>
+</div>
+
+<!-- ── Feedback Overlay ── -->
+<div class="feedback-overlay" id="feedback-overlay">
+    <div class="feedback-msg" id="feedback-msg"></div>
+</div>
+
+<!-- ── Results Screen ── -->
+<div id="results-screen">
+    <h2>Resultado</h2>
+    <div class="results-score" id="results-score">0%</div>
+    <div class="results-detail" id="results-detail"></div>
+    <div class="results-stars" id="results-stars"></div>
+    <div class="results-mistakes" id="results-mistakes"></div>
+    <div class="mode-buttons">
+        <button class="play-again-btn" onclick="goHome()">Jugar de nuevo</button>
+    </div>
+</div>
+
+<script>
+    // ── Image data ──
+    const naturalImages = [
+        "156525-banco-parque-la_gente_en_la_naturaleza-paisaje_natural-sucursal-x750.jpg",
+        "20250304_DELABLA_videoblog_foto_medida_blog-scaled.webp",
+        "58.webp",
+        "AdobeStock_205441960-scaled-1-1024x744.jpeg",
+        "SOPELA-TURISMO-PLAYAS-Barinatxe.jpg",
+        "acantilados-de-moher-hd.jpg",
+        "depositphotos_36123919-stock-photo-mountain-river.jpg",
+        "depositphotos_4492694-stock-photo-ocean-and-perfect-sky.jpg",
+        "desierto2-e1537800205712.jpg",
+        "estepa_que_es_clima_flora_fauna_y_ejemplos_7256_1200.jpg",
+        "frío_bosque_1586370517.webp",
+        "hoces-de-vegacervera_eccad98d_123329897_250604221449_1280x854.webp",
+        "humedales-1-e1611254064479.jpg",
+        "interior-da-caverna-agua.jpg",
+        "mgasch_CERLER2019_180307__DSC5166.webp",
+        "paisaje-natural-portada.jpg",
+        "pradera1-e1539894968596.jpg",
+        "praderas.jpg",
+        "que_condiciones_tienen_las_selvas_tropicales_1279_0_600.jpg",
+        "sabana_caracteristicas_flora_y_fauna_5571_orig.jpg",
+        "scenery-natural-mountain-blue-sky-grass-field-peak-powerpoint-background_14a0923d92__960_540.avif",
+        "tundra_que_es_caracteristicas_tipos_flora_y_fauna_7268_600.jpg",
+        "valle_que_es_formacion_y_tipos_7211_600.jpg",
+        "vejetacion-taiga.jpg"
+    ];
+
+    const humanizadoImages = [
+        "16424178024718.jpg",
+        "1_JW_SJDJW_Puerto_Los-Cabos_Golf_Course_1920x1080.webp",
+        "378084b8-cultivoenterrazas2.jpg",
+        "All_Gizah_Pyramids.webp",
+        "Ciudad_de_Bangkok_Tailandia%20(1).webp",
+        "HDXP91.webp",
+        "Los-mejores-viñedos-del-mundo-en-2025-copy.jpg",
+        "Mineria-a-cielo-abierto.jpg",
+        "Pueblo-de-Puentedey.jpg",
+        "agricultura-sostenible.webp",
+        "embalse-atazar-buitrago-lozoya_98.webp",
+        "islas-artificiales-Dubai-buena.jpg",
+        "mexico-aerop.jpg",
+        "parque-centenario-portada.webp",
+        "parque-ciudad-1-1-scaled.webp",
+        "parque-solar1-1.jpg",
+        "pexels-david-mcbee-1486785-1024x576.jpg",
+        "poligono.jpg",
+        "puertos-maritimos-algeciras.jpg",
+        "que-es-un-parque-eolico-y-como-contribuye-a-la-energia-sostenible-1.jpg",
+        "unnamed (3).jpg",
+        "unnamed (4).jpg"
+    ];
+
+    function getImageSrc(filename, type) {
+        const folder = type === 'natural' ? 'Paisajes naturales' : 'Paisajes humanizados';
+        return encodeURIComponent(folder) + '/' + encodeURIComponent(filename);
+    }
+
+    // ── Game state ──
+    let gameImages = [];
+    let currentIndex = 0;
+    let correctCount = 0;
+    let mistakes = [];
+
+    // ── DOM refs ──
+    const startScreen = document.getElementById('start-screen');
+    const gameScreen = document.getElementById('game-screen');
+    const resultsScreen = document.getElementById('results-screen');
+    const imageCard = document.getElementById('image-card');
+    const cardImage = document.getElementById('card-image');
+    const scoreDisplay = document.getElementById('score-display');
+    const progressDisplay = document.getElementById('progress-display');
+    const progressBar = document.getElementById('progress-bar');
+    const feedbackOverlay = document.getElementById('feedback-overlay');
+    const feedbackMsg = document.getElementById('feedback-msg');
+    const zoneNatural = document.getElementById('zone-natural');
+    const zoneHumanizado = document.getElementById('zone-humanizado');
+    const gameArea = document.getElementById('game-area');
+
+    // ── Shuffle util ──
+    function shuffle(arr) {
+        const a = [...arr];
+        for (let i = a.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [a[i], a[j]] = [a[j], a[i]];
+        }
+        return a;
+    }
+
+    // ── Start game ──
+    function startGame(count) {
+        let allImages = [
+            ...naturalImages.map(f => ({ file: f, type: 'natural' })),
+            ...humanizadoImages.map(f => ({ file: f, type: 'humanizado' }))
+        ];
+        allImages = shuffle(allImages);
+
+        if (count > 0 && count < allImages.length) {
+            // Pick balanced selection
+            const naturals = shuffle(allImages.filter(i => i.type === 'natural'));
+            const humanizados = shuffle(allImages.filter(i => i.type === 'humanizado'));
+            const half = Math.floor(count / 2);
+            gameImages = shuffle([
+                ...naturals.slice(0, half),
+                ...humanizados.slice(0, count - half)
+            ]);
+        } else {
+            gameImages = allImages;
+        }
+
+        currentIndex = 0;
+        correctCount = 0;
+        mistakes = [];
+
+        startScreen.style.display = 'none';
+        resultsScreen.style.display = 'none';
+        gameScreen.style.display = 'flex';
+
+        loadCurrentImage();
+    }
+
+    function loadCurrentImage() {
+        if (currentIndex >= gameImages.length) {
+            showResults();
+            return;
+        }
+
+        const item = gameImages[currentIndex];
+        cardImage.src = getImageSrc(item.file, item.type);
+
+        // Reset card position
+        imageCard.style.transform = 'translate(-50%, -50%)';
+        imageCard.style.opacity = '1';
+        imageCard.style.transition = 'none';
+        offsetX = 0;
+        offsetY = 0;
+
+        updateUI();
+    }
+
+    function updateUI() {
+        const total = gameImages.length;
+        scoreDisplay.textContent = `${correctCount} / ${currentIndex}`;
+        progressDisplay.textContent = `Imagen ${currentIndex + 1} de ${total}`;
+        progressBar.style.width = ((currentIndex / total) * 100) + '%';
+    }
+
+    // ── Drag logic (mouse + touch) ──
+    let isDragging = false;
+    let startX = 0, startY = 0;
+    let offsetX = 0, offsetY = 0;
+    let cardRect, areaRect;
+
+    function onDragStart(clientX, clientY) {
+        if (currentIndex >= gameImages.length) return;
+        isDragging = true;
+        cardRect = imageCard.getBoundingClientRect();
+        areaRect = gameArea.getBoundingClientRect();
+        startX = clientX;
+        startY = clientY;
+        imageCard.classList.add('dragging');
+    }
+
+    function onDragMove(clientX, clientY) {
+        if (!isDragging) return;
+
+        offsetX = clientX - startX;
+        offsetY = clientY - startY;
+
+        const rotation = Math.max(-15, Math.min(15, offsetX * 0.05));
+        imageCard.style.transform = `translate(calc(-50% + ${offsetX}px), calc(-50% + ${offsetY}px)) rotate(${rotation}deg)`;
+
+        // Highlight zones
+        const cardCenterX = cardRect.left + cardRect.width / 2 + offsetX;
+        const areaMidX = areaRect.left + areaRect.width / 2;
+
+        zoneNatural.classList.toggle('drag-over-natural', cardCenterX < areaMidX - 40);
+        zoneHumanizado.classList.toggle('drag-over-humanizado', cardCenterX > areaMidX + 40);
+    }
+
+    function onDragEnd() {
+        if (!isDragging) return;
+        isDragging = false;
+        imageCard.classList.remove('dragging');
+        zoneNatural.classList.remove('drag-over-natural');
+        zoneHumanizado.classList.remove('drag-over-humanizado');
+
+        const cardCenterX = cardRect.left + cardRect.width / 2 + offsetX;
+        const areaMidX = areaRect.left + areaRect.width / 2;
+        const threshold = areaRect.width * 0.12;
+
+        let chosenType = null;
+        if (cardCenterX < areaMidX - threshold) {
+            chosenType = 'natural';
+        } else if (cardCenterX > areaMidX + threshold) {
+            chosenType = 'humanizado';
+        }
+
+        if (chosenType) {
+            handleAnswer(chosenType);
+        } else {
+            // Snap back
+            imageCard.style.transition = 'transform 0.3s ease';
+            imageCard.style.transform = 'translate(-50%, -50%)';
+        }
+    }
+
+    // Mouse events
+    imageCard.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        onDragStart(e.clientX, e.clientY);
+    });
+    window.addEventListener('mousemove', (e) => {
+        if (isDragging) e.preventDefault();
+        onDragMove(e.clientX, e.clientY);
+    });
+    window.addEventListener('mouseup', () => onDragEnd());
+
+    // Touch events
+    imageCard.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        const t = e.touches[0];
+        onDragStart(t.clientX, t.clientY);
+    }, { passive: false });
+    window.addEventListener('touchmove', (e) => {
+        if (isDragging) e.preventDefault();
+        const t = e.touches[0];
+        onDragMove(t.clientX, t.clientY);
+    }, { passive: false });
+    window.addEventListener('touchend', () => onDragEnd());
+
+    // ── Answer handling ──
+    function handleAnswer(chosenType) {
+        const item = gameImages[currentIndex];
+        const isCorrect = chosenType === item.type;
+
+        if (isCorrect) {
+            correctCount++;
+        } else {
+            mistakes.push({
+                file: item.file,
+                type: item.type,
+                chosen: chosenType
+            });
+        }
+
+        // Animate card flying out
+        const flyX = chosenType === 'natural' ? '-150%' : '150%';
+        imageCard.style.transition = 'transform 0.35s ease, opacity 0.35s ease';
+        imageCard.style.transform = `translate(${flyX}, -50%) rotate(${chosenType === 'natural' ? -20 : 20}deg)`;
+        imageCard.style.opacity = '0';
+
+        // Show feedback
+        showFeedback(isCorrect, item.type);
+
+        currentIndex++;
+        setTimeout(loadCurrentImage, 1000);
+    }
+
+    function showFeedback(isCorrect, correctType) {
+        const label = correctType === 'natural' ? 'Natural' : 'Humanizado';
+        if (isCorrect) {
+            feedbackMsg.className = 'feedback-msg correct';
+            feedbackMsg.textContent = 'Correcto!';
+        } else {
+            feedbackMsg.className = 'feedback-msg incorrect';
+            feedbackMsg.textContent = `Incorrecto - Era ${label}`;
+        }
+        feedbackOverlay.classList.add('show');
+        setTimeout(() => feedbackOverlay.classList.remove('show'), 900);
+    }
+
+    // ── Results screen ──
+    function showResults() {
+        gameScreen.style.display = 'none';
+
+        const total = gameImages.length;
+        const pct = Math.round((correctCount / total) * 100);
+
+        document.getElementById('results-score').textContent = pct + '%';
+        document.getElementById('results-detail').textContent =
+            `${correctCount} de ${total} correctas`;
+
+        let stars = '';
+        if (pct >= 90) stars = '⭐⭐⭐';
+        else if (pct >= 70) stars = '⭐⭐';
+        else if (pct >= 50) stars = '⭐';
+        else stars = '💪 Sigue practicando';
+        document.getElementById('results-stars').textContent = stars;
+
+        const mistakesContainer = document.getElementById('results-mistakes');
+        mistakesContainer.innerHTML = '';
+        if (mistakes.length > 0) {
+            mistakesContainer.innerHTML = '<h3>Errores para repasar:</h3>';
+            mistakes.forEach(m => {
+                const div = document.createElement('div');
+                div.className = 'mistake-item';
+                const correctLabel = m.type === 'natural' ? '🌿 Natural' : '🏗️ Humanizado';
+                div.innerHTML = `
+                    <img src="${getImageSrc(m.file, m.type)}" alt="">
+                    <span>Era: <strong>${correctLabel}</strong></span>
+                `;
+                mistakesContainer.appendChild(div);
+            });
+        }
+
+        resultsScreen.style.display = 'flex';
+    }
+
+    // ── Navigation ──
+    function goHome() {
+        gameScreen.style.display = 'none';
+        resultsScreen.style.display = 'none';
+        startScreen.style.display = 'flex';
+    }
+</script>
+</body>
+</html>
