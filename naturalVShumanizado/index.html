@@ -199,8 +199,8 @@
             left: 50%;
             transform: translate(-50%, -50%);
             z-index: 50;
-            width: clamp(200px, 45vw, 400px);
-            max-height: 65vh;
+            width: clamp(250px, 50vw, 500px);
+            max-height: 70vh;
             background: #1e293b;
             border-radius: 16px;
             box-shadow: 0 20px 60px rgba(0,0,0,0.6);
@@ -208,6 +208,7 @@
             cursor: grab;
             transition: box-shadow 0.2s;
             touch-action: none;
+            visibility: hidden;
         }
 
         .image-card:active { cursor: grabbing; }
@@ -217,10 +218,12 @@
             transition: none;
         }
 
+        .image-card.visible { visibility: visible; }
+
         .image-card img {
             width: 100%;
             height: auto;
-            max-height: 60vh;
+            max-height: 65vh;
             object-fit: cover;
             display: block;
             pointer-events: none;
@@ -310,41 +313,49 @@
         }
 
         .results-mistakes {
-            max-width: 600px;
+            max-width: 90vw;
             width: 100%;
-            max-height: 30vh;
+            max-height: 40vh;
             overflow-y: auto;
             margin-bottom: 20px;
             text-align: left;
         }
 
         .results-mistakes h3 {
-            font-size: 1rem;
+            font-size: clamp(1.1rem, 2.5vw, 1.4rem);
             color: #f87171;
-            margin-bottom: 10px;
+            margin-bottom: 14px;
             text-align: center;
+        }
+
+        .mistakes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 14px;
         }
 
         .mistake-item {
             display: flex;
+            flex-direction: column;
             align-items: center;
-            gap: 12px;
-            padding: 8px 12px;
+            gap: 8px;
+            padding: 10px;
             background: rgba(239, 68, 68, 0.1);
-            border-radius: 10px;
-            margin-bottom: 6px;
+            border-radius: 14px;
         }
 
         .mistake-item img {
-            width: 60px;
-            height: 40px;
+            width: 100%;
+            height: auto;
+            max-height: 25vh;
             object-fit: cover;
-            border-radius: 6px;
+            border-radius: 10px;
         }
 
         .mistake-item span {
-            font-size: 0.85rem;
+            font-size: clamp(0.9rem, 2vw, 1.1rem);
             color: #cbd5e1;
+            font-weight: 600;
         }
 
         .play-again-btn {
@@ -583,15 +594,24 @@
             return;
         }
 
-        const item = gameImages[currentIndex];
-        cardImage.src = getImageSrc(item.file, item.type);
-
-        // Reset card position
+        // Hide card while loading new image
+        imageCard.classList.remove('visible');
+        imageCard.style.transition = 'none';
         imageCard.style.transform = 'translate(-50%, -50%)';
         imageCard.style.opacity = '1';
-        imageCard.style.transition = 'none';
         offsetX = 0;
         offsetY = 0;
+
+        const item = gameImages[currentIndex];
+        cardImage.onload = () => {
+            imageCard.classList.add('visible');
+        };
+        cardImage.src = getImageSrc(item.file, item.type);
+
+        // If image is cached, onload may not fire
+        if (cardImage.complete) {
+            imageCard.classList.add('visible');
+        }
 
         updateUI();
     }
@@ -708,6 +728,9 @@
         imageCard.style.transform = `translate(${flyX}, -50%) rotate(${chosenType === 'natural' ? -20 : 20}deg)`;
         imageCard.style.opacity = '0';
 
+        // Hide card after fly-out animation completes (prevents flash)
+        setTimeout(() => imageCard.classList.remove('visible'), 350);
+
         // Show feedback
         showFeedback(isCorrect, item.type);
 
@@ -749,7 +772,12 @@
         const mistakesContainer = document.getElementById('results-mistakes');
         mistakesContainer.innerHTML = '';
         if (mistakes.length > 0) {
-            mistakesContainer.innerHTML = '<h3>Errores para repasar:</h3>';
+            const title = document.createElement('h3');
+            title.textContent = 'Errores para repasar:';
+            mistakesContainer.appendChild(title);
+
+            const grid = document.createElement('div');
+            grid.className = 'mistakes-grid';
             mistakes.forEach(m => {
                 const div = document.createElement('div');
                 div.className = 'mistake-item';
@@ -758,8 +786,9 @@
                     <img src="${getImageSrc(m.file, m.type)}" alt="">
                     <span>Era: <strong>${correctLabel}</strong></span>
                 `;
-                mistakesContainer.appendChild(div);
+                grid.appendChild(div);
             });
+            mistakesContainer.appendChild(grid);
         }
 
         resultsScreen.style.display = 'flex';
