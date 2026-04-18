@@ -459,6 +459,7 @@ function goToMenu() {
   stopTimer();
   Object.values(screens).forEach(s => { s.classList.add('hidden'); s.classList.remove('flex'); });
   screens.start.classList.remove('hidden');
+  screens.start.classList.add('flex');
   document.getElementById('team-config').classList.add('hidden');
 }
 
