@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>El Caza-Adverbios</title>
+<script src="https://maestroseb.github.io/recursos/tailwind.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  body {
+    font-family: 'Fredoka', sans-serif;
+    background-color: #f0f9ff;
+    background-image: radial-gradient(#bae6fd 2px, transparent 2px);
+    background-size: 30px 30px;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-5px); }
+    40%, 80% { transform: translateX(5px); }
+  }
+  .animate-shake { animation: shake 0.4s ease-in-out; }
+
+  @keyframes popIn {
+    0% { transform: scale(0.8); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  .animate-pop { animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+
+  @keyframes floatUp {
+    0% { transform: translateY(0); opacity: 1; }
+    100% { transform: translateY(-40px); opacity: 0; }
+  }
+  .floating-score {
+    position: absolute;
+    animation: floatUp 1s ease-out forwards;
+    font-weight: bold;
+    font-size: 1.5rem;
+    pointer-events: none;
+    z-index: 50;
+  }
+
+  .word {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    margin: 0 0.05rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.2s;
+  }
+  .word:hover { background-color: #e0e7ff; }
+  .word.correct {
+    background-color: #22c55e;
+    color: white;
+    animation: popIn 0.4s ease;
+  }
+  .word.wrong {
+    background-color: #ef4444;
+    color: white;
+    animation: shake 0.4s ease;
+  }
+  .word.locked { cursor: default; pointer-events: none; }
+
+  /* Mantener los SVG inline alineados verticalmente con texto */
+  .icon-inline { display: inline-block; vertical-align: middle; }
+</style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-2 md:p-4 text-slate-800">
+
+<!--
+  ICONOS SVG REUTILIZABLES — Definiciones centrales
+  Se clonan con <use href="#id"/> para mantener el HTML limpio.
+-->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <!-- Lupa -->
+    <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+    </symbol>
+    <!-- Reloj (Tiempo) -->
+    <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+    </symbol>
+    <!-- Pin (Lugar) -->
+    <symbol id="i-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>
+    </symbol>
+    <!-- Chispas (Modo) -->
+    <symbol id="i-sparkles" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/><path d="M4 17v2"/><path d="M5 18H3"/>
+    </symbol>
+    <!-- Gráfico de barras (Cantidad) -->
+    <symbol id="i-bars" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+    </symbol>
+    <!-- Libro abierto (Clásico) -->
+    <symbol id="i-book" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+    </symbol>
+    <!-- Cronómetro (Contrarreloj) -->
+    <symbol id="i-stopwatch" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="10" y1="2" x2="14" y2="2"/><line x1="12" y1="14" x2="15" y2="11"/><circle cx="12" cy="14" r="8"/>
+    </symbol>
+    <!-- Espadas cruzadas (Duelo) -->
+    <symbol id="i-swords" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/><line x1="13" y1="19" x2="19" y2="13"/><line x1="16" y1="16" x2="20" y2="20"/><line x1="19" y1="21" x2="21" y2="19"/><polyline points="14.5 6.5 18 3 21 3 21 6 17.5 9.5"/><line x1="5" y1="14" x2="9" y2="18"/><line x1="7" y1="17" x2="4" y2="20"/><line x1="3" y1="19" x2="5" y2="21"/>
+    </symbol>
+    <!-- Diana / objetivo -->
+    <symbol id="i-target" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>
+    </symbol>
+    <!-- Trofeo -->
+    <symbol id="i-trophy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
+    </symbol>
+    <!-- Corona -->
+    <symbol id="i-crown" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M11.562 3.266a.5.5 0 0 1 .876 0L15.39 8.87a1 1 0 0 0 1.516.294L21.183 5.5a.5.5 0 0 1 .798.519l-2.834 10.246a1 1 0 0 1-.956.734H5.81a1 1 0 0 1-.957-.734L2.02 6.02a.5.5 0 0 1 .798-.519l4.276 3.664a1 1 0 0 0 1.516-.294z"/><path d="M5 21h14"/>
+    </symbol>
+    <!-- Estrella -->
+    <symbol id="i-star" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+    </symbol>
+    <!-- Apretón de manos (empate) -->
+    <symbol id="i-handshake" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="m11 17 2 2a1 1 0 1 0 3-3"/><path d="m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 1 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l.47.28a2 2 0 0 0 1.42.25L21 4"/><path d="m21 3 1 11h-2"/><path d="M3 3 2 14l6.5 6.5a1 1 0 1 0 3-3"/><path d="M3 4h8"/>
+    </symbol>
+    <!-- Saltar / forward -->
+    <symbol id="i-skip" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/>
+    </symbol>
+    <!-- Casa / menú -->
+    <symbol id="i-home" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+    </symbol>
+    <!-- Refrescar / reiniciar -->
+    <symbol id="i-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/>
+    </symbol>
+    <!-- Check -->
+    <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="20 6 9 17 4 12"/>
+    </symbol>
+    <!-- Cruz / X -->
+    <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+    </symbol>
+  </defs>
+</svg>
+
+
+<div class="w-full max-w-5xl bg-white rounded-3xl shadow-xl overflow-hidden relative border-4 border-slate-100">
+
+  <!-- =========== PANTALLA DE INICIO =========== -->
+  <div id="start-screen" class="p-6 md:p-12 flex flex-col items-center text-center animate-pop">
+    <div class="bg-indigo-100 p-4 rounded-full mb-6">
+      <svg class="h-16 w-16 text-indigo-600"><use href="#i-search"/></svg>
+    </div>
+    <h1 class="text-4xl md:text-5xl font-bold text-slate-800 mb-3 tracking-tight">El Caza-Adverbios</h1>
+    <p class="text-lg text-slate-600 mb-8 max-w-md">
+      Encuentra el adverbio en cada oración y clasifícalo. ¡Demuestra quién manda en la gramática!
+    </p>
+
+    <p class="text-slate-500 font-semibold mb-4 text-sm uppercase tracking-wider">Elige un modo de juego</p>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 w-full max-w-3xl mb-6">
+      <button onclick="chooseMode('classic')" class="bg-white hover:bg-indigo-50 border-4 border-indigo-200 hover:border-indigo-500 rounded-2xl p-5 transition-all transform hover:-translate-y-1 text-left shadow-sm group">
+        <svg class="h-10 w-10 text-indigo-500 mb-2"><use href="#i-book"/></svg>
+        <div class="font-bold text-lg text-slate-800 mb-1">Clásico</div>
+        <div class="text-sm text-slate-600">10 oraciones a tu ritmo. Sin prisas.</div>
+      </button>
+      <button onclick="chooseMode('timer')" class="bg-white hover:bg-orange-50 border-4 border-orange-200 hover:border-orange-500 rounded-2xl p-5 transition-all transform hover:-translate-y-1 text-left shadow-sm group">
+        <svg class="h-10 w-10 text-orange-500 mb-2"><use href="#i-stopwatch"/></svg>
+        <div class="font-bold text-lg text-slate-800 mb-1">Contrarreloj</div>
+        <div class="text-sm text-slate-600">60 segundos para acertar todo lo que puedas.</div>
+      </button>
+      <button onclick="chooseMode('teams')" class="bg-white hover:bg-pink-50 border-4 border-pink-200 hover:border-pink-500 rounded-2xl p-5 transition-all transform hover:-translate-y-1 text-left shadow-sm group">
+        <svg class="h-10 w-10 text-pink-500 mb-2"><use href="#i-swords"/></svg>
+        <div class="font-bold text-lg text-slate-800 mb-1">Duelo 2 Equipos</div>
+        <div class="text-sm text-slate-600">60 s en pantalla dividida. ¡Compiten a la vez!</div>
+      </button>
+    </div>
+
+    <!-- Config de equipos -->
+    <div id="team-config" class="hidden w-full max-w-lg bg-slate-50 border-2 border-slate-200 rounded-2xl p-6 mb-6 animate-pop">
+      <h3 class="font-bold text-lg text-slate-700 mb-4">Configurar el duelo</h3>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+        <div>
+          <label class="flex items-center gap-2 text-sm font-semibold text-slate-600 mb-1">
+            <span class="w-3 h-3 bg-blue-500 rounded-full inline-block"></span> Equipo 1
+          </label>
+          <input id="team1-name" type="text" value="Equipo Azul" maxlength="18"
+                 class="w-full px-3 py-2 border-2 border-slate-200 rounded-lg focus:border-indigo-500 focus:outline-none">
+        </div>
+        <div>
+          <label class="flex items-center gap-2 text-sm font-semibold text-slate-600 mb-1">
+            <span class="w-3 h-3 bg-pink-500 rounded-full inline-block"></span> Equipo 2
+          </label>
+          <input id="team2-name" type="text" value="Equipo Rojo" maxlength="18"
+                 class="w-full px-3 py-2 border-2 border-slate-200 rounded-lg focus:border-pink-500 focus:outline-none">
+        </div>
+      </div>
+      <button onclick="startGame('teams')" class="w-full bg-pink-500 hover:bg-pink-600 text-white text-lg font-bold py-3 px-8 rounded-xl shadow-lg shadow-pink-200 transition-transform transform hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2">
+        <svg class="h-5 w-5"><use href="#i-swords"/></svg>
+        ¡Empezar duelo!
+      </button>
+    </div>
+
+    <div class="grid grid-cols-2 gap-3 text-sm bg-slate-50 p-4 rounded-2xl w-full max-w-lg border border-slate-200">
+      <div class="flex items-center gap-2">
+        <svg class="h-5 w-5 text-green-500"><use href="#i-check"/></svg>
+        <span>Acierto: +10 puntos</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <svg class="h-5 w-5 text-red-500"><use href="#i-x"/></svg>
+        <span>Fallo: -5 puntos</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========== PANTALLA DE JUEGO (CLÁSICO / CONTRARRELOJ) =========== -->
+  <div id="game-screen" class="hidden flex-col">
+    <div class="bg-slate-800 text-white p-4 flex justify-between items-center">
+      <div class="flex items-center gap-2">
+        <svg class="h-6 w-6 text-yellow-400"><use href="#i-clock"/></svg>
+        <span id="timer" class="text-2xl font-bold font-mono">60</span>
+      </div>
+      <div class="text-center font-bold text-lg text-slate-300">
+        <span id="round-label">Pregunta</span> <span id="question-counter" class="text-white">1</span><span id="question-total" class="text-slate-400"></span>
+      </div>
+      <div class="flex items-center gap-2">
+        <svg class="h-6 w-6 text-green-400"><use href="#i-star"/></svg>
+        <span id="score" class="text-2xl font-bold font-mono">0</span>
+      </div>
+    </div>
+
+    <!-- Paso indicator -->
+    <div id="step-indicator" class="bg-indigo-50 border-b-2 border-indigo-100 px-4 py-2 text-center text-sm font-semibold text-indigo-700 flex items-center justify-center gap-2">
+      <svg class="h-4 w-4"><use href="#i-target"/></svg>
+      <span><strong>Paso 1:</strong> Pulsa el adverbio de la oración</span>
+    </div>
+
+    <!-- Área de la oración -->
+    <div id="sentence-container" class="p-6 md:p-10 flex items-center justify-center text-center min-h-[180px] bg-slate-50 transition-colors duration-300 relative">
+      <h2 id="sentence-text" class="text-2xl md:text-3xl lg:text-4xl text-slate-700 leading-relaxed"></h2>
+    </div>
+
+    <!-- Categorías -->
+    <div class="p-4 md:p-6 bg-white border-t border-slate-100">
+      <p class="text-center text-slate-500 font-semibold mb-4 text-sm uppercase tracking-wider">¿Qué tipo de adverbio es?</p>
+      <div id="categories-grid" class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <button data-cat="tiempo" disabled class="cat-btn bg-blue-100 hover:bg-blue-500 hover:text-white text-blue-700 font-bold py-4 px-3 rounded-xl transition-all border-2 border-blue-200 hover:border-blue-500 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed flex flex-col items-center gap-1">
+          <svg class="h-7 w-7"><use href="#i-clock"/></svg>
+          <div>Tiempo</div>
+          <div class="text-xs font-normal opacity-80">cuándo</div>
+        </button>
+        <button data-cat="lugar" disabled class="cat-btn bg-emerald-100 hover:bg-emerald-500 hover:text-white text-emerald-700 font-bold py-4 px-3 rounded-xl transition-all border-2 border-emerald-200 hover:border-emerald-500 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed flex flex-col items-center gap-1">
+          <svg class="h-7 w-7"><use href="#i-pin"/></svg>
+          <div>Lugar</div>
+          <div class="text-xs font-normal opacity-80">dónde</div>
+        </button>
+        <button data-cat="modo" disabled class="cat-btn bg-orange-100 hover:bg-orange-500 hover:text-white text-orange-700 font-bold py-4 px-3 rounded-xl transition-all border-2 border-orange-200 hover:border-orange-500 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed flex flex-col items-center gap-1">
+          <svg class="h-7 w-7"><use href="#i-sparkles"/></svg>
+          <div>Modo</div>
+          <div class="text-xs font-normal opacity-80">cómo</div>
+        </button>
+        <button data-cat="cantidad" disabled class="cat-btn bg-purple-100 hover:bg-purple-500 hover:text-white text-purple-700 font-bold py-4 px-3 rounded-xl transition-all border-2 border-purple-200 hover:border-purple-500 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed flex flex-col items-center gap-1">
+          <svg class="h-7 w-7"><use href="#i-bars"/></svg>
+          <div>Cantidad</div>
+          <div class="text-xs font-normal opacity-80">cuánto</div>
+        </button>
+      </div>
+      <div class="flex justify-center gap-2 mt-4">
+        <button id="skip-btn" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold py-2 px-5 rounded-lg text-sm transition-colors flex items-center gap-2">
+          <svg class="h-4 w-4"><use href="#i-skip"/></svg>
+          Saltar
+        </button>
+        <button id="menu-btn" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold py-2 px-5 rounded-lg text-sm transition-colors flex items-center gap-2">
+          <svg class="h-4 w-4"><use href="#i-home"/></svg>
+          Menú
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========== PANTALLA DE JUEGO (DUELO EQUIPOS) =========== -->
+  <div id="duel-screen" class="hidden flex-col">
+    <div class="bg-slate-800 text-white p-4 flex justify-between items-center">
+      <div class="flex items-center gap-2">
+        <span class="w-3 h-3 bg-blue-400 rounded-full"></span>
+        <span id="duel-team1-name" class="font-bold hidden sm:inline">Equipo 1</span>
+        <span id="duel-team1-score" class="text-2xl font-bold font-mono text-blue-400">0</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <svg class="h-6 w-6 text-yellow-400"><use href="#i-clock"/></svg>
+        <span id="duel-timer" class="text-3xl font-bold font-mono">60</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span id="duel-team2-score" class="text-2xl font-bold font-mono text-pink-400">0</span>
+        <span id="duel-team2-name" class="font-bold hidden sm:inline">Equipo 2</span>
+        <span class="w-3 h-3 bg-pink-400 rounded-full"></span>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 divide-x-4 divide-slate-200">
+
+      <!-- PANEL EQUIPO 1 -->
+      <div class="bg-blue-50">
+        <div class="bg-blue-500 text-white text-center py-2 font-bold flex items-center justify-center gap-2">
+          <span class="w-3 h-3 bg-white rounded-full"></span>
+          <span id="panel1-name">Equipo 1</span>
+        </div>
+        <div id="panel1-sentence" class="p-3 md:p-6 min-h-[120px] flex items-center justify-center text-center bg-white relative">
+          <p id="panel1-text" class="text-base md:text-xl lg:text-2xl text-slate-700 leading-relaxed"></p>
+        </div>
+        <div class="p-2 md:p-3 bg-blue-50">
+          <div class="grid grid-cols-2 gap-2">
+            <button data-panel="1" data-cat="tiempo" disabled class="panel-cat-btn bg-blue-100 hover:bg-blue-600 hover:text-white text-blue-700 font-bold py-2 px-2 rounded-lg transition-all border-2 border-blue-200 hover:border-blue-600 text-sm disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1">
+              <svg class="h-4 w-4"><use href="#i-clock"/></svg> Tiempo
+            </button>
+            <button data-panel="1" data-cat="lugar" disabled class="panel-cat-btn bg-emerald-100 hover:bg-emerald-600 hover:text-white text-emerald-700 font-bold py-2 px-2 rounded-lg transition-all border-2 border-emerald-200 hover:border-emerald-600 text-sm disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1">
+              <svg class="h-4 w-4"><use href="#i-pin"/></svg> Lugar
+            </button>
+            <button data-panel="1" data-cat="modo" disabled class="panel-cat-btn bg-orange-100 hover:bg-orange-600 hover:text-white text-orange-700 font-bold py-2 px-2 rounded-lg transition-all border-2 border-orange-200 hover:border-orange-600 text-sm disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1">
+              <svg class="h-4 w-4"><use href="#i-sparkles"/></svg> Modo
+            </button>
+            <button data-panel="1" data-cat="cantidad" disabled class="panel-cat-btn bg-purple-100 hover:bg-purple-600 hover:text-white text-purple-700 font-bold py-2 px-2 rounded-lg transition-all border-2 border-purple-200 hover:border-purple-600 text-sm disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1">
+              <svg class="h-4 w-4"><use href="#i-bars"/></svg> Cantidad
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- PANEL EQUIPO 2 -->
+      <div class="bg-pink-50">
+        <div class="bg-pink-500 text-white text-center py-2 font-bold flex items-center justify-center gap-2">
+          <span class="w-3 h-3 bg-white rounded-full"></span>
+          <span id="panel2-name">Equipo 2</span>
+        </div>
+        <div id="panel2-sentence" class="p-3 md:p-6 min-h-[120px] flex items-center justify-center text-center bg-white relative">
+          <p id="panel2-text" class="text-base md:text-xl lg:text-2xl text-slate-700 leading-relaxed"></p>
+        </div>
+        <div class="p-2 md:p-3 bg-pink-50">
+          <div class="grid grid-cols-2 gap-2">
+            <button data-panel="2" data-cat="tiempo" disabled class="panel-cat-btn bg-blue-100 hover:bg-blue-600 hover:text-white text-blue-700 font-bold py-2 px-2 rounded-lg transition-all border-2 border-blue-200 hover:border-blue-600 text-sm disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1">
+              <svg class="h-4 w-4"><use href="#i-clock"/></svg> Tiempo
+            </button>
+            <button data-panel="2" data-cat="lugar" disabled class="panel-cat-btn bg-emerald-100 hover:bg-emerald-600 hover:text-white text-emerald-700 font-bold py-2 px-2 rounded-lg transition-all border-2 border-emerald-200 hover:border-emerald-600 text-sm disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1">
+              <svg class="h-4 w-4"><use href="#i-pin"/></svg> Lugar
+            </button>
+            <button data-panel="2" data-cat="modo" disabled class="panel-cat-btn bg-orange-100 hover:bg-orange-600 hover:text-white text-orange-700 font-bold py-2 px-2 rounded-lg transition-all border-2 border-orange-200 hover:border-orange-600 text-sm disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1">
+              <svg class="h-4 w-4"><use href="#i-sparkles"/></svg> Modo
+            </button>
+            <button data-panel="2" data-cat="cantidad" disabled class="panel-cat-btn bg-purple-100 hover:bg-purple-600 hover:text-white text-purple-700 font-bold py-2 px-2 rounded-lg transition-all border-2 border-purple-200 hover:border-purple-600 text-sm disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1">
+              <svg class="h-4 w-4"><use href="#i-bars"/></svg> Cantidad
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="p-3 bg-white border-t border-slate-100 flex justify-center">
+      <button id="duel-menu-btn" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold py-2 px-5 rounded-lg text-sm transition-colors flex items-center gap-2">
+        <svg class="h-4 w-4"><use href="#i-home"/></svg>
+        Abandonar duelo
+      </button>
+    </div>
+  </div>
+
+  <!-- =========== PANTALLA DE RESULTADOS =========== -->
+  <div id="end-screen" class="hidden p-8 md:p-12 flex-col items-center text-center">
+    <div id="end-icon-wrapper" class="mb-4">
+      <svg id="end-icon-svg" class="h-20 w-20 text-yellow-500"><use href="#i-trophy"/></svg>
+    </div>
+    <h2 id="end-title" class="text-4xl font-bold text-slate-800 mb-2">¡Fin del juego!</h2>
+    <p id="end-message" class="text-xl text-slate-600 mb-6">Has hecho un gran trabajo.</p>
+
+    <!-- Resultado individual -->
+    <div id="end-solo" class="bg-slate-50 rounded-2xl p-6 w-full max-w-sm mb-8 border border-slate-200">
+      <div class="text-slate-500 text-sm font-bold uppercase mb-1">Puntuación Final</div>
+      <div id="final-score" class="text-5xl font-black text-indigo-500">0</div>
+    </div>
+
+    <!-- Resultado duelo equipos -->
+    <div id="end-teams" class="hidden w-full max-w-xl mb-8">
+      <div class="grid grid-cols-2 gap-4">
+        <div id="end-team1-card" class="bg-blue-50 rounded-2xl p-5 border-4 border-blue-200">
+          <div id="end-team1-name" class="font-bold text-blue-700 mb-1">Equipo 1</div>
+          <div id="end-team1-score" class="text-5xl font-black text-blue-500">0</div>
+        </div>
+        <div id="end-team2-card" class="bg-pink-50 rounded-2xl p-5 border-4 border-pink-200">
+          <div id="end-team2-name" class="font-bold text-pink-700 mb-1">Equipo 2</div>
+          <div id="end-team2-score" class="text-5xl font-black text-pink-500">0</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex gap-3 flex-wrap justify-center">
+      <button onclick="resetGame()" class="bg-indigo-500 hover:bg-indigo-600 text-white text-lg font-bold py-3 px-8 rounded-full shadow-lg shadow-indigo-200 transition-transform transform hover:scale-105 active:scale-95 flex items-center gap-2">
+        <svg class="h-5 w-5"><use href="#i-refresh"/></svg>
+        Volver a jugar
+      </button>
+      <button onclick="goToMenu()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 text-lg font-bold py-3 px-8 rounded-full transition-transform transform hover:scale-105 active:scale-95 flex items-center gap-2">
+        <svg class="h-5 w-5"><use href="#i-home"/></svg>
+        Menú principal
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ========================================================================
+// ESTADO
+// ========================================================================
+let mode = 'classic';
+let score = 0;
+let timeLeft = 60;
+let timerInterval = null;
+let questionCount = 0;
+let questions = [];
+let currentQuestion = null;
+let step = 1;
+let isProcessing = false;
+
+// Duelo equipos
+let teamNames = ['Equipo 1', 'Equipo 2'];
+let teamScores = [0, 0];
+let panelQuestions = [null, null];
+let panelSteps = [1, 1];
+let panelProcessing = [false, false];
+
+const screens = {
+  start: document.getElementById('start-screen'),
+  game: document.getElementById('game-screen'),
+  duel: document.getElementById('duel-screen'),
+  end: document.getElementById('end-screen')
+};
+
+// ========================================================================
+// NAVEGACIÓN
+// ========================================================================
+function chooseMode(m) {
+  const config = document.getElementById('team-config');
+  if (m === 'teams') {
+    config.classList.remove('hidden');
+    config.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  } else {
+    config.classList.add('hidden');
+    startGame(m);
+  }
+}
+
+function goToMenu() {
+  stopTimer();
+  Object.values(screens).forEach(s => { s.classList.add('hidden'); s.classList.remove('flex'); });
+  screens.start.classList.remove('hidden');
+  document.getElementById('team-config').classList.add('hidden');
+}
+
+function resetGame() {
+  startGame(mode);
+}
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// ========================================================================
+// INICIAR JUEGO
+// ========================================================================
+function startGame(m) {
+  mode = m;
+  score = 0;
+  questionCount = 0;
+  teamScores = [0, 0];
+  isProcessing = false;
+  panelProcessing = [false, false];
+  questions = shuffle(ORACIONES);
+
+  Object.values(screens).forEach(s => { s.classList.add('hidden'); s.classList.remove('flex'); });
+
+  if (mode === 'teams') {
+    teamNames = [
+      (document.getElementById('team1-name').value.trim() || 'Equipo 1'),
+      (document.getElementById('team2-name').value.trim() || 'Equipo 2')
+    ];
+    document.getElementById('duel-team1-name').textContent = teamNames[0];
+    document.getElementById('duel-team2-name').textContent = teamNames[1];
+    document.getElementById('panel1-name').textContent = teamNames[0];
+    document.getElementById('panel2-name').textContent = teamNames[1];
+    document.getElementById('duel-team1-score').textContent = '0';
+    document.getElementById('duel-team2-score').textContent = '0';
+
+    timeLeft = 60;
+    document.getElementById('duel-timer').textContent = timeLeft;
+    document.getElementById('duel-timer').classList.remove('text-red-500', 'animate-pulse');
+
+    screens.duel.classList.remove('hidden');
+    screens.duel.classList.add('flex');
+
+    loadPanelQuestion(0);
+    loadPanelQuestion(1);
+    startDuelTimer();
+
+  } else {
+    document.getElementById('score').textContent = '0';
+
+    if (mode === 'timer') {
+      timeLeft = 60;
+      document.getElementById('timer').textContent = timeLeft;
+      document.getElementById('timer').classList.remove('text-red-500', 'animate-pulse');
+      document.getElementById('round-label').textContent = 'Pregunta';
+      document.getElementById('question-total').textContent = '';
+      startSoloTimer();
+    } else {
+      timeLeft = -1;
+      document.getElementById('timer').textContent = '∞';
+      document.getElementById('timer').classList.remove('text-red-500', 'animate-pulse');
+      document.getElementById('round-label').textContent = 'Pregunta';
+      document.getElementById('question-total').textContent = '/10';
+    }
+
+    screens.game.classList.remove('hidden');
+    screens.game.classList.add('flex');
+    loadNextQuestion();
+  }
+}
+
+// ========================================================================
+// TEMPORIZADORES
+// ========================================================================
+function startSoloTimer() {
+  stopTimer();
+  timerInterval = setInterval(() => {
+    timeLeft--;
+    const el = document.getElementById('timer');
+    el.textContent = timeLeft;
+    if (timeLeft <= 10) el.classList.add('text-red-500', 'animate-pulse');
+    if (timeLeft <= 0) {
+      stopTimer();
+      endGame();
+    }
+  }, 1000);
+}
+
+function startDuelTimer() {
+  stopTimer();
+  timerInterval = setInterval(() => {
+    timeLeft--;
+    const el = document.getElementById('duel-timer');
+    el.textContent = timeLeft;
+    if (timeLeft <= 10) el.classList.add('text-red-500', 'animate-pulse');
+    if (timeLeft <= 0) {
+      stopTimer();
+      endGame();
+    }
+  }, 1000);
+}
+
+function stopTimer() {
+  if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+}
+
+// ========================================================================
+// MODO SOLO
+// ========================================================================
+function loadNextQuestion() {
+  if (questions.length === 0) questions = shuffle(ORACIONES);
+  currentQuestion = questions.pop();
+  questionCount++;
+  document.getElementById('question-counter').textContent = questionCount;
+
+  step = 1;
+  isProcessing = false;
+
+  renderSentence(document.getElementById('sentence-text'), currentQuestion, handleSoloWordClick);
+
+  document.getElementById('step-indicator').innerHTML =
+    '<svg class="h-4 w-4"><use href="#i-target"/></svg><span><strong>Paso 1:</strong> Pulsa el adverbio de la oración</span>';
+  document.getElementById('step-indicator').className =
+    'bg-indigo-50 border-b-2 border-indigo-100 px-4 py-2 text-center text-sm font-semibold text-indigo-700 flex items-center justify-center gap-2';
+
+  document.querySelectorAll('#categories-grid .cat-btn').forEach(b => b.disabled = true);
+
+  if (mode === 'classic' && questionCount > 10) {
+    endGame();
+  }
+}
+
+function handleSoloWordClick(wordEl, word) {
+  if (step !== 1 || isProcessing) return;
+  const clean = word.toLowerCase().replace(/[.,;:!¡¿?]/g, '');
+  const adv = currentQuestion.adv.toLowerCase();
+
+  if (clean === adv) {
+    wordEl.classList.add('correct', 'locked');
+    document.querySelectorAll('#sentence-text .word').forEach(w => {
+      if (w !== wordEl) w.classList.add('locked');
+    });
+    step = 2;
+    document.getElementById('step-indicator').innerHTML =
+      '<svg class="h-4 w-4"><use href="#i-sparkles"/></svg><span><strong>Paso 2:</strong> Ahora clasifícalo: ¿qué tipo de adverbio es?</span>';
+    document.getElementById('step-indicator').className =
+      'bg-amber-50 border-b-2 border-amber-100 px-4 py-2 text-center text-sm font-semibold text-amber-700 flex items-center justify-center gap-2';
+    document.querySelectorAll('#categories-grid .cat-btn').forEach(b => b.disabled = false);
+  } else {
+    wordEl.classList.add('wrong');
+    score = Math.max(0, score - 5);
+    document.getElementById('score').textContent = score;
+    showFloatingText(document.getElementById('sentence-container'), '-5', false);
+    setTimeout(() => wordEl.classList.remove('wrong'), 500);
+  }
+}
+
+document.querySelectorAll('#categories-grid .cat-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (step !== 2 || isProcessing) return;
+    isProcessing = true;
+    const cat = btn.dataset.cat;
+    const container = document.getElementById('sentence-container');
+
+    document.querySelectorAll('#categories-grid .cat-btn').forEach(b => b.disabled = true);
+
+    if (cat === currentQuestion.cat) {
+      score += 10;
+      container.classList.add('bg-green-100');
+      showFloatingText(container, '+10', true);
+    } else {
+      score = Math.max(0, score - 5);
+      container.classList.add('bg-red-100', 'animate-shake');
+      showFloatingText(container, '-5', false);
+    }
+    document.getElementById('score').textContent = score;
+
+    setTimeout(() => {
+      container.classList.remove('bg-green-100', 'bg-red-100', 'animate-shake');
+      loadNextQuestion();
+    }, 800);
+  });
+});
+
+document.getElementById('skip-btn').addEventListener('click', () => {
+  if (isProcessing) return;
+  loadNextQuestion();
+});
+document.getElementById('menu-btn').addEventListener('click', goToMenu);
+document.getElementById('duel-menu-btn').addEventListener('click', goToMenu);
+
+// ========================================================================
+// MODO DUELO
+// ========================================================================
+function loadPanelQuestion(panelIdx) {
+  if (questions.length === 0) questions = shuffle(ORACIONES);
+  panelQuestions[panelIdx] = questions.pop();
+  panelSteps[panelIdx] = 1;
+  panelProcessing[panelIdx] = false;
+
+  const textEl = document.getElementById(`panel${panelIdx + 1}-text`);
+  renderSentence(textEl, panelQuestions[panelIdx], (wordEl, word) => handlePanelWordClick(panelIdx, wordEl, word));
+
+  const sentenceBox = document.getElementById(`panel${panelIdx + 1}-sentence`);
+  sentenceBox.classList.remove('bg-green-100', 'bg-red-100', 'animate-shake');
+
+  document.querySelectorAll(`.panel-cat-btn[data-panel="${panelIdx + 1}"]`).forEach(b => b.disabled = true);
+}
+
+function handlePanelWordClick(panelIdx, wordEl, word) {
+  if (panelSteps[panelIdx] !== 1 || panelProcessing[panelIdx]) return;
+  const clean = word.toLowerCase().replace(/[.,;:!¡¿?]/g, '');
+  const adv = panelQuestions[panelIdx].adv.toLowerCase();
+
+  if (clean === adv) {
+    wordEl.classList.add('correct', 'locked');
+    const textEl = document.getElementById(`panel${panelIdx + 1}-text`);
+    textEl.querySelectorAll('.word').forEach(w => {
+      if (w !== wordEl) w.classList.add('locked');
+    });
+    panelSteps[panelIdx] = 2;
+    document.querySelectorAll(`.panel-cat-btn[data-panel="${panelIdx + 1}"]`).forEach(b => b.disabled = false);
+  } else {
+    wordEl.classList.add('wrong');
+    teamScores[panelIdx] = Math.max(0, teamScores[panelIdx] - 5);
+    document.getElementById(`duel-team${panelIdx + 1}-score`).textContent = teamScores[panelIdx];
+    const sentenceBox = document.getElementById(`panel${panelIdx + 1}-sentence`);
+    showFloatingText(sentenceBox, '-5', false);
+    setTimeout(() => wordEl.classList.remove('wrong'), 500);
+  }
+}
+
+document.querySelectorAll('.panel-cat-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const panelIdx = parseInt(btn.dataset.panel) - 1;
+    if (panelSteps[panelIdx] !== 2 || panelProcessing[panelIdx]) return;
+    panelProcessing[panelIdx] = true;
+
+    const cat = btn.dataset.cat;
+    const sentenceBox = document.getElementById(`panel${panelIdx + 1}-sentence`);
+
+    document.querySelectorAll(`.panel-cat-btn[data-panel="${panelIdx + 1}"]`).forEach(b => b.disabled = true);
+
+    if (cat === panelQuestions[panelIdx].cat) {
+      teamScores[panelIdx] += 10;
+      sentenceBox.classList.add('bg-green-100');
+      showFloatingText(sentenceBox, '+10', true);
+    } else {
+      teamScores[panelIdx] = Math.max(0, teamScores[panelIdx] - 5);
+      sentenceBox.classList.add('bg-red-100', 'animate-shake');
+      showFloatingText(sentenceBox, '-5', false);
+    }
+    document.getElementById(`duel-team${panelIdx + 1}-score`).textContent = teamScores[panelIdx];
+
+    setTimeout(() => {
+      if (timeLeft > 0) loadPanelQuestion(panelIdx);
+    }, 800);
+  });
+});
+
+// ========================================================================
+// HELPERS
+// ========================================================================
+function renderSentence(container, question, onWordClick) {
+  container.innerHTML = '';
+  const text = question.text;
+  const parts = text.split(/(\s+)/);
+  parts.forEach(part => {
+    if (/^\s+$/.test(part)) {
+      container.appendChild(document.createTextNode(part));
+    } else if (part.length > 0) {
+      const span = document.createElement('span');
+      span.className = 'word';
+      span.textContent = part;
+      span.addEventListener('click', () => onWordClick(span, part));
+      container.appendChild(span);
+    }
+  });
+  container.classList.remove('animate-pop');
+  void container.offsetWidth;
+  container.classList.add('animate-pop');
+}
+
+function showFloatingText(container, text, positive) {
+  const el = document.createElement('div');
+  el.textContent = text;
+  el.className = `floating-score ${positive ? 'text-green-500' : 'text-red-500'}`;
+  el.style.left = '50%';
+  el.style.top = '50%';
+  el.style.transform = 'translate(-50%, -50%)';
+  container.appendChild(el);
+  setTimeout(() => el.remove(), 1000);
+}
+
+// Helper para cambiar el icono SVG de la pantalla final
+function setEndIcon(iconId, colorClass) {
+  const svg = document.getElementById('end-icon-svg');
+  svg.innerHTML = `<use href="#${iconId}"/>`;
+  svg.className = `h-20 w-20 ${colorClass}`;
+}
+
+// ========================================================================
+// FIN DEL JUEGO
+// ========================================================================
+function endGame() {
+  stopTimer();
+  Object.values(screens).forEach(s => { s.classList.add('hidden'); s.classList.remove('flex'); });
+  screens.end.classList.remove('hidden');
+  screens.end.classList.add('flex');
+
+  if (mode === 'teams') {
+    document.getElementById('end-solo').classList.add('hidden');
+    document.getElementById('end-teams').classList.remove('hidden');
+    document.getElementById('end-team1-name').textContent = teamNames[0];
+    document.getElementById('end-team2-name').textContent = teamNames[1];
+    document.getElementById('end-team1-score').textContent = teamScores[0];
+    document.getElementById('end-team2-score').textContent = teamScores[1];
+
+    const card1 = document.getElementById('end-team1-card');
+    const card2 = document.getElementById('end-team2-card');
+    card1.className = 'bg-blue-50 rounded-2xl p-5 border-4 border-blue-200';
+    card2.className = 'bg-pink-50 rounded-2xl p-5 border-4 border-pink-200';
+
+    document.getElementById('end-title').textContent = '¡Fin del duelo!';
+    if (teamScores[0] > teamScores[1]) {
+      setEndIcon('i-trophy', 'text-yellow-500');
+      document.getElementById('end-message').textContent = `¡Victoria para ${teamNames[0]}!`;
+      card1.className = 'bg-blue-50 rounded-2xl p-5 border-4 border-blue-500 shadow-xl shadow-blue-200';
+    } else if (teamScores[1] > teamScores[0]) {
+      setEndIcon('i-trophy', 'text-yellow-500');
+      document.getElementById('end-message').textContent = `¡Victoria para ${teamNames[1]}!`;
+      card2.className = 'bg-pink-50 rounded-2xl p-5 border-4 border-pink-500 shadow-xl shadow-pink-200';
+    } else {
+      setEndIcon('i-handshake', 'text-slate-500');
+      document.getElementById('end-message').textContent = '¡Empate! Muy igualado.';
+    }
+  } else {
+    document.getElementById('end-solo').classList.remove('hidden');
+    document.getElementById('end-teams').classList.add('hidden');
+    document.getElementById('final-score').textContent = score;
+
+    if (mode === 'timer') {
+      document.getElementById('end-title').textContent = '¡Tiempo!';
+    } else {
+      document.getElementById('end-title').textContent = '¡Fin del juego!';
+    }
+
+    if (score >= 100) {
+      setEndIcon('i-crown', 'text-yellow-500');
+      document.getElementById('end-message').textContent = '¡Increíble! Eres un maestro de los adverbios.';
+    } else if (score >= 60) {
+      setEndIcon('i-trophy', 'text-yellow-500');
+      document.getElementById('end-message').textContent = '¡Muy bien! Tienes un gran dominio.';
+    } else if (score >= 30) {
+      setEndIcon('i-star', 'text-indigo-500');
+      document.getElementById('end-message').textContent = '¡Bien hecho! Sigue practicando.';
+    } else {
+      setEndIcon('i-book', 'text-slate-500');
+      document.getElementById('end-message').textContent = 'Repasa los adverbios y vuelve a intentarlo.';
+    }
+  }
+}
+
+
+// ==========================================================================
+// ==========================================================================
+//
+//            📚 BANCO DE ORACIONES — AMPLIABLE FÁCILMENTE 📚
+//
+//  Para añadir más oraciones, sigue EXACTAMENTE este formato:
+//
+//      { text: "Oración completa.", adv: "adverbio", cat: "categoria" },
+//
+//  CAMPOS:
+//  - text: La oración completa SIN marcar nada. Ej: "Llegó tarde a clase."
+//  - adv: El adverbio exacto, en minúsculas, SIN puntuación. Ej: "tarde"
+//  - cat: La categoría. Debe ser EXACTAMENTE una de estas 4:
+//         "tiempo"   → cuándo (ayer, hoy, siempre, nunca, pronto, tarde...)
+//         "lugar"    → dónde (aquí, allí, cerca, lejos, encima, fuera...)
+//         "modo"     → cómo (bien, mal, despacio, rápidamente, así...)
+//         "cantidad" → cuánto (mucho, poco, bastante, demasiado, muy, más...)
+//
+//  REGLAS:
+//  - Solo UN adverbio por oración.
+//  - El adverbio debe aparecer tal cual en la oración (misma forma).
+//  - No pongas signos de puntuación pegados al adverbio en el campo "adv".
+//
+//  PROMPT PARA OTRO MODELO DE IA:
+//  "Genera 20 oraciones para alumnos de Primaria siguiendo este formato
+//   exacto: { text: \"Oración completa.\", adv: \"adverbio\", cat:
+//   \"tiempo|lugar|modo|cantidad\" }, . Reparte 5 de cada categoría. Usa
+//   vocabulario sencillo y contextos escolares o familiares."
+//
+// ==========================================================================
+// ==========================================================================
+
+const ORACIONES = [
+  // --- ADVERBIOS DE TIEMPO ---
+  { text: "Mi hermano llegó tarde a clase.", adv: "tarde", cat: "tiempo" },
+  { text: "Ayer fuimos al cine con mis primos.", adv: "ayer", cat: "tiempo" },
+  { text: "Hoy tenemos clase de música.", adv: "hoy", cat: "tiempo" },
+  { text: "Siempre desayuno antes de ir al colegio.", adv: "siempre", cat: "tiempo" },
+  { text: "Nunca llego tarde al colegio.", adv: "nunca", cat: "tiempo" },
+  { text: "Volveremos a casa pronto.", adv: "pronto", cat: "tiempo" },
+  { text: "Antes vivía en Sevilla.", adv: "antes", cat: "tiempo" },
+  { text: "Me lavo los dientes después de cenar.", adv: "después", cat: "tiempo" },
+
+  // --- ADVERBIOS DE LUGAR ---
+  { text: "Los niños juegan aquí todos los días.", adv: "aquí", cat: "lugar" },
+  { text: "El gato duerme allí, encima del sofá.", adv: "allí", cat: "lugar" },
+  { text: "El perro está fuera de la casa.", adv: "fuera", cat: "lugar" },
+  { text: "Pon las mochilas dentro del armario.", adv: "dentro", cat: "lugar" },
+  { text: "Mi lápiz está encima de la mesa.", adv: "encima", cat: "lugar" },
+  { text: "El parque está cerca de mi casa.", adv: "cerca", cat: "lugar" },
+  { text: "Mi abuela vive muy lejos.", adv: "lejos", cat: "lugar" },
+  { text: "Puedes sentarte ahí si quieres.", adv: "ahí", cat: "lugar" },
+
+  // --- ADVERBIOS DE MODO ---
+  { text: "La abuela camina despacio por el parque.", adv: "despacio", cat: "modo" },
+  { text: "La profesora habla claramente en clase.", adv: "claramente", cat: "modo" },
+  { text: "Mi amigo corre rápidamente en el patio.", adv: "rápidamente", cat: "modo" },
+  { text: "Ella canta bien las canciones del coro.", adv: "bien", cat: "modo" },
+  { text: "Los alumnos trabajan mal con tanto ruido.", adv: "mal", cat: "modo" },
+  { text: "Hizo el examen perfectamente.", adv: "perfectamente", cat: "modo" },
+  { text: "El niño se portó así toda la mañana.", adv: "así", cat: "modo" },
+  { text: "Resolvió el problema fácilmente.", adv: "fácilmente", cat: "modo" },
+
+  // --- ADVERBIOS DE CANTIDAD ---
+  { text: "He comido mucho en la fiesta de cumpleaños.", adv: "mucho", cat: "cantidad" },
+  { text: "Este libro me gusta bastante.", adv: "bastante", cat: "cantidad" },
+  { text: "He estudiado poco para el examen.", adv: "poco", cat: "cantidad" },
+  { text: "El helado está muy frío.", adv: "muy", cat: "cantidad" },
+  { text: "Hay demasiados juguetes en el suelo.", adv: "demasiados", cat: "cantidad" },
+  { text: "Ese problema es menos difícil que el anterior.", adv: "menos", cat: "cantidad" },
+  { text: "Corrió más que todos sus compañeros.", adv: "más", cat: "cantidad" },
+  { text: "Estoy casi terminando el dibujo.", adv: "casi", cat: "cantidad" },
+];
+</script>
+
+</body>
+</html>
