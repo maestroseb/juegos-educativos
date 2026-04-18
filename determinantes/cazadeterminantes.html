@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>El Caza-Determinantes</title>
+    <script src="https://maestroseb.github.io/recursos/tailwind.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Fredoka', sans-serif;
+            background-color: #f0fdf4;
+            background-image: radial-gradient(#bbf7d0 2px, transparent 2px);
+            background-size: 30px 30px;
+            user-select: none;
+        }
+
+        /* Animaciones personalizadas */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-5px); }
+            40%, 80% { transform: translateX(5px); }
+        }
+        .animate-shake {
+            animation: shake 0.4s ease-in-out;
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-pop {
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes floatUp {
+            0% { transform: translateY(0); opacity: 1; }
+            100% { transform: translateY(-30px); opacity: 0; }
+        }
+        .floating-score {
+            position: absolute;
+            animation: floatUp 1s ease-out forwards;
+            font-weight: bold;
+            font-size: 1.5rem;
+            pointer-events: none;
+            z-index: 50;
+        }
+
+        /* Estilo para la palabra destacada en la frase */
+        .highlight {
+            color: #ec4899; /* Pink-500 */
+            font-weight: 700;
+            background-color: #fdf2f8;
+            padding: 0.1rem 0.4rem;
+            border-radius: 0.25rem;
+            border: 2px dashed #fbcfe8;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-4 text-slate-800">
+
+    <!-- CONTENEDOR PRINCIPAL -->
+    <div class="w-full max-w-4xl bg-white rounded-3xl shadow-xl overflow-hidden relative border-4 border-slate-100">
+        
+        <!-- PANTALLA DE INICIO -->
+        <div id="start-screen" class="p-8 md:p-12 flex flex-col items-center text-center animate-pop">
+            <div class="bg-green-100 p-4 rounded-full mb-6">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M10 7v3m0 0v3m0-3h3m-3 0H7" />
+                </svg>
+            </div>
+            <h1 class="text-4xl md:text-5xl font-bold text-slate-800 mb-4 tracking-tight">El Caza-Determinantes</h1>
+            <p class="text-lg text-slate-600 mb-8 max-w-md">
+                Encuentra y clasifica los determinantes en las oraciones. Tienes <strong>60 segundos</strong>. ¡Demuestra que eres un maestro de la gramática!
+            </p>
+            
+            <div class="grid grid-cols-2 gap-4 text-sm text-left bg-slate-50 p-6 rounded-2xl mb-8 w-full max-w-lg border border-slate-200">
+                <div><span class="text-green-500 font-bold">✓</span> Acierto: +10 puntos</div>
+                <div><span class="text-red-500 font-bold">✗</span> Fallo: -5 puntos</div>
+            </div>
+
+            <button onclick="startGame()" class="bg-green-500 hover:bg-green-600 text-white text-xl font-bold py-4 px-12 rounded-full shadow-lg shadow-green-200 transition-transform transform hover:scale-105 active:scale-95">
+                ¡Jugar Ahora!
+            </button>
+        </div>
+
+        <!-- PANTALLA DE JUEGO -->
+        <div id="game-screen" class="hidden flex-col h-full">
+            
+            <!-- Cabecera (Tiempo y Puntuación) -->
+            <div class="bg-slate-800 text-white p-4 flex justify-between items-center rounded-t-2xl">
+                <div class="flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span id="timer" class="text-2xl font-bold font-mono">60</span>
+                </div>
+                <div class="text-center font-bold text-lg text-slate-300">
+                    Pregunta <span id="question-counter" class="text-white">1</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                    </svg>
+                    <span id="score" class="text-2xl font-bold font-mono">0</span>
+                </div>
+            </div>
+
+            <!-- Área de la oración -->
+            <div id="sentence-container" class="p-8 md:p-12 flex items-center justify-center text-center min-h-[200px] bg-slate-50 transition-colors duration-300 relative">
+                <h2 id="sentence-text" class="text-2xl md:text-3xl lg:text-4xl text-slate-700 leading-relaxed">
+                    Cargando oración...
+                </h2>
+            </div>
+
+            <!-- Botones de Clasificación -->
+            <div class="p-4 md:p-6 bg-white border-t border-slate-100">
+                <p class="text-center text-slate-500 font-semibold mb-4 text-sm uppercase tracking-wider">¿Qué tipo de determinante es?</p>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    
+                    <!-- Grupo: Artículos -->
+                    <div class="bg-slate-50 p-3 rounded-2xl border border-slate-200">
+                        <h3 class="text-center font-bold text-slate-600 mb-3 text-base">Artículos</h3>
+                        <div class="space-y-2">
+                            <button onclick="checkAnswer('art_det', this)" class="w-full bg-blue-100 hover:bg-blue-500 hover:text-white text-blue-700 font-semibold py-2 px-3 rounded-xl transition-all border-2 border-blue-200 hover:border-blue-500 shadow-sm text-sm">
+                                Determinado
+                            </button>
+                            <button onclick="checkAnswer('art_indet', this)" class="w-full bg-cyan-100 hover:bg-cyan-500 hover:text-white text-cyan-700 font-semibold py-2 px-3 rounded-xl transition-all border-2 border-cyan-200 hover:border-cyan-500 shadow-sm text-sm">
+                                Indeterminado
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Grupo: Demostrativos -->
+                    <div class="bg-slate-50 p-3 rounded-2xl border border-slate-200">
+                        <h3 class="text-center font-bold text-slate-600 mb-3 text-base">Demostrativos</h3>
+                        <div class="space-y-2">
+                            <button onclick="checkAnswer('dem_cerca', this)" class="w-full bg-orange-100 hover:bg-orange-500 hover:text-white text-orange-700 font-semibold py-2 px-3 rounded-xl transition-all border-2 border-orange-200 hover:border-orange-500 shadow-sm text-sm">
+                                Cercanía
+                            </button>
+                            <button onclick="checkAnswer('dem_medio', this)" class="w-full bg-red-100 hover:bg-red-500 hover:text-white text-red-700 font-semibold py-2 px-3 rounded-xl transition-all border-2 border-red-200 hover:border-red-500 shadow-sm text-sm">
+                                Dist. Media
+                            </button>
+                            <button onclick="checkAnswer('dem_lejos', this)" class="w-full bg-purple-100 hover:bg-purple-500 hover:text-white text-purple-700 font-semibold py-2 px-3 rounded-xl transition-all border-2 border-purple-200 hover:border-purple-500 shadow-sm text-sm">
+                                Lejanía
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Grupo: Posesivos -->
+                    <div class="bg-slate-50 p-3 rounded-2xl border border-slate-200">
+                        <h3 class="text-center font-bold text-slate-600 mb-3 text-base">Posesivos</h3>
+                        <div class="space-y-2">
+                            <button onclick="checkAnswer('pos', this)" class="w-full bg-emerald-100 hover:bg-emerald-500 hover:text-white text-emerald-700 font-semibold py-2 px-3 rounded-xl transition-all border-2 border-emerald-200 hover:border-emerald-500 shadow-sm text-sm">
+                                Posesivo
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Grupo: Numerales -->
+                    <div class="bg-slate-50 p-3 rounded-2xl border border-slate-200">
+                        <h3 class="text-center font-bold text-slate-600 mb-3 text-base">Numerales</h3>
+                        <div class="space-y-2">
+                            <button onclick="checkAnswer('num_card', this)" class="w-full bg-amber-100 hover:bg-amber-500 hover:text-white text-amber-700 font-semibold py-2 px-3 rounded-xl transition-all border-2 border-amber-200 hover:border-amber-500 shadow-sm text-sm">
+                                Cardinal
+                            </button>
+                            <button onclick="checkAnswer('num_ord', this)" class="w-full bg-yellow-100 hover:bg-yellow-500 hover:text-white text-yellow-700 font-semibold py-2 px-3 rounded-xl transition-all border-2 border-yellow-200 hover:border-yellow-500 shadow-sm text-sm">
+                                Ordinal
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- PANTALLA DE RESULTADOS -->
+        <div id="end-screen" class="hidden p-8 md:p-12 flex-col items-center text-center">
+            <div id="end-icon" class="text-6xl mb-4">🏆</div>
+            <h2 class="text-4xl font-bold text-slate-800 mb-2">¡Tiempo agotado!</h2>
+            <p id="end-message" class="text-xl text-slate-600 mb-6">Has hecho un gran trabajo.</p>
+            
+            <div class="bg-slate-50 rounded-2xl p-6 w-full max-w-sm mb-8 border border-slate-200">
+                <div class="text-slate-500 text-sm font-bold uppercase mb-1">Puntuación Final</div>
+                <div id="final-score" class="text-5xl font-black text-green-500">0</div>
+            </div>
+
+            <button onclick="resetGame()" class="bg-blue-500 hover:bg-blue-600 text-white text-xl font-bold py-4 px-10 rounded-full shadow-lg shadow-blue-200 transition-transform transform hover:scale-105 active:scale-95 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Volver a jugar
+            </button>
+        </div>
+
+    </div>
+
+    <!-- LOGICA DEL JUEGO -->
+    <script>
+        let questions = [];
+        let currentQuestion = {};
+        let score = 0;
+        let timeLeft = 60;
+        let timerInterval;
+        let questionCount = 0;
+        let isProcessing = false; // Previene múltiples clics rápidos
+
+        // Elementos del DOM
+        const screens = {
+            start: document.getElementById('start-screen'),
+            game: document.getElementById('game-screen'),
+            end: document.getElementById('end-screen')
+        };
+        const els = {
+            sentenceText: document.getElementById('sentence-text'),
+            sentenceContainer: document.getElementById('sentence-container'),
+            timer: document.getElementById('timer'),
+            score: document.getElementById('score'),
+            questionCounter: document.getElementById('question-counter'),
+            finalScore: document.getElementById('final-score'),
+            endMessage: document.getElementById('end-message'),
+            endIcon: document.getElementById('end-icon')
+        };
+
+        // Función para barajar el array de preguntas
+        function shuffle(array) {
+            let currentIndex = array.length, randomIndex;
+            while (currentIndex != 0) {
+                randomIndex = Math.floor(Math.random() * currentIndex);
+                currentIndex--;
+                [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+            }
+            return array;
+        }
+
+        function startGame() {
+            // Inicializar variables
+            score = 0;
+            timeLeft = 60;
+            questionCount = 0;
+            questions = shuffle([...allQuestions]); // Copia barajada
+            isProcessing = false;
+
+            // Actualizar UI
+            els.score.innerText = score;
+            els.timer.innerText = timeLeft;
+            els.timer.classList.remove('text-red-500');
+
+            // Cambiar pantallas
+            screens.start.classList.add('hidden');
+            screens.end.classList.add('hidden');
+            screens.game.classList.remove('hidden');
+            screens.game.classList.add('flex'); // Mantiene el flex layout
+
+            // Iniciar temporizador
+            timerInterval = setInterval(updateTimer, 1000);
+
+            // Cargar primera pregunta
+            loadNextQuestion();
+        }
+
+        function updateTimer() {
+            timeLeft--;
+            els.timer.innerText = timeLeft;
+
+            if (timeLeft <= 10) {
+                els.timer.classList.add('text-red-500', 'animate-pulse');
+            }
+
+            if (timeLeft <= 0) {
+                endGame();
+            }
+        }
+
+        function loadNextQuestion() {
+            if (questions.length === 0) {
+                // Si se acaban, volver a llenar y barajar
+                questions = shuffle([...allQuestions]);
+            }
+
+            currentQuestion = questions.pop();
+            questionCount++;
+            els.questionCounter.innerText = questionCount;
+
+            // Formatear la oración para resaltar el determinante
+            // Sustituimos [palabra] por un span estilizado
+            const formattedText = currentQuestion.text.replace(
+                /\[(.*?)\]/, 
+                '<span class="highlight">$1</span>'
+            );
+            
+            els.sentenceText.innerHTML = formattedText;
+            
+            // Animación de entrada
+            els.sentenceText.classList.remove('animate-pop');
+            void els.sentenceText.offsetWidth; // Trigger reflow
+            els.sentenceText.classList.add('animate-pop');
+            
+            isProcessing = false;
+        }
+
+        function showFloatingText(text, isPositive, buttonElement) {
+            const floating = document.createElement('div');
+            floating.textContent = text;
+            floating.className = `floating-score ${isPositive ? 'text-green-500' : 'text-red-500'}`;
+            
+            // Posicionar cerca del centro de la caja de la oración
+            const containerRect = els.sentenceContainer.getBoundingClientRect();
+            floating.style.left = `50%`;
+            floating.style.top = `50%`;
+            floating.style.transform = `translate(-50%, -50%)`;
+            
+            els.sentenceContainer.appendChild(floating);
+            
+            setTimeout(() => {
+                floating.remove();
+            }, 1000);
+        }
+
+        function checkAnswer(selectedType, btnElement) {
+            if (isProcessing) return;
+            isProcessing = true;
+
+            const isCorrect = selectedType === currentQuestion.type;
+
+            if (isCorrect) {
+                // Acierto
+                score += 10;
+                els.sentenceContainer.classList.add('bg-green-100');
+                showFloatingText('+10', true);
+            } else {
+                // Fallo
+                score = Math.max(0, score - 5); // Evita puntuaciones negativas si se prefiere, o quita Math.max
+                els.sentenceContainer.classList.add('bg-red-100', 'animate-shake');
+                showFloatingText('-5', false);
+            }
+
+            els.score.innerText = score;
+
+            // Remover estilos visuales y cargar siguiente
+            setTimeout(() => {
+                els.sentenceContainer.classList.remove('bg-green-100', 'bg-red-100', 'animate-shake');
+                if (timeLeft > 0) {
+                    loadNextQuestion();
+                }
+            }, 500);
+        }
+
+        function endGame() {
+            clearInterval(timerInterval);
+            
+            screens.game.classList.add('hidden');
+            screens.game.classList.remove('flex');
+            screens.end.classList.remove('hidden');
+            screens.end.classList.add('flex');
+
+            els.finalScore.innerText = score;
+
+            // Mensajes según puntuación
+            if (score > 200) {
+                els.endIcon.innerText = "👑";
+                els.endMessage.innerText = "¡Increíble! Eres un maestro de la gramática.";
+            } else if (score > 100) {
+                els.endIcon.innerText = "🌟";
+                els.endMessage.innerText = "¡Muy bien! Tienes un gran dominio de los determinantes.";
+            } else {
+                els.endIcon.innerText = "📚";
+                els.endMessage.innerText = "Sigue practicando. ¡La próxima vez lo harás mejor!";
+            }
+        }
+
+        function resetGame() {
+            startGame();
+        }
+
+        // Base de datos de preguntas (Movida al final para facilitar su edición masiva)
+        const allQuestions = [
+           
+            // ===== ARTÍCULOS DETERMINADOS (40) =====
+            { text: "[El] sol brilla con fuerza hoy.", word: "El", type: "art_det" },
+            { text: "Cierra [la] puerta al salir.", word: "la", type: "art_det" },
+            { text: "[Los] alumnos están en el patio.", word: "Los", type: "art_det" },
+            { text: "Recoge [las] hojas del suelo.", word: "las", type: "art_det" },
+            { text: "Dame [el] cuaderno de matemáticas.", word: "el", type: "art_det" },
+            { text: "[La] profesora explicó la lección.", word: "La", type: "art_det" },
+            { text: "[Los] pájaros cantan al amanecer.", word: "Los", type: "art_det" },
+            { text: "Pon [las] tazas en la mesa.", word: "las", type: "art_det" },
+            { text: "[El] río lleva mucha agua.", word: "El", type: "art_det" },
+            { text: "Abre [la] ventana, por favor.", word: "la", type: "art_det" },
+            { text: "[Los] bomberos apagaron el fuego.", word: "Los", type: "art_det" },
+            { text: "Me encantan [las] estrellas del cielo.", word: "las", type: "art_det" },
+            { text: "[El] médico me recetó unas pastillas.", word: "El", type: "art_det" },
+            { text: "Hemos pintado [la] habitación de azul.", word: "la", type: "art_det" },
+            { text: "[Los] árboles pierden las hojas en otoño.", word: "Los", type: "art_det" },
+            { text: "Ya he terminado [las] tareas de hoy.", word: "las", type: "art_det" },
+            { text: "[El] tren sale a las ocho.", word: "El", type: "art_det" },
+            { text: "Necesito [la] regla para dibujar.", word: "la", type: "art_det" },
+            { text: "[Los] vecinos organizaron una fiesta.", word: "Los", type: "art_det" },
+            { text: "Guarda [las] tijeras en el estuche.", word: "las", type: "art_det" },
+            { text: "[El] gato se ha subido al tejado.", word: "El", type: "art_det" },
+            { text: "¿Has limpiado [la] cocina?", word: "la", type: "art_det" },
+            { text: "[Los] libros están en la estantería.", word: "Los", type: "art_det" },
+            { text: "Coloca [las] sillas alrededor de la mesa.", word: "las", type: "art_det" },
+            { text: "[El] parque está lleno de gente.", word: "El", type: "art_det" },
+            { text: "[La] luna se ve preciosa esta noche.", word: "La", type: "art_det" },
+            { text: "Ordena [los] juguetes antes de cenar.", word: "los", type: "art_det" },
+            { text: "He perdido [las] gafas de sol.", word: "las", type: "art_det" },
+            { text: "[El] agua del grifo está muy fría.", word: "El", type: "art_det" },
+            { text: "Vamos a cruzar [la] calle con cuidado.", word: "la", type: "art_det" },
+            { text: "[Los] delfines nadan muy rápido.", word: "Los", type: "art_det" },
+            { text: "Riega [las] plantas del balcón.", word: "las", type: "art_det" },
+            { text: "[El] director ha convocado una reunión.", word: "El", type: "art_det" },
+            { text: "Hemos visitado [la] catedral del pueblo.", word: "la", type: "art_det" },
+            { text: "[Los] colores del arcoíris son preciosos.", word: "Los", type: "art_det" },
+            { text: "Cuelga [las] toallas en el tendedero.", word: "las", type: "art_det" },
+            { text: "[El] cartero ha traído un paquete.", word: "El", type: "art_det" },
+            { text: "Lee [la] página veinticinco del libro.", word: "la", type: "art_det" },
+            { text: "[Los] leones son animales salvajes.", word: "Los", type: "art_det" },
+            { text: "Dobla [las] servilletas para la cena.", word: "las", type: "art_det" },
+
+            // ===== ARTÍCULOS INDETERMINADOS (40) =====
+            { text: "He visto [un] arcoíris precioso.", word: "un", type: "art_indet" },
+            { text: "Necesito [una] goma de borrar.", word: "una", type: "art_indet" },
+            { text: "Había [unos] gatos en el tejado.", word: "unos", type: "art_indet" },
+            { text: "Encontré [unas] monedas en el suelo.", word: "unas", type: "art_indet" },
+            { text: "Quiero [un] vaso de leche.", word: "un", type: "art_indet" },
+            { text: "Me regalaron [una] bicicleta nueva.", word: "una", type: "art_indet" },
+            { text: "Pasaron [unos] pájaros volando.", word: "unos", type: "art_indet" },
+            { text: "Compré [unas] zapatillas deportivas.", word: "unas", type: "art_indet" },
+            { text: "Dibuja [un] círculo en tu cuaderno.", word: "un", type: "art_indet" },
+            { text: "Tengo [una] amiga en Sevilla.", word: "una", type: "art_indet" },
+            { text: "Llegaron [unos] invitados sorpresa.", word: "unos", type: "art_indet" },
+            { text: "Hay [unas] nubes muy oscuras.", word: "unas", type: "art_indet" },
+            { text: "Se ha roto [un] cristal de la ventana.", word: "un", type: "art_indet" },
+            { text: "Escuché [una] canción muy bonita.", word: "una", type: "art_indet" },
+            { text: "Vinieron [unos] amigos a visitarnos.", word: "unos", type: "art_indet" },
+            { text: "Había [unas] mariposas en el jardín.", word: "unas", type: "art_indet" },
+            { text: "Tráeme [un] plato limpio.", word: "un", type: "art_indet" },
+            { text: "He escrito [una] carta para mi abuela.", word: "una", type: "art_indet" },
+            { text: "Vi [unos] delfines desde la playa.", word: "unos", type: "art_indet" },
+            { text: "Preparé [unas] tortitas para desayunar.", word: "unas", type: "art_indet" },
+            { text: "Coge [un] paraguas por si llueve.", word: "un", type: "art_indet" },
+            { text: "Me contaron [una] historia increíble.", word: "una", type: "art_indet" },
+            { text: "Cayeron [unos] granizos enormes.", word: "unos", type: "art_indet" },
+            { text: "He plantado [unas] semillas en el huerto.", word: "unas", type: "art_indet" },
+            { text: "Encontré [un] tesoro en el desván.", word: "un", type: "art_indet" },
+            { text: "Adoptamos [una] gatita muy cariñosa.", word: "una", type: "art_indet" },
+            { text: "Se oían [unos] ruidos extraños.", word: "unos", type: "art_indet" },
+            { text: "Cosimos [unas] cortinas nuevas.", word: "unas", type: "art_indet" },
+            { text: "Necesitamos [un] mapa para orientarnos.", word: "un", type: "art_indet" },
+            { text: "Tiene [una] sonrisa muy bonita.", word: "una", type: "art_indet" },
+            { text: "Jugaban [unos] niños en la fuente.", word: "unos", type: "art_indet" },
+            { text: "Trajo [unas] flores silvestres.", word: "unas", type: "art_indet" },
+            { text: "He comprado [un] regalo para papá.", word: "un", type: "art_indet" },
+            { text: "Leímos [una] leyenda sobre dragones.", word: "una", type: "art_indet" },
+            { text: "Aparecieron [unos] charcos tras la lluvia.", word: "unos", type: "art_indet" },
+            { text: "Llevaba [unas] gafas de color verde.", word: "unas", type: "art_indet" },
+            { text: "Hay [un] columpio nuevo en el parque.", word: "un", type: "art_indet" },
+            { text: "Inventó [una] excusa para llegar tarde.", word: "una", type: "art_indet" },
+            { text: "Vi [unos] peces de colores en el río.", word: "unos", type: "art_indet" },
+            { text: "Hicimos [unas] manualidades en clase.", word: "unas", type: "art_indet" },
+
+            // ===== POSESIVOS (50) =====
+            { text: "[Mi] hermano juega al fútbol.", word: "Mi", type: "pos" },
+            { text: "¿Dónde está [tu] estuche?", word: "tu", type: "pos" },
+            { text: "[Su] madre trabaja en el hospital.", word: "Su", type: "pos" },
+            { text: "[Nuestro] equipo ganó el partido.", word: "Nuestro", type: "pos" },
+            { text: "¿Dónde dejasteis [vuestro] abrigo?", word: "vuestro", type: "pos" },
+            { text: "[Sus] amigos vinieron a la fiesta.", word: "Sus", type: "pos" },
+            { text: "He olvidado [mi] paraguas en clase.", word: "mi", type: "pos" },
+            { text: "Recoge [tu] habitación ahora mismo.", word: "tu", type: "pos" },
+            { text: "[Su] colegio está cerca de la plaza.", word: "Su", type: "pos" },
+            { text: "[Nuestra] ciudad tiene un castillo precioso.", word: "Nuestra", type: "pos" },
+            { text: "Traed [vuestros] cuadernos mañana.", word: "vuestros", type: "pos" },
+            { text: "[Mis] primos viven en Madrid.", word: "Mis", type: "pos" },
+            { text: "¿Has hecho [tus] deberes?", word: "tus", type: "pos" },
+            { text: "Cuida [su] jardín con mucho esmero.", word: "su", type: "pos" },
+            { text: "[Nuestros] vecinos son muy amables.", word: "Nuestros", type: "pos" },
+            { text: "Guardad [vuestras] mochilas en la taquilla.", word: "vuestras", type: "pos" },
+            { text: "[Mi] color favorito es el azul.", word: "Mi", type: "pos" },
+            { text: "Ponte [tu] chaqueta, que hace frío.", word: "tu", type: "pos" },
+            { text: "[Su] abuelo cuenta historias fantásticas.", word: "Su", type: "pos" },
+            { text: "[Nuestra] mascota es un conejo blanco.", word: "Nuestra", type: "pos" },
+            { text: "¿Habéis terminado [vuestra] tarea?", word: "vuestra", type: "pos" },
+            { text: "[Sus] ojos son de color verde.", word: "Sus", type: "pos" },
+            { text: "He perdido [mis] llaves otra vez.", word: "mis", type: "pos" },
+            { text: "Lava [tus] manos antes de comer.", word: "tus", type: "pos" },
+            { text: "[Su] gato duerme en el sofá.", word: "Su", type: "pos" },
+            { text: "[Nuestras] amigas llegan mañana.", word: "Nuestras", type: "pos" },
+            { text: "Abrid [vuestros] libros por la página diez.", word: "vuestros", type: "pos" },
+            { text: "[Mi] cumpleaños es en abril.", word: "Mi", type: "pos" },
+            { text: "Cuida [tu] material escolar.", word: "tu", type: "pos" },
+            { text: "[Su] casa tiene un jardín enorme.", word: "Su", type: "pos" },
+            { text: "[Nuestro] pueblo celebra sus fiestas en junio.", word: "Nuestro", type: "pos" },
+            { text: "¿Es [vuestra] esta pelota?", word: "vuestra", type: "pos" },
+            { text: "[Mis] abuelos viven en el campo.", word: "Mis", type: "pos" },
+            { text: "Ordena [tus] juguetes.", word: "tus", type: "pos" },
+            { text: "[Sus] notas han mejorado mucho.", word: "Sus", type: "pos" },
+            { text: "[Nuestro] colegio tiene un huerto.", word: "Nuestro", type: "pos" },
+            { text: "Cuidad [vuestro] material de clase.", word: "vuestro", type: "pos" },
+            { text: "[Mi] padre cocina una paella riquísima.", word: "Mi", type: "pos" },
+            { text: "Cepilla [tus] dientes después de comer.", word: "tus", type: "pos" },
+            { text: "[Su] profesor les puso un examen.", word: "Su", type: "pos" },
+            { text: "[Nuestras] vacaciones empiezan en julio.", word: "Nuestras", type: "pos" },
+            { text: "Recoged [vuestras] cosas del suelo.", word: "vuestras", type: "pos" },
+            { text: "[Mi] deporte favorito es la natación.", word: "Mi", type: "pos" },
+            { text: "¿Has traído [tu] flauta?", word: "tu", type: "pos" },
+            { text: "[Su] familia es muy numerosa.", word: "Su", type: "pos" },
+            { text: "[Nuestro] maestro nos enseña cosas nuevas.", word: "Nuestro", type: "pos" },
+            { text: "Colgad [vuestros] abrigos en la percha.", word: "vuestros", type: "pos" },
+            { text: "[Mis] amigos me esperan en el parque.", word: "Mis", type: "pos" },
+            { text: "Ata [tus] cordones antes de correr.", word: "tus", type: "pos" },
+            { text: "[Sus] hijos estudian en este colegio.", word: "Sus", type: "pos" },
+
+            // ===== NUMERALES CARDINALES (23) =====
+            { text: "Tengo [cuatro] canicas de colores.", word: "cuatro", type: "num_card" },
+            { text: "Compré [cinco] cuadernos nuevos.", word: "cinco", type: "num_card" },
+            { text: "Quedan [seis] días para las vacaciones.", word: "seis", type: "num_card" },
+            { text: "Hay [siete] colores en el arcoíris.", word: "siete", type: "num_card" },
+            { text: "He recogido [ocho] conchas en la playa.", word: "ocho", type: "num_card" },
+            { text: "Faltan [nueve] minutos para salir.", word: "nueve", type: "num_card" },
+            { text: "En mi clase hay [veinticinco] alumnos.", word: "veinticinco", type: "num_card" },
+            { text: "Tenemos [doce] meses en el año.", word: "doce", type: "num_card" },
+            { text: "He leído [quince] páginas hoy.", word: "quince", type: "num_card" },
+            { text: "Hay [veinte] sillas en el aula.", word: "veinte", type: "num_card" },
+            { text: "Caben [once] jugadores en el equipo.", word: "once", type: "num_card" },
+            { text: "He contado [catorce] estrellas.", word: "catorce", type: "num_card" },
+            { text: "Tiene [tres] mascotas en casa.", word: "tres", type: "num_card" },
+            { text: "Compré [dos] bocadillos para el recreo.", word: "dos", type: "num_card" },
+            { text: "Hay [cuatro] estaciones en el año.", word: "cuatro", type: "num_card" },
+            { text: "Repartió [seis] cromos entre sus amigos.", word: "seis", type: "num_card" },
+            { text: "Quedan [siete] capítulos por leer.", word: "siete", type: "num_card" },
+            { text: "Tiene [ocho] años recién cumplidos.", word: "ocho", type: "num_card" },
+            { text: "Hay [cinco] dedos en cada mano.", word: "cinco", type: "num_card" },
+            { text: "Hemos plantado [diez] árboles en el patio.", word: "diez", type: "num_card" },
+            { text: "Tengo [nueve] peces en la pecera.", word: "nueve", type: "num_card" },
+            { text: "Compré [doce] huevos en la tienda.", word: "doce", type: "num_card" },
+            { text: "Faltaron [dos] alumnos hoy.", word: "dos", type: "num_card" },
+
+            // ===== NUMERALES ORDINALES (22) =====
+            { text: "Es el [tercer] día de la semana.", word: "tercer", type: "num_ord" },
+            { text: "Vive en la [cuarta] planta del edificio.", word: "cuarta", type: "num_ord" },
+            { text: "Es el [primer] ejercicio de la página.", word: "primer", type: "num_ord" },
+            { text: "Estamos en el [quinto] mes del año.", word: "quinto", type: "num_ord" },
+            { text: "Es la [tercera] puerta a la derecha.", word: "tercera", type: "num_ord" },
+            { text: "Ganó la [segunda] carrera de la tarde.", word: "segunda", type: "num_ord" },
+            { text: "Vivo en el [sexto] piso.", word: "sexto", type: "num_ord" },
+            { text: "Es la [quinta] vez que lo repito.", word: "quinta", type: "num_ord" },
+            { text: "Ocupa el [séptimo] lugar en la fila.", word: "séptimo", type: "num_ord" },
+            { text: "Es el [octavo] capítulo del libro.", word: "octavo", type: "num_ord" },
+            { text: "Es el [noveno] día del mes.", word: "noveno", type: "num_ord" },
+            { text: "Es la [décima] pregunta del examen.", word: "décima", type: "num_ord" },
+            { text: "Subimos al [primer] piso por las escaleras.", word: "primer", type: "num_ord" },
+            { text: "Es la [segunda] calle a la izquierda.", word: "segunda", type: "num_ord" },
+            { text: "Es el [tercer] trimestre del curso.", word: "tercer", type: "num_ord" },
+            { text: "Es la [cuarta] hora de clase.", word: "cuarta", type: "num_ord" },
+            { text: "Es el [quinto] problema del ejercicio.", word: "quinto", type: "num_ord" },
+            { text: "Es la [sexta] canción del disco.", word: "sexta", type: "num_ord" },
+            { text: "Fue el [primer] día de colegio.", word: "primer", type: "num_ord" },
+            { text: "Es la [primera] parada del autobús.", word: "primera", type: "num_ord" },
+            { text: "Vive en la [tercera] casa de la calle.", word: "tercera", type: "num_ord" },
+            { text: "Es el [segundo] plato de la comida.", word: "segundo", type: "num_ord" },
+
+            // ===== DEMOSTRATIVOS CERCANÍA (40) =====
+            { text: "[Este] libro es muy divertido.", word: "Este", type: "dem_cerca" },
+            { text: "[Esta] silla está rota.", word: "Esta", type: "dem_cerca" },
+            { text: "[Estos] rotuladores son nuevos.", word: "Estos", type: "dem_cerca" },
+            { text: "Me gustan [estas] galletas.", word: "estas", type: "dem_cerca" },
+            { text: "[Este] dibujo lo hice yo.", word: "Este", type: "dem_cerca" },
+            { text: "[Esta] tarde iremos al cine.", word: "Esta", type: "dem_cerca" },
+            { text: "[Estos] zapatos me quedan pequeños.", word: "Estos", type: "dem_cerca" },
+            { text: "[Estas] flores huelen muy bien.", word: "Estas", type: "dem_cerca" },
+            { text: "He pintado [este] cuadro en clase.", word: "este", type: "dem_cerca" },
+            { text: "[Esta] semana tenemos excursión.", word: "Esta", type: "dem_cerca" },
+            { text: "[Estos] deberes son muy fáciles.", word: "Estos", type: "dem_cerca" },
+            { text: "[Estas] tijeras cortan muy bien.", word: "Estas", type: "dem_cerca" },
+            { text: "Mira [este] insecto tan curioso.", word: "este", type: "dem_cerca" },
+            { text: "[Esta] canción es mi favorita.", word: "Esta", type: "dem_cerca" },
+            { text: "[Estos] colores son muy vivos.", word: "Estos", type: "dem_cerca" },
+            { text: "¿Quién ha traído [estas] frutas?", word: "estas", type: "dem_cerca" },
+            { text: "[Este] verano iremos a la playa.", word: "Este", type: "dem_cerca" },
+            { text: "[Esta] receta es de mi abuela.", word: "Esta", type: "dem_cerca" },
+            { text: "[Estos] cuentos son muy entretenidos.", word: "Estos", type: "dem_cerca" },
+            { text: "Guarda [estas] fotos en el álbum.", word: "estas", type: "dem_cerca" },
+            { text: "[Este] jersey es muy calentito.", word: "Este", type: "dem_cerca" },
+            { text: "[Esta] película es muy emocionante.", word: "Esta", type: "dem_cerca" },
+            { text: "[Estos] juegos son mis preferidos.", word: "Estos", type: "dem_cerca" },
+            { text: "Prueba [estas] uvas, están dulces.", word: "estas", type: "dem_cerca" },
+            { text: "[Este] camino lleva al bosque.", word: "Este", type: "dem_cerca" },
+            { text: "[Esta] tarta la hicimos juntos.", word: "Esta", type: "dem_cerca" },
+            { text: "[Estos] animales viven en la granja.", word: "Estos", type: "dem_cerca" },
+            { text: "[Estas] ventanas dan al jardín.", word: "Estas", type: "dem_cerca" },
+            { text: "[Este] problema tiene solución.", word: "Este", type: "dem_cerca" },
+            { text: "[Esta] noche cenaremos temprano.", word: "Esta", type: "dem_cerca" },
+            { text: "[Estos] pantalones son cómodos.", word: "Estos", type: "dem_cerca" },
+            { text: "Voy a leer [estas] revistas.", word: "estas", type: "dem_cerca" },
+            { text: "[Este] parque tiene muchos columpios.", word: "Este", type: "dem_cerca" },
+            { text: "[Esta] clase es la más grande.", word: "Esta", type: "dem_cerca" },
+            { text: "Colorea [estos] dibujos con cuidado.", word: "estos", type: "dem_cerca" },
+            { text: "[Estas] pegatinas son muy bonitas.", word: "Estas", type: "dem_cerca" },
+            { text: "[Este] regalo es para ti.", word: "Este", type: "dem_cerca" },
+            { text: "[Esta] planta necesita más agua.", word: "Esta", type: "dem_cerca" },
+            { text: "Pon [estos] platos en el fregadero.", word: "estos", type: "dem_cerca" },
+            { text: "[Estas] pulseras las hice yo.", word: "Estas", type: "dem_cerca" },
+
+            // ===== DEMOSTRATIVOS DISTANCIA MEDIA (40) =====
+            { text: "Dame [ese] libro que tienes.", word: "ese", type: "dem_medio" },
+            { text: "[Esa] mochila es de Carlos.", word: "Esa", type: "dem_medio" },
+            { text: "[Esos] niños están jugando al escondite.", word: "Esos", type: "dem_medio" },
+            { text: "Recoge [esas] piezas del suelo.", word: "esas", type: "dem_medio" },
+            { text: "¿Me prestas [ese] color rojo?", word: "ese", type: "dem_medio" },
+            { text: "[Esa] tienda vende helados.", word: "Esa", type: "dem_medio" },
+            { text: "[Esos] árboles dan mucha sombra.", word: "Esos", type: "dem_medio" },
+            { text: "No toques [esas] pinturas mojadas.", word: "esas", type: "dem_medio" },
+            { text: "[Ese] perro es muy juguetón.", word: "Ese", type: "dem_medio" },
+            { text: "[Esa] fuente tiene agua fresquita.", word: "Esa", type: "dem_medio" },
+            { text: "Acércame [esos] lápices, por favor.", word: "esos", type: "dem_medio" },
+            { text: "[Esas] nubes parecen algodón.", word: "Esas", type: "dem_medio" },
+            { text: "¿Quién vive en [ese] edificio?", word: "ese", type: "dem_medio" },
+            { text: "[Esa] camiseta te queda genial.", word: "Esa", type: "dem_medio" },
+            { text: "[Esos] cuadernos están sin usar.", word: "Esos", type: "dem_medio" },
+            { text: "Mira [esas] hormigas trabajando.", word: "esas", type: "dem_medio" },
+            { text: "[Ese] camión es enorme.", word: "Ese", type: "dem_medio" },
+            { text: "[Esa] puerta está cerrada con llave.", word: "Esa", type: "dem_medio" },
+            { text: "Lee [esos] carteles de la pared.", word: "esos", type: "dem_medio" },
+            { text: "[Esas] macetas necesitan agua.", word: "Esas", type: "dem_medio" },
+            { text: "[Ese] reloj marca las tres.", word: "Ese", type: "dem_medio" },
+            { text: "[Esa] escalera es muy alta.", word: "Esa", type: "dem_medio" },
+            { text: "Coge [esos] globos antes de que vuelen.", word: "esos", type: "dem_medio" },
+            { text: "[Esas] zapatillas son de deporte.", word: "Esas", type: "dem_medio" },
+            { text: "[Ese] columpio está ocupado.", word: "Ese", type: "dem_medio" },
+            { text: "[Esa] señora es la directora.", word: "Esa", type: "dem_medio" },
+            { text: "Observa [esos] patos en el estanque.", word: "esos", type: "dem_medio" },
+            { text: "[Esas] estrellas brillan mucho.", word: "Esas", type: "dem_medio" },
+            { text: "¿De quién es [ese] estuche azul?", word: "ese", type: "dem_medio" },
+            { text: "[Esa] clase es la de música.", word: "Esa", type: "dem_medio" },
+            { text: "[Esos] coches van muy deprisa.", word: "Esos", type: "dem_medio" },
+            { text: "Aparta [esas] cajas del pasillo.", word: "esas", type: "dem_medio" },
+            { text: "[Ese] banco es para sentarse.", word: "Ese", type: "dem_medio" },
+            { text: "[Esa] señal indica peligro.", word: "Esa", type: "dem_medio" },
+            { text: "¿Has probado [esos] caramelos?", word: "esos", type: "dem_medio" },
+            { text: "[Esas] gafas son de mi hermana.", word: "Esas", type: "dem_medio" },
+            { text: "[Ese] mapa muestra toda España.", word: "Ese", type: "dem_medio" },
+            { text: "[Esa] pizarra está limpia.", word: "Esa", type: "dem_medio" },
+            { text: "Lleva [esos] platos a la cocina.", word: "esos", type: "dem_medio" },
+            { text: "[Esas] sillas son del comedor.", word: "Esas", type: "dem_medio" },
+
+            // ===== DEMOSTRATIVOS LEJANÍA (45) =====
+            { text: "Mira [aquel] avión en el cielo.", word: "aquel", type: "dem_lejos" },
+            { text: "[Aquella] estrella brilla más que las demás.", word: "Aquella", type: "dem_lejos" },
+            { text: "[Aquellos] castillos son muy antiguos.", word: "Aquellos", type: "dem_lejos" },
+            { text: "[Aquellas] montañas están lejos.", word: "Aquellas", type: "dem_lejos" },
+            { text: "¿Ves [aquel] faro a lo lejos?", word: "aquel", type: "dem_lejos" },
+            { text: "[Aquella] torre es muy alta.", word: "Aquella", type: "dem_lejos" },
+            { text: "Recuerdo [aquellos] veranos en el pueblo.", word: "aquellos", type: "dem_lejos" },
+            { text: "[Aquellas] vacaciones fueron geniales.", word: "Aquellas", type: "dem_lejos" },
+            { text: "[Aquel] señor nos saludó desde lejos.", word: "Aquel", type: "dem_lejos" },
+            { text: "[Aquella] casa del fondo está abandonada.", word: "Aquella", type: "dem_lejos" },
+            { text: "[Aquellos] barcos navegan por el mar.", word: "Aquellos", type: "dem_lejos" },
+            { text: "[Aquellas] islas se ven desde aquí.", word: "Aquellas", type: "dem_lejos" },
+            { text: "Señala [aquel] edificio tan grande.", word: "aquel", type: "dem_lejos" },
+            { text: "[Aquella] nube tiene forma de dragón.", word: "Aquella", type: "dem_lejos" },
+            { text: "[Aquellos] días fueron muy felices.", word: "Aquellos", type: "dem_lejos" },
+            { text: "[Aquellas] luces son del pueblo vecino.", word: "Aquellas", type: "dem_lejos" },
+            { text: "Mira [aquel] puente sobre el río.", word: "aquel", type: "dem_lejos" },
+            { text: "[Aquella] iglesia tiene un campanario enorme.", word: "Aquella", type: "dem_lejos" },
+            { text: "[Aquellos] campos están llenos de trigo.", word: "Aquellos", type: "dem_lejos" },
+            { text: "[Aquellas] casas tienen tejados rojos.", word: "Aquellas", type: "dem_lejos" },
+            { text: "¿Conoces [aquel] parque natural?", word: "aquel", type: "dem_lejos" },
+            { text: "[Aquella] playa es la más bonita.", word: "Aquella", type: "dem_lejos" },
+            { text: "[Aquellos] molinos son de otra época.", word: "Aquellos", type: "dem_lejos" },
+            { text: "[Aquellas] cuevas son muy profundas.", word: "Aquellas", type: "dem_lejos" },
+            { text: "[Aquel] volcán está apagado.", word: "Aquel", type: "dem_lejos" },
+            { text: "[Aquella] fuente es del siglo pasado.", word: "Aquella", type: "dem_lejos" },
+            { text: "[Aquellos] jinetes galopan por la pradera.", word: "Aquellos", type: "dem_lejos" },
+            { text: "[Aquellas] estatuas son de mármol.", word: "Aquellas", type: "dem_lejos" },
+            { text: "Mira [aquel] arcoíris tras la tormenta.", word: "aquel", type: "dem_lejos" },
+            { text: "[Aquella] carretera lleva a la costa.", word: "Aquella", type: "dem_lejos" },
+            { text: "[Aquellos] árboles son centenarios.", word: "Aquellos", type: "dem_lejos" },
+            { text: "[Aquellas] flores solo crecen en primavera.", word: "Aquellas", type: "dem_lejos" },
+            { text: "[Aquel] río desemboca en el mar.", word: "Aquel", type: "dem_lejos" },
+            { text: "[Aquella] cueva guarda un secreto.", word: "Aquella", type: "dem_lejos" },
+            { text: "[Aquellos] soldados desfilaban con orgullo.", word: "Aquellos", type: "dem_lejos" },
+            { text: "[Aquellas] tradiciones se mantienen vivas.", word: "Aquellas", type: "dem_lejos" },
+            { text: "Desde aquí se ve [aquel] castillo.", word: "aquel", type: "dem_lejos" },
+            { text: "[Aquella] aldea no tiene muchos habitantes.", word: "Aquella", type: "dem_lejos" },
+            { text: "[Aquellos] picos tienen nieve todo el año.", word: "Aquellos", type: "dem_lejos" },
+            { text: "[Aquellas] ruinas son romanas.", word: "Aquellas", type: "dem_lejos" },
+            { text: "[Aquel] lago está helado en invierno.", word: "Aquel", type: "dem_lejos" },
+            { text: "[Aquella] catedral es patrimonio mundial.", word: "Aquella", type: "dem_lejos" },
+            { text: "[Aquellos] pastores cuidan las ovejas.", word: "Aquellos", type: "dem_lejos" },
+            { text: "[Aquellas] aves migran en otoño.", word: "Aquellas", type: "dem_lejos" },
+            { text: "¿Recuerdas [aquel] día de excursión?", word: "aquel", type: "dem_lejos" }
+        ];
+    </script>
+</body>
+</html>
