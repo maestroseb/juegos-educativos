@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Misión: Detectives del Diccionario</title>
+    
+    <!-- Tailwind CSS para el diseño -->
+  <script src="https://maestroseb.github.io/recursos/tailwind.js"></script>
+    
+    <!-- React y ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel para traducir el código React en el navegador -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .animate-bounce-slow {
+            animation: bounce 2s infinite;
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(-5%); }
+            50% { transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState } = React;
+
+        // --- ICONOS SVG (Integrados para no depender de librerías externas) ---
+        const IconBook = ({ size = 24, className = "" }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+            </svg>
+        );
+        const IconSearch = ({ size = 24, className = "" }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+        );
+        const IconStar = ({ size = 24, className = "" }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+            </svg>
+        );
+        const IconArrowRight = ({ size = 24, className = "" }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+        );
+        const IconCheckCircle = ({ size = 24, className = "" }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+        );
+        const IconXCircle = ({ size = 24, className = "" }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="15" y1="9" x2="9" y2="15"></line>
+                <line x1="9" y1="9" x2="15" y2="15"></line>
+            </svg>
+        );
+        const IconHelpCircle = ({ size = 24, className = "" }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+        );
+        const IconTrophy = ({ size = 24, className = "" }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                <path d="M8 21h8m-4-9v9m-4.8-9a4 4 0 0 1 0-8h9.6a4 4 0 0 1 0 8s-1.2 4-4.8 4-4.8-4-4.8-4"></path>
+                <path d="M3 7h2M19 7h2"></path>
+            </svg>
+        );
+
+        // --- COMPONENTE PRINCIPAL ---
+        const DictionaryGame = () => {
+            const [gameState, setGameState] = useState('intro'); // intro, explanation, game, result
+            const [currentQuestion, setCurrentQuestion] = useState(0);
+            const [score, setScore] = useState(0);
+            const [selectedOption, setSelectedOption] = useState(null);
+            const [showFeedback, setShowFeedback] = useState(false);
+            const [isCorrect, setIsCorrect] = useState(false);
+
+            // Datos del juego
+            const questions = [
+                {
+                    word: "BANCO",
+                    sentence: "Mi abuelo se sentó en el banco del parque a leer.",
+                    options: [
+                        { id: 1, text: "Empresa que guarda dinero.", correct: false },
+                        { id: 2, text: "Asiento largo para varias personas.", correct: true },
+                        { id: 3, text: "Grupo grande de peces.", correct: false }
+                    ]
+                },
+                {
+                    word: "SIRENA",
+                    sentence: "La sirena de la ambulancia sonaba muy fuerte.",
+                    options: [
+                        { id: 1, text: "Ser fantástico, mitad mujer y mitad pez.", correct: false },
+                        { id: 2, text: "Aparato que produce un sonido de aviso muy fuerte.", correct: true }
+                    ]
+                },
+                {
+                    word: "RATÓN",
+                    sentence: "Se me rompió el ratón del ordenador y no puedo hacer clic.",
+                    options: [
+                        { id: 1, text: "Animal roedor pequeño.", correct: false },
+                        { id: 2, text: "Aparato para manejar el cursor del ordenador.", correct: true }
+                    ]
+                },
+                {
+                    word: "COPA",
+                    sentence: "El pájaro hizo su nido en la copa del árbol.",
+                    options: [
+                        { id: 1, text: "Vaso con pie para beber.", correct: false },
+                        { id: 2, text: "Premio que se gana en un campeonato.", correct: false },
+                        { id: 3, text: "Parte más alta de un árbol.", correct: true }
+                    ]
+                },
+                {
+                    word: "CANGURO",
+                    sentence: "Hoy mis padres salen, así que vendrá la canguro a cuidarnos.",
+                    options: [
+                        { id: 1, text: "Animal de Australia que salta mucho.", correct: false },
+                        { id: 2, text: "Prenda de ropa deportiva con capucha.", correct: false },
+                        { id: 3, text: "Persona joven que cuida niños.", correct: true }
+                    ]
+                }
+            ];
+
+            const handleOptionClick = (option) => {
+                if (showFeedback) return;
+
+                setSelectedOption(option.id);
+                setShowFeedback(true);
+                
+                if (option.correct) {
+                    setIsCorrect(true);
+                    setScore(score + 1);
+                } else {
+                    setIsCorrect(false);
+                }
+            };
+
+            const nextQuestion = () => {
+                setSelectedOption(null);
+                setShowFeedback(false);
+                setIsCorrect(false);
+                
+                if (currentQuestion < questions.length - 1) {
+                    setCurrentQuestion(currentQuestion + 1);
+                } else {
+                    setGameState('result');
+                }
+            };
+
+            const restartGame = () => {
+                setGameState('intro');
+                setCurrentQuestion(0);
+                setScore(0);
+                setSelectedOption(null);
+                setShowFeedback(false);
+            };
+
+            // Pantalla 1: Intro
+            if (gameState === 'intro') {
+                return (
+                    <div className="flex flex-col items-center justify-center min-h-screen bg-blue-50 p-4 font-sans text-center">
+                        <div className="bg-white p-6 md:p-8 rounded-3xl shadow-xl max-w-lg w-full border-b-8 border-blue-400">
+                            <div className="flex justify-center mb-6">
+                                <IconSearch size={64} className="text-blue-500 mr-2" />
+                                <IconBook size={64} className="text-orange-500" />
+                            </div>
+                            <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-4">Misión: Detectives del Diccionario</h1>
+                            <p className="text-lg text-gray-600 mb-8">
+                                ¡Hola clase de 3º! Hoy vamos a aprender a buscar significados ocultos. ¿Estáis listos para investigar?
+                            </p>
+                            <button 
+                                onClick={() => setGameState('explanation')}
+                                className="w-full md:w-auto bg-green-500 hover:bg-green-600 text-white text-xl font-bold py-4 px-8 rounded-full shadow-lg transform transition hover:scale-105 flex items-center justify-center mx-auto"
+                            >
+                                Empezar la Misión <IconArrowRight className="ml-2" />
+                            </button>
+                        </div>
+                    </div>
+                );
+            }
+
+            // Pantalla 2: Explicación
+            if (gameState === 'explanation') {
+                return (
+                    <div className="flex flex-col items-center justify-center min-h-screen bg-yellow-50 p-4 font-sans">
+                        <div className="bg-white p-6 md:p-8 rounded-3xl shadow-xl max-w-2xl w-full border-b-8 border-yellow-400">
+                            <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center justify-center">
+                                <IconHelpCircle className="mr-2 text-yellow-500" /> ¿Qué es una Acepción?
+                            </h2>
+                            
+                            <div className="bg-blue-100 p-6 rounded-xl mb-6 text-left">
+                                <p className="text-lg mb-4 text-gray-700">
+                                    Imagina que las palabras son <strong>actores con disfraces</strong>.
+                                </p>
+                                <p className="text-lg mb-4 text-gray-700">
+                                    La palabra <strong>"PLANTA"</strong> puede disfrazarse de:
+                                </p>
+                                <ul className="list-none space-y-3">
+                                    <li className="flex items-center bg-white p-3 rounded-lg shadow-sm">
+                                        <span className="bg-blue-500 text-white font-bold rounded-full w-8 h-8 flex items-center justify-center mr-3 flex-shrink-0">1</span>
+                                        <span>Un ser vivo vegetal (un árbol, una flor...). 🌳</span>
+                                    </li>
+                                    <li className="flex items-center bg-white p-3 rounded-lg shadow-sm">
+                                        <span className="bg-blue-500 text-white font-bold rounded-full w-8 h-8 flex items-center justify-center mr-3 flex-shrink-0">2</span>
+                                        <span>La parte inferior del pie. 👣</span>
+                                    </li>
+                                    <li className="flex items-center bg-white p-3 rounded-lg shadow-sm">
+                                        <span className="bg-blue-500 text-white font-bold rounded-full w-8 h-8 flex items-center justify-center mr-3 flex-shrink-0">3</span>
+                                        <span>Cada uno de los pisos de un edificio. 🏢</span>
+                                    </li>
+                                </ul>
+                            </div>
+
+                            <p className="text-gray-600 mb-8 text-lg text-center">
+                                A cada uno de esos significados numerados lo llamamos <strong>ACEPCIÓN</strong>.
+                            </p>
+
+                            <div className="text-center">
+                                <button 
+                                    onClick={() => setGameState('game')}
+                                    className="bg-orange-500 hover:bg-orange-600 text-white text-xl font-bold py-3 px-8 rounded-full shadow-lg transform transition hover:scale-105"
+                                >
+                                    ¡Entendido! Vamos a Jugar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            // Pantalla 3: Juego
+            if (gameState === 'game') {
+                const currentQ = questions[currentQuestion];
+
+                return (
+                    <div className="flex flex-col items-center min-h-screen bg-indigo-50 p-4 font-sans">
+                        {/* Barra de Progreso */}
+                        <div className="w-full max-w-2xl flex justify-between items-center mb-6">
+                            <div className="text-gray-500 font-bold text-sm md:text-base">Caso {currentQuestion + 1} de {questions.length}</div>
+                            <div className="flex items-center bg-white px-4 py-2 rounded-full shadow">
+                                <IconStar className="text-yellow-400 fill-current mr-2" />
+                                <span className="font-bold text-gray-700">{score} Puntos</span>
+                            </div>
+                        </div>
+
+                        {/* Tarjeta de Pregunta */}
+                        <div className="bg-white w-full max-w-2xl rounded-3xl shadow-xl overflow-hidden border-b-8 border-indigo-400">
+                            
+                            {/* Zona de la Frase */}
+                            <div className="bg-indigo-100 p-8 text-center border-b border-indigo-200">
+                                <h3 className="text-gray-500 uppercase text-xs md:text-sm font-bold tracking-wider mb-2">Lee la frase atentamente</h3>
+                                <p className="text-2xl md:text-3xl text-gray-800 font-medium leading-relaxed">
+                                    {currentQ.sentence.split(new RegExp(`(${currentQ.word})`, 'gi')).map((part, i) => 
+                                        part.toLowerCase() === currentQ.word.toLowerCase() ? 
+                                        <span key={i} className="bg-yellow-200 px-2 rounded text-indigo-900 font-bold border-b-4 border-yellow-400 inline-block">{part}</span> : 
+                                        part
+                                    )}
+                                </p>
+                            </div>
+
+                            {/* Zona del Diccionario */}
+                            <div className="p-6 md:p-8 bg-white">
+                                <div className="mb-4 text-gray-400 text-sm font-bold uppercase flex items-center">
+                                    <IconBook size={16} className="mr-2" /> Diccionario Escolar
+                                </div>
+                                
+                                <div className="space-y-3">
+                                    {currentQ.options.map((option) => {
+                                        let cardClass = "w-full text-left p-4 rounded-xl border-2 transition-all duration-200 flex items-start ";
+                                        
+                                        if (selectedOption === null) {
+                                            cardClass += "border-gray-200 hover:border-blue-400 hover:bg-blue-50 cursor-pointer";
+                                        } else if (option.id === selectedOption) {
+                                            cardClass += option.correct 
+                                                ? "border-green-500 bg-green-50 ring-2 ring-green-200" 
+                                                : "border-red-500 bg-red-50 ring-2 ring-red-200";
+                                        } else {
+                                            cardClass += "border-gray-100 opacity-50";
+                                        }
+
+                                        return (
+                                            <button 
+                                                key={option.id}
+                                                onClick={() => handleOptionClick(option)}
+                                                disabled={showFeedback}
+                                                className={cardClass}
+                                            >
+                                                <span className={`font-bold rounded-full w-8 h-8 flex-shrink-0 flex items-center justify-center mr-3 ${selectedOption === option.id && option.correct ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-600'}`}>
+                                                    {option.id}
+                                                </span>
+                                                <span className="text-lg text-gray-700 mt-1">{option.text}</span>
+                                                
+                                                {/* Iconos de resultado */}
+                                                {selectedOption === option.id && option.correct && <IconCheckCircle className="ml-auto text-green-500 h-8 w-8 flex-shrink-0" />}
+                                                {selectedOption === option.id && !option.correct && <IconXCircle className="ml-auto text-red-500 h-8 w-8 flex-shrink-0" />}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Zona de Feedback / Botón Siguiente */}
+                            {showFeedback && (
+                                <div className={`p-4 text-center ${isCorrect ? 'bg-green-100' : 'bg-red-100'}`}>
+                                    <p className={`text-lg font-bold mb-3 ${isCorrect ? 'text-green-700' : 'text-red-700'}`}>
+                                        {isCorrect ? "¡Excelente! Esa es la acepción correcta." : "¡Oh no! Esa acepción no encaja."}
+                                    </p>
+                                    <button 
+                                        onClick={nextQuestion}
+                                        className={`py-3 px-8 rounded-full font-bold text-white shadow-lg transform transition hover:scale-105 ${isCorrect ? 'bg-green-600 hover:bg-green-700' : 'bg-red-500 hover:bg-red-600'}`}
+                                    >
+                                        {currentQuestion < questions.length - 1 ? "Siguiente Caso" : "Ver Resultado"}
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                );
+            }
+
+            // Pantalla 4: Resultado Final
+            if (gameState === 'result') {
+                return (
+                    <div className="flex flex-col items-center justify-center min-h-screen bg-purple-50 p-4 font-sans text-center">
+                        <div className="bg-white p-8 rounded-3xl shadow-xl max-w-lg border-b-8 border-purple-400 w-full">
+                            <div className="animate-bounce-slow mb-4 flex justify-center">
+                                <IconTrophy size={80} className="text-yellow-400" />
+                            </div>
+                            <h2 className="text-3xl font-bold text-gray-800 mb-2">¡Misión Cumplida!</h2>
+                            <p className="text-xl text-gray-600 mb-6">Has resuelto los misterios del diccionario.</p>
+                            
+                            <div className="bg-purple-100 rounded-xl p-6 mb-8">
+                                <p className="text-gray-500 uppercase text-sm font-bold tracking-wider mb-2">Puntuación Final</p>
+                                <div className="text-5xl font-bold text-purple-600">{score} / {questions.length}</div>
+                                <div className="flex justify-center mt-2 space-x-1">
+                                    {[...Array(5)].map((_, i) => (
+                                        <IconStar key={i} size={24} className={i < score ? "text-yellow-400 fill-current" : "text-gray-300"} />
+                                    ))}
+                                </div>
+                            </div>
+
+                            <p className="mb-8 text-gray-700 text-lg">
+                                {score === 5 ? "¡Eres un MAESTRO del diccionario! 🏆" : 
+                                score >= 3 ? "¡Muy buen trabajo, detective! 🕵️‍♀️" : 
+                                "¡Buen intento! Sigue practicando. 💪"}
+                            </p>
+
+                            <button 
+                                onClick={restartGame}
+                                className="bg-blue-500 hover:bg-blue-600 text-white text-xl font-bold py-3 px-8 rounded-full shadow-lg transition"
+                            >
+                                Jugar otra vez
+                            </button>
+                        </div>
+                    </div>
+                );
+            }
+
+            return null;
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<DictionaryGame />);
+    </script>
+</body>
+</html>
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Misión: Detectives del Diccionario</title>
+    
+    <!-- Tailwind CSS para el diseño -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React y ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel para traducir el código React en el navegador -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .animate-bounce-slow {
+            animation: bounce 2s infinite;
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(-5%); }
+            50% { transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // --- ICONOS SVG ---
+        const IconBook = ({ size = 24, className = "" }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+            </svg>
+        );
+        const IconSearch = ({ size = 24, className = "" }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+        );
+        const IconStar = ({ size = 24, className = "" }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+            </svg>
+        );
+        const IconArrowRight = ({ size = 24, className = "" }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+        );
+        const IconCheckCircle = ({ size = 24, className = "" }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+        );
+        const IconXCircle = ({ size = 24, className = "" }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="15" y1="9" x2="9" y2="15"></line>
+                <line x1="9" y1="9" x2="15" y2="15"></line>
+            </svg>
+        );
+        const IconHelpCircle = ({ size = 24, className = "" }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+        );
+        const IconTrophy = ({ size = 24, className = "" }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                <path d="M8 21h8m-4-9v9m-4.8-9a4 4 0 0 1 0-8h9.6a4 4 0 0 1 0 8s-1.2 4-4.8 4-4.8-4-4.8-4"></path>
+                <path d="M3 7h2M19 7h2"></path>
+            </svg>
+        );
+        const IconRefresh = ({ size = 24, className = "" }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                <polyline points="23 4 23 10 17 10"></polyline>
+                <polyline points="1 20 1 14 7 14"></polyline>
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+            </svg>
+        );
+
+        // --- BASE DE DATOS DE PREGUNTAS (+50) ---
+        const QUESTIONS_DB = [
+            { word: "BANCO", sentence: "Mi abuelo se sentó en el banco del parque a leer.", options: [ { id: 1, text: "Empresa que guarda dinero.", correct: false }, { id: 2, text: "Asiento largo para varias personas.", correct: true }, { id: 3, text: "Grupo grande de peces.", correct: false } ] },
+            { word: "SIRENA", sentence: "La sirena de la ambulancia sonaba muy fuerte.", options: [ { id: 1, text: "Ser fantástico, mitad mujer y mitad pez.", correct: false }, { id: 2, text: "Aparato que produce un sonido de aviso muy fuerte.", correct: true } ] },
+            { word: "RATÓN", sentence: "Se me rompió el ratón del ordenador y no puedo hacer clic.", options: [ { id: 1, text: "Animal roedor pequeño.", correct: false }, { id: 2, text: "Aparato para manejar el cursor del ordenador.", correct: true } ] },
+            { word: "COPA", sentence: "El pájaro hizo su nido en la copa del árbol.", options: [ { id: 1, text: "Vaso con pie para beber.", correct: false }, { id: 2, text: "Premio que se gana en un campeonato.", correct: false }, { id: 3, text: "Parte más alta de un árbol.", correct: true } ] },
+            { word: "CANGURO", sentence: "Hoy mis padres salen, así que vendrá la canguro a cuidarnos.", options: [ { id: 1, text: "Animal de Australia que salta mucho.", correct: false }, { id: 2, text: "Prenda de ropa deportiva con capucha.", correct: false }, { id: 3, text: "Persona joven que cuida niños.", correct: true } ] },
+            
+            // Nuevas añadidas
+            { word: "HOJA", sentence: "Escribe tu nombre en la parte superior de la hoja.", options: [ { id: 1, text: "Parte verde de las plantas.", correct: false }, { id: 2, text: "Lámina de papel.", correct: true }, { id: 3, text: "Pieza cortante de un cuchillo.", correct: false } ] },
+            { word: "PICO", sentence: "Los alpinistas llegaron al pico de la montaña.", options: [ { id: 1, text: "Boca de las aves.", correct: false }, { id: 2, text: "Herramienta para picar piedra.", correct: false }, { id: 3, text: "Cumbre puntiaguda de una montaña.", correct: true } ] },
+            { word: "FALDA", sentence: "Hicimos un picnic en la falda de la montaña.", options: [ { id: 1, text: "Prenda de vestir que cuelga de la cintura.", correct: false }, { id: 2, text: "Parte baja de un monte o sierra.", correct: true }, { id: 3, text: "Corte de carne de ternera.", correct: false } ] },
+            { word: "GATO", sentence: "Necesitamos el gato para cambiar la rueda del coche.", options: [ { id: 1, text: "Animal felino doméstico.", correct: false }, { id: 2, text: "Máquina para levantar grandes pesos.", correct: true }, { id: 3, text: "Juego de mesa.", correct: false } ] },
+            { word: "CARTA", sentence: "El camarero nos trajo la carta de postres.", options: [ { id: 1, text: "Papel escrito que se envía a alguien.", correct: false }, { id: 2, text: "Cada naipe de la baraja.", correct: false }, { id: 3, text: "Lista de platos y bebidas en un restaurante.", correct: true } ] },
+            { word: "COMETA", sentence: "Vimos volar una cometa en la playa.", options: [ { id: 1, text: "Cuerpo celeste del espacio.", correct: false }, { id: 2, text: "Juguete que vuela sujeto por un hilo.", correct: true } ] },
+            { word: "VACA", sentence: "Llevamos las maletas en la vaca del coche.", options: [ { id: 1, text: "Animal que da leche.", correct: false }, { id: 2, text: "Soporte en el techo del vehículo para equipaje.", correct: true } ] },
+            { word: "MANZANA", sentence: "Mi casa está en la siguiente manzana.", options: [ { id: 1, text: "Fruta roja o verde.", correct: false }, { id: 2, text: "Espacio urbano delimitado por calles.", correct: true } ] },
+            { word: "PILA", sentence: "El juguete no funciona, hay que cambiarle la pila.", options: [ { id: 1, text: "Montón de cosas puestas una sobre otra.", correct: false }, { id: 2, text: "Recipiente grande para lavar cosas.", correct: false }, { id: 3, text: "Objeto que genera energía eléctrica.", correct: true } ] },
+            { word: "CABO", sentence: "El soldado obedeció la orden del cabo.", options: [ { id: 1, text: "Punta de tierra que entra en el mar.", correct: false }, { id: 2, text: "Rango militar.", correct: true }, { id: 3, text: "Extremo de una cuerda.", correct: false } ] },
+            { word: "COLA", sentence: "Tuvimos que hacer mucha cola para entrar al cine.", options: [ { id: 1, text: "Extremidad posterior de un animal.", correct: false }, { id: 2, text: "Pegamento.", correct: false }, { id: 3, text: "Fila de personas que esperan.", correct: true } ] },
+            { word: "MUÑECA", sentence: "Me duele la muñeca de tanto escribir.", options: [ { id: 1, text: "Juguete con figura humana.", correct: false }, { id: 2, text: "Parte del cuerpo donde se une la mano y el brazo.", correct: true } ] },
+            { word: "RADIO", sentence: "El médico le hizo una radiografía del radio.", options: [ { id: 1, text: "Aparato para escuchar música y noticias.", correct: false }, { id: 2, text: "Línea del centro a la orilla de un círculo.", correct: false }, { id: 3, text: "Hueso del antebrazo.", correct: true } ] },
+            { word: "VELA", sentence: "La vela del barco se rompió con el viento.", options: [ { id: 1, text: "Cilindro de cera que da luz.", correct: false }, { id: 2, text: "Tela grande que impulsa las naves.", correct: true }, { id: 3, text: "Acción de cuidar a un enfermo de noche.", correct: false } ] },
+            { word: "CAÑA", sentence: "Fuimos al río con la caña de pescar.", options: [ { id: 1, text: "Tallo de ciertas plantas (como el bambú).", correct: false }, { id: 2, text: "Vara flexible usada para pescar.", correct: true }, { id: 3, text: "Vaso de cerveza.", correct: false } ] },
+            { word: "ESTRELLA", sentence: "Esa actriz es una gran estrella del cine.", options: [ { id: 1, text: "Cuerpo celeste que brilla en la noche.", correct: false }, { id: 2, text: "Persona famosa y destacada en su profesión.", correct: true }, { id: 3, text: "Figura de papel con puntas.", correct: false } ] },
+            { word: "PUENTE", sentence: "El dentista le puso un puente en la boca.", options: [ { id: 1, text: "Construcción para pasar un río.", correct: false }, { id: 2, text: "Día festivo entre dos días laborables.", correct: false }, { id: 3, text: "Pieza para sujetar dientes artificiales.", correct: true } ] },
+            { word: "BATERÍA", sentence: "Mi vecino toca la batería en un grupo de rock.", options: [ { id: 1, text: "Instrumento musical de percusión.", correct: true }, { id: 2, text: "Aparato que almacena energía.", correct: false }, { id: 3, text: "Conjunto de piezas de cocina.", correct: false } ] },
+            { word: "LLAMA", sentence: "La llama escupió al turista en Perú.", options: [ { id: 1, text: "Masa de gas en combustión (fuego).", correct: false }, { id: 2, text: "Animal mamífero de los Andes.", correct: true }, { id: 3, text: "Verbo llamar (ella llama).", correct: false } ] },
+            { word: "SALSA", sentence: "Aprendimos a bailar salsa en la academia.", options: [ { id: 1, text: "Mezcla comestible para condimentar.", correct: false }, { id: 2, text: "Género musical bailable.", correct: true } ] },
+            { word: "BOMBA", sentence: "Compramos una bomba para sacar agua del pozo.", options: [ { id: 1, text: "Explosivo.", correct: false }, { id: 2, text: "Máquina para elevar o impulsar líquidos.", correct: true }, { id: 3, text: "Noticia sorpresiva.", correct: false } ] },
+            { word: "NARANJA", sentence: "Me gusta mucho el color naranja.", options: [ { id: 1, text: "Fruto del naranjo.", correct: false }, { id: 2, text: "Color entre rojo y amarillo.", correct: true } ] },
+            { word: "RED", sentence: "El pescador arregló la red antes de salir.", options: [ { id: 1, text: "Tejido de mallas para pescar o cazar.", correct: true }, { id: 2, text: "Sistema de ordenadores conectados (Internet).", correct: false } ] },
+            { word: "TREN", sentence: "Lleva un tren de vida muy lujoso.", options: [ { id: 1, text: "Medio de transporte sobre raíles.", correct: false }, { id: 2, text: "Estilo o modo de vivir.", correct: true } ] },
+            { word: "BOLSA", sentence: "Las acciones bajaron en la Bolsa de Madrid.", options: [ { id: 1, text: "Saco para guardar cosas.", correct: false }, { id: 2, text: "Institución económica de valores.", correct: true } ] },
+            { word: "CADENA", sentence: "La cadena de televisión emitió la película.", options: [ { id: 1, text: "Serie de eslabones metálicos.", correct: false }, { id: 2, text: "Conjunto de emisoras.", correct: true } ] },
+            { word: "CASCO", sentence: "Bebe el refresco y devuelve el casco a la tienda.", options: [ { id: 1, text: "Protección para la cabeza.", correct: false }, { id: 2, text: "Envase de vidrio de una bebida.", correct: true }, { id: 3, text: "Parte donde se asientan los edificios.", correct: false } ] },
+            { word: "CORONA", sentence: "El rey se ajustó la corona.", options: [ { id: 1, text: "Aro de flores.", correct: false }, { id: 2, text: "Ornamento de la cabeza de los reyes.", correct: true }, { id: 3, text: "Moneda de algunos países.", correct: false } ] },
+            { word: "ESPINA", sentence: "Ten cuidado con la espina de la rosa.", options: [ { id: 1, text: "Hueso de los peces.", correct: false }, { id: 2, text: "Púa que nace en algunas plantas.", correct: true }, { id: 3, text: "Columna vertebral (espina dorsal).", correct: false } ] },
+            { word: "FUENTE", sentence: "Sirve la ensalada en esa fuente grande.", options: [ { id: 1, text: "Lugar donde brota agua.", correct: false }, { id: 2, text: "Plato grande para servir comida.", correct: true }, { id: 3, text: "Origen de una noticia.", correct: false } ] },
+            { word: "MANGUERA", sentence: "Los bomberos conectaron la manguera.", options: [ { id: 1, text: "Tubo flexible para echar agua.", correct: true }, { id: 2, text: "Tromba de agua o tornado en el mar.", correct: false } ] },
+            { word: "MONO", sentence: "El mecánico se puso el mono azul.", options: [ { id: 1, text: "Animal primate.", correct: false }, { id: 2, text: "Prenda de trabajo de una sola pieza.", correct: true }, { id: 3, text: "Adjetivo: que es bonito (¡qué mono!).", correct: false } ] },
+            { word: "NUDO", sentence: "El actor se puso nervioso en el nudo de la obra.", options: [ { id: 1, text: "Lazo apretado difícil de soltar.", correct: false }, { id: 2, text: "Parte central de una historia.", correct: true }, { id: 3, text: "Unión de caminos.", correct: false } ] },
+            { word: "OPERACIÓN", sentence: "El general dirigió la operación militar.", options: [ { id: 1, text: "Intervención quirúrgica médica.", correct: false }, { id: 2, text: "Cálculo matemático.", correct: false }, { id: 3, text: "Plan o acción militar.", correct: true } ] },
+            { word: "PALA", sentence: "Jugamos con la pala en la orilla de la playa.", options: [ { id: 1, text: "Herramienta para cavar.", correct: false }, { id: 2, text: "Raqueta de madera para jugar.", correct: true } ] },
+            { word: "PAPEL", sentence: "El actor hizo un papel muy difícil.", options: [ { id: 1, text: "Hoja fina para escribir.", correct: false }, { id: 2, text: "Personaje que representa un actor.", correct: true } ] },
+            { word: "PASTILLA", sentence: "Usa la pastilla de jabón para lavarte.", options: [ { id: 1, text: "Porción pequeña de medicamento.", correct: false }, { id: 2, text: "Trozo de masa sólida (jabón, chocolate).", correct: true } ] },
+            { word: "PENDIENTE", sentence: "Perdí un pendiente en la fiesta.", options: [ { id: 1, text: "Joya que se lleva en la oreja.", correct: true }, { id: 2, text: "Cuesta o inclinación del terreno.", correct: false }, { id: 3, text: "Asunto sin resolver.", correct: false } ] },
+            { word: "PIE", sentence: "Lee el pie de foto para saber quién es.", options: [ { id: 1, text: "Parte del cuerpo para andar.", correct: false }, { id: 2, text: "Base o soporte de algo.", correct: false }, { id: 3, text: "Texto explicativo debajo de una imagen.", correct: true } ] },
+            { word: "PLUMA", sentence: "Antiguamente escribían con pluma y tinta.", options: [ { id: 1, text: "Lo que cubre el cuerpo de las aves.", correct: false }, { id: 2, text: "Instrumento para escribir.", correct: true } ] },
+            { word: "POLO", sentence: "Mi tío vive cerca del Polo Norte.", options: [ { id: 1, text: "Helado con un palito.", correct: false }, { id: 2, text: "Prenda de vestir con cuello.", correct: false }, { id: 3, text: "Extremo del eje de la Tierra.", correct: true } ] },
+            { word: "REGLA", sentence: "Subraya el título usando la regla.", options: [ { id: 1, text: "Norma que hay que obedecer.", correct: false }, { id: 2, text: "Instrumento para medir y trazar líneas.", correct: true } ] },
+            { word: "SIERRA", sentence: "Fuimos de excursión a la sierra.", options: [ { id: 1, text: "Herramienta para cortar madera.", correct: false }, { id: 2, text: "Conjunto de montañas.", correct: true }, { id: 3, text: "Pez marino.", correct: false } ] },
+            { word: "TAPA", sentence: "Pedimos una tapa de queso con el refresco.", options: [ { id: 1, text: "Pieza que cierra un recipiente.", correct: false }, { id: 2, text: "Pequeña porción de comida que se sirve en bares.", correct: true }, { id: 3, text: "Cubierta de un libro.", correct: false } ] },
+            { word: "TELA", sentence: "Hay mucha tela que cortar en este asunto.", options: [ { id: 1, text: "Tejido hecho con hilos.", correct: false }, { id: 2, text: "Materia o asunto sobre el que tratar.", correct: true } ] },
+            { word: "TIERRA", sentence: "El barco por fin avistó tierra.", options: [ { id: 1, text: "Planeta donde vivimos.", correct: false }, { id: 2, text: "Suelo firme (no mar).", correct: true }, { id: 3, text: "Material suelto donde crecen las plantas.", correct: false } ] },
+            { word: "TÍTULO", sentence: "Ya tiene el título de arquitecto.", options: [ { id: 1, text: "Nombre de un libro o película.", correct: false }, { id: 2, text: "Documento que acredita unos estudios.", correct: true } ] },
+            { word: "TRONCO", sentence: "¡No te quedes ahí parado como un tronco!", options: [ { id: 1, text: "Tallo fuerte de los árboles.", correct: false }, { id: 2, text: "Persona torpe o insensible.", correct: true }, { id: 3, text: "Cuerpo humano sin cabeza ni extremidades.", correct: false } ] },
+            { word: "YEMA", sentence: "Me gusta mojar pan en la yema.", options: [ { id: 1, text: "Brote de los vegetales.", correct: false }, { id: 2, text: "Parte amarilla del huevo.", correct: true }, { id: 3, text: "Punta de los dedos.", correct: false } ] },
+            { word: "CABEZA", sentence: "Luis es la cabeza de familia.", options: [ { id: 1, text: "Parte superior del cuerpo.", correct: false }, { id: 2, text: "Persona que dirige o manda.", correct: true } ] },
+            { word: "OJO", sentence: "Ten mucho ojo al cruzar la calle.", options: [ { id: 1, text: "Órgano de la vista.", correct: false }, { id: 2, text: "Agujero de la aguja.", correct: false }, { id: 3, text: "Cuidado o atención.", correct: true } ] },
+            { word: "DERECHO", sentence: "Estudia Derecho en la universidad.", options: [ { id: 1, text: "Recto, que no está torcido.", correct: false }, { id: 2, text: "Lado opuesto al izquierdo.", correct: false }, { id: 3, text: "Ciencia que estudia las leyes.", correct: true } ] },
+            { word: "LUNA", sentence: "Se rompió la luna del escaparate.", options: [ { id: 1, text: "Satélite de la Tierra.", correct: false }, { id: 2, text: "Cristal o vidrio de una ventana.", correct: true } ] },
+            { word: "MESA", sentence: "La mesa directiva se reunió hoy.", options: [ { id: 1, text: "Mueble con patas y tablero.", correct: false }, { id: 2, text: "Conjunto de personas que dirigen algo.", correct: true } ] }
+        ];
+
+        // Configuración
+        const QUESTIONS_PER_GAME = 10;
+
+        // --- COMPONENTE PRINCIPAL ---
+        const DictionaryGame = () => {
+            const [gameState, setGameState] = useState('intro'); // intro, explanation, game, result
+            const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+            const [score, setScore] = useState(0);
+            const [selectedOption, setSelectedOption] = useState(null);
+            const [showFeedback, setShowFeedback] = useState(false);
+            const [isCorrect, setIsCorrect] = useState(false);
+            const [gameQuestions, setGameQuestions] = useState([]);
+
+            // Función para mezclar array (Fisher-Yates shuffle)
+            const shuffleArray = (array) => {
+                const newArray = [...array];
+                for (let i = newArray.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+                }
+                return newArray;
+            };
+
+            const startNewGame = (skipIntro = false) => {
+                // Seleccionar 10 preguntas aleatorias de la base de datos
+                const shuffled = shuffleArray(QUESTIONS_DB);
+                const selected = shuffled.slice(0, QUESTIONS_PER_GAME);
+                
+                setGameQuestions(selected);
+                setCurrentQuestionIndex(0);
+                setScore(0);
+                setSelectedOption(null);
+                setShowFeedback(false);
+                setIsCorrect(false);
+                setGameState(skipIntro ? 'game' : 'intro');
+            };
+
+            // Iniciar juego al cargar
+            useEffect(() => {
+                startNewGame(false);
+            }, []);
+
+            const handleOptionClick = (option) => {
+                if (showFeedback) return;
+
+                setSelectedOption(option.id);
+                setShowFeedback(true);
+                
+                if (option.correct) {
+                    setIsCorrect(true);
+                    setScore(score + 1);
+                } else {
+                    setIsCorrect(false);
+                }
+            };
+
+            const nextQuestion = () => {
+                setSelectedOption(null);
+                setShowFeedback(false);
+                setIsCorrect(false);
+                
+                if (currentQuestionIndex < gameQuestions.length - 1) {
+                    setCurrentQuestionIndex(currentQuestionIndex + 1);
+                } else {
+                    setGameState('result');
+                }
+            };
+
+            // Pantalla 1: Intro
+            if (gameState === 'intro') {
+                return (
+                    <div className="flex flex-col items-center justify-center min-h-screen bg-blue-50 p-4 font-sans text-center">
+                        <div className="bg-white p-6 md:p-8 rounded-3xl shadow-xl max-w-lg w-full border-b-8 border-blue-400">
+                            <div className="flex justify-center mb-6">
+                                <IconSearch size={64} className="text-blue-500 mr-2" />
+                                <IconBook size={64} className="text-orange-500" />
+                            </div>
+                            <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-4">Misión: Detectives del Diccionario</h1>
+                            <p className="text-lg text-gray-600 mb-8">
+                                ¡Hola clase de 3º! Hoy vamos a aprender a buscar significados ocultos.
+                                <br/><br/>
+                                <span className="text-sm bg-blue-100 text-blue-800 px-3 py-1 rounded-full font-bold">
+                                    Base de datos: {QUESTIONS_DB.length} palabras
+                                </span>
+                            </p>
+                            <button 
+                                onClick={() => setGameState('explanation')}
+                                className="w-full md:w-auto bg-green-500 hover:bg-green-600 text-white text-xl font-bold py-4 px-8 rounded-full shadow-lg transform transition hover:scale-105 flex items-center justify-center mx-auto"
+                            >
+                                Empezar la Misión <IconArrowRight className="ml-2" />
+                            </button>
+                        </div>
+                    </div>
+                );
+            }
+
+            // Pantalla 2: Explicación
+            if (gameState === 'explanation') {
+                return (
+                    <div className="flex flex-col items-center justify-center min-h-screen bg-yellow-50 p-4 font-sans">
+                        <div className="bg-white p-6 md:p-8 rounded-3xl shadow-xl max-w-2xl w-full border-b-8 border-yellow-400">
+                            <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center justify-center">
+                                <IconHelpCircle className="mr-2 text-yellow-500" /> ¿Qué es una Acepción?
+                            </h2>
+                            
+                            <div className="bg-blue-100 p-6 rounded-xl mb-6 text-left">
+                                <p className="text-lg mb-4 text-gray-700">
+                                    Imagina que las palabras son <strong>actores con disfraces</strong>.
+                                </p>
+                                <p className="text-lg mb-4 text-gray-700">
+                                    La palabra <strong>"PLANTA"</strong> puede disfrazarse de:
+                                </p>
+                                <ul className="list-none space-y-3">
+                                    <li className="flex items-center bg-white p-3 rounded-lg shadow-sm">
+                                        <span className="bg-blue-500 text-white font-bold rounded-full w-8 h-8 flex items-center justify-center mr-3 flex-shrink-0">1</span>
+                                        <span>Un ser vivo vegetal (un árbol, una flor...). 🌳</span>
+                                    </li>
+                                    <li className="flex items-center bg-white p-3 rounded-lg shadow-sm">
+                                        <span className="bg-blue-500 text-white font-bold rounded-full w-8 h-8 flex items-center justify-center mr-3 flex-shrink-0">2</span>
+                                        <span>La parte inferior del pie. 👣</span>
+                                    </li>
+                                    <li className="flex items-center bg-white p-3 rounded-lg shadow-sm">
+                                        <span className="bg-blue-500 text-white font-bold rounded-full w-8 h-8 flex items-center justify-center mr-3 flex-shrink-0">3</span>
+                                        <span>Cada uno de los pisos de un edificio. 🏢</span>
+                                    </li>
+                                </ul>
+                            </div>
+
+                            <p className="text-gray-600 mb-8 text-lg text-center">
+                                A cada uno de esos significados numerados lo llamamos <strong>ACEPCIÓN</strong>.
+                            </p>
+
+                            <div className="text-center">
+                                <button 
+                                    onClick={() => setGameState('game')}
+                                    className="bg-orange-500 hover:bg-orange-600 text-white text-xl font-bold py-3 px-8 rounded-full shadow-lg transform transition hover:scale-105"
+                                >
+                                    ¡Entendido! Vamos a Jugar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            // Pantalla 3: Juego
+            if (gameState === 'game') {
+                if (gameQuestions.length === 0) return <div>Cargando...</div>;
+                
+                const currentQ = gameQuestions[currentQuestionIndex];
+
+                return (
+                    <div className="flex flex-col items-center min-h-screen bg-indigo-50 p-4 font-sans">
+                        {/* Barra de Progreso */}
+                        <div className="w-full max-w-2xl flex justify-between items-center mb-6">
+                            <div className="text-gray-500 font-bold text-sm md:text-base">
+                                Caso {currentQuestionIndex + 1} de {QUESTIONS_PER_GAME}
+                            </div>
+                            <div className="flex items-center bg-white px-4 py-2 rounded-full shadow">
+                                <IconStar className="text-yellow-400 fill-current mr-2" />
+                                <span className="font-bold text-gray-700">{score} Puntos</span>
+                            </div>
+                        </div>
+
+                        {/* Tarjeta de Pregunta */}
+                        <div className="bg-white w-full max-w-2xl rounded-3xl shadow-xl overflow-hidden border-b-8 border-indigo-400">
+                            
+                            {/* Zona de la Frase */}
+                            <div className="bg-indigo-100 p-8 text-center border-b border-indigo-200">
+                                <h3 className="text-gray-500 uppercase text-xs md:text-sm font-bold tracking-wider mb-2">Lee la frase atentamente</h3>
+                                <p className="text-2xl md:text-3xl text-gray-800 font-medium leading-relaxed">
+                                    {currentQ.sentence.split(new RegExp(`(${currentQ.word})`, 'gi')).map((part, i) => 
+                                        part.toLowerCase() === currentQ.word.toLowerCase() ? 
+                                        <span key={i} className="bg-yellow-200 px-2 rounded text-indigo-900 font-bold border-b-4 border-yellow-400 inline-block">{part}</span> : 
+                                        part
+                                    )}
+                                </p>
+                            </div>
+
+                            {/* Zona del Diccionario */}
+                            <div className="p-6 md:p-8 bg-white">
+                                <div className="mb-4 text-gray-400 text-sm font-bold uppercase flex items-center">
+                                    <IconBook size={16} className="mr-2" /> Diccionario Escolar
+                                </div>
+                                
+                                <div className="space-y-3">
+                                    {currentQ.options.map((option) => {
+                                        let cardClass = "w-full text-left p-4 rounded-xl border-2 transition-all duration-200 flex items-start ";
+                                        
+                                        if (selectedOption === null) {
+                                            cardClass += "border-gray-200 hover:border-blue-400 hover:bg-blue-50 cursor-pointer";
+                                        } else if (option.id === selectedOption) {
+                                            cardClass += option.correct 
+                                                ? "border-green-500 bg-green-50 ring-2 ring-green-200" 
+                                                : "border-red-500 bg-red-50 ring-2 ring-red-200";
+                                        } else {
+                                            cardClass += "border-gray-100 opacity-50";
+                                        }
+
+                                        return (
+                                            <button 
+                                                key={option.id}
+                                                onClick={() => handleOptionClick(option)}
+                                                disabled={showFeedback}
+                                                className={cardClass}
+                                            >
+                                                <span className={`font-bold rounded-full w-8 h-8 flex-shrink-0 flex items-center justify-center mr-3 ${selectedOption === option.id && option.correct ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-600'}`}>
+                                                    {option.id}
+                                                </span>
+                                                <span className="text-lg text-gray-700 mt-1">{option.text}</span>
+                                                
+                                                {/* Iconos de resultado */}
+                                                {selectedOption === option.id && option.correct && <IconCheckCircle className="ml-auto text-green-500 h-8 w-8 flex-shrink-0" />}
+                                                {selectedOption === option.id && !option.correct && <IconXCircle className="ml-auto text-red-500 h-8 w-8 flex-shrink-0" />}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Zona de Feedback / Botón Siguiente */}
+                            {showFeedback && (
+                                <div className={`p-4 text-center ${isCorrect ? 'bg-green-100' : 'bg-red-100'}`}>
+                                    <p className={`text-lg font-bold mb-3 ${isCorrect ? 'text-green-700' : 'text-red-700'}`}>
+                                        {isCorrect ? "¡Excelente! Esa es la acepción correcta." : "¡Oh no! Esa acepción no encaja."}
+                                    </p>
+                                    <button 
+                                        onClick={nextQuestion}
+                                        className={`py-3 px-8 rounded-full font-bold text-white shadow-lg transform transition hover:scale-105 ${isCorrect ? 'bg-green-600 hover:bg-green-700' : 'bg-red-500 hover:bg-red-600'}`}
+                                    >
+                                        {currentQuestionIndex < gameQuestions.length - 1 ? "Siguiente Caso" : "Ver Resultado"}
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                );
+            }
+
+            // Pantalla 4: Resultado Final
+            if (gameState === 'result') {
+                return (
+                    <div className="flex flex-col items-center justify-center min-h-screen bg-purple-50 p-4 font-sans text-center">
+                        <div className="bg-white p-8 rounded-3xl shadow-xl max-w-lg border-b-8 border-purple-400 w-full">
+                            <div className="animate-bounce-slow mb-4 flex justify-center">
+                                <IconTrophy size={80} className="text-yellow-400" />
+                            </div>
+                            <h2 className="text-3xl font-bold text-gray-800 mb-2">¡Misión Cumplida!</h2>
+                            <p className="text-xl text-gray-600 mb-6">Has resuelto los misterios del diccionario.</p>
+                            
+                            <div className="bg-purple-100 rounded-xl p-6 mb-8">
+                                <p className="text-gray-500 uppercase text-sm font-bold tracking-wider mb-2">Puntuación Final</p>
+                                <div className="text-5xl font-bold text-purple-600">{score} / {QUESTIONS_PER_GAME}</div>
+                                <div className="flex justify-center mt-2 space-x-1">
+                                    {[...Array(5)].map((_, i) => (
+                                        <IconStar key={i} size={24} className={i < Math.round(score/2) ? "text-yellow-400 fill-current" : "text-gray-300"} />
+                                    ))}
+                                </div>
+                            </div>
+
+                            <p className="mb-8 text-gray-700 text-lg">
+                                {score === QUESTIONS_PER_GAME ? "¡Eres un MAESTRO del diccionario! 🏆" : 
+                                score >= (QUESTIONS_PER_GAME / 2) ? "¡Muy buen trabajo, detective! 🕵️‍♀️" : 
+                                "¡Buen intento! Sigue practicando. 💪"}
+                            </p>
+
+                            <button 
+                                onClick={() => startNewGame(true)}
+                                className="bg-blue-500 hover:bg-blue-600 text-white text-xl font-bold py-3 px-8 rounded-full shadow-lg transition flex items-center justify-center mx-auto"
+                            >
+                                <IconRefresh className="mr-2" /> Jugar otra vez (Nuevas palabras)
+                            </button>
+                        </div>
+                    </div>
+                );
+            }
+
+            return null;
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<DictionaryGame />);
+    </script>
+</body>
+</html>
