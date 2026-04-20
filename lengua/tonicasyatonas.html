@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detective de Sílabas - Nivel Maestro</title>
+  <script src="https://maestroseb.github.io/recursos/tailwind.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;600&display=swap');
+
+        body {
+            font-family: 'Fredoka', sans-serif;
+            background-color: #f0f9ff;
+            background-image: radial-gradient(#bae6fd 2px, transparent 2px);
+            background-size: 30px 30px;
+        }
+
+        /* Fase 1: Estilos de corte */
+        .letter-box {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #334155;
+            user-select: none;
+        }
+
+        .separator-zone {
+            width: 20px;
+            height: 60px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            border-radius: 4px;
+        }
+
+        .separator-zone:hover {
+            background-color: #e0f2fe;
+        }
+
+        .separator-line {
+            width: 4px;
+            height: 100%;
+            background-color: #cbd5e1;
+            border-radius: 99px;
+            transition: all 0.2s;
+        }
+
+        .separator-zone.active .separator-line {
+            background-color: #0ea5e9;
+            box-shadow: 0 0 10px #0ea5e9;
+            height: 110%;
+            width: 6px;
+        }
+
+        /* Fase 2: Botones */
+        .btn-syllable {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 0 #0ea5e9;
+        }
+        
+        .btn-syllable:active {
+            transform: translateY(4px);
+            box-shadow: 0 0px 0 #0ea5e9;
+        }
+
+        .correct {
+            background-color: #4ade80 !important;
+            border-color: #22c55e !important;
+            box-shadow: 0 4px 0 #15803d !important;
+            color: white;
+            transform: scale(1.1);
+        }
+
+        .wrong {
+            background-color: #f87171 !important;
+            border-color: #ef4444 !important;
+            box-shadow: 0 4px 0 #b91c1c !important;
+            color: white;
+            animation: shake 0.5s;
+        }
+
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            50% { transform: translateX(5px); }
+            75% { transform: translateX(-5px); }
+            100% { transform: translateX(0); }
+        }
+
+        @keyframes popIn {
+            0% { opacity: 0; transform: scale(0.5); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        .animate-pop {
+            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .mascot-bounce {
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        /* Custom scrollbar for small screens */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+    <!-- Main Container -->
+    <div class="bg-white rounded-3xl shadow-xl w-full max-w-2xl overflow-hidden border-4 border-sky-200 relative">
+        
+        <!-- Header / Progress -->
+        <div id="game-header" class="hidden bg-sky-100 p-4 flex justify-between items-center border-b-2 border-sky-200">
+            <div class="flex items-center gap-2">
+                <span class="text-sky-600 font-bold text-xl"><i class="fas fa-star text-yellow-400"></i> <span id="score-display">0</span></span>
+            </div>
+            <div class="text-sky-400 font-bold" id="progress-display">1/10</div>
+        </div>
+
+        <!-- 1. Explanation Screen -->
+        <div id="screen-intro" class="p-6 text-center animate-pop overflow-y-auto max-h-[90vh]">
+            <div class="mb-2">
+                <i class="fas fa-graduation-cap text-5xl text-sky-500 mascot-bounce"></i>
+            </div>
+            <h1 class="text-2xl font-bold text-slate-700 mb-4">Entrenamiento de Detectives</h1>
+            
+            <div class="bg-blue-50 rounded-xl p-5 mb-6 text-left border-2 border-blue-100 space-y-4">
+                
+                <!-- Step 1: Separation -->
+                <div class="bg-white p-4 rounded-lg shadow-sm border-l-4 border-orange-400">
+                    <div class="flex items-center gap-3 mb-2">
+                        <div class="bg-orange-100 p-2 rounded-full text-orange-500">
+                            <i class="fas fa-cut"></i>
+                        </div>
+                        <strong class="text-slate-700 text-lg">1. Separar Sílabas</strong>
+                    </div>
+                    <p class="text-slate-600 text-sm mb-2">Las palabras son como trenes con vagones. Haz clic entre las letras para cortarlas.</p>
+                    <div class="text-center font-bold text-slate-400 bg-slate-50 p-2 rounded border border-slate-200">
+                        VE <span class="text-orange-500">|</span> RA <span class="text-orange-500">|</span> NO
+                    </div>
+                </div>
+
+                <!-- Step 2: Tonic -->
+                <div class="bg-white p-4 rounded-lg shadow-sm border-l-4 border-green-400">
+                    <div class="flex items-center gap-3 mb-2">
+                        <div class="bg-green-100 p-2 rounded-full text-green-600">
+                            <i class="fas fa-volume-up"></i>
+                        </div>
+                        <strong class="text-slate-700 text-lg">2. Sílaba Tónica</strong>
+                    </div>
+                    <p class="text-slate-600 text-sm mb-2">En cada palabra hay una "Jefa" que suena <strong>MÁS FUERTE</strong>. Las demás (débiles) son <em>átonas</em>.</p>
+                    <div class="text-center bg-yellow-50 p-2 rounded border border-yellow-200">
+                        <span class="text-slate-400">CAR</span> - <span class="text-red-500 text-xl font-bold transform scale-110 inline-block">TE</span> - <span class="text-slate-400">RA</span>
+                    </div>
+                </div>
+                
+                <p class="text-center text-sky-600 text-sm font-bold italic bg-sky-100 p-2 rounded-lg">
+                    <i class="fas fa-lightbulb text-yellow-500"></i> Truco: ¡Llama a la palabra como si estuviera lejos!
+                </p>
+
+            </div>
+
+            <button onclick="startGame()" class="bg-sky-500 hover:bg-sky-600 text-white text-xl font-bold py-3 px-10 rounded-full shadow-[0_6px_0_rgb(14,116,144)] active:shadow-none active:translate-y-1.5 transition-all w-full md:w-auto">
+                ¡Empezar! <i class="fas fa-play ml-2"></i>
+            </button>
+        </div>
+
+        <!-- 2. Segmentation Phase -->
+        <div id="screen-segment" class="hidden p-8 flex flex-col items-center justify-center min-h-[400px]">
+            <h2 class="text-xl text-slate-500 font-semibold mb-2">Fase 1: ¡Corta la palabra!</h2>
+            <p class="text-sm text-slate-400 mb-8">Haz clic en los huecos para separar</p>
+            
+            <div id="segment-container" class="flex items-center justify-center flex-wrap mb-12 bg-slate-50 p-6 rounded-2xl border-2 border-dashed border-slate-300">
+                <!-- Letters and separators injected here -->
+            </div>
+
+            <button onclick="checkSegmentation()" class="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-8 rounded-full shadow-[0_4px_0_rgb(194,65,12)] active:shadow-none active:translate-y-1 transition-all">
+                ¡Cortar! <i class="fas fa-cut ml-2"></i>
+            </button>
+            <p id="segment-feedback" class="h-6 mt-4 text-red-500 font-bold opacity-0 transition-opacity">¡Inténtalo de nuevo!</p>
+        </div>
+
+        <!-- 3. Tonic Phase -->
+        <div id="screen-game" class="hidden p-8 flex flex-col items-center justify-center min-h-[400px]">
+            <h2 class="text-xl text-slate-500 font-semibold mb-8">Fase 2: ¿Cuál suena más fuerte?</h2>
+            
+            <!-- Word Container -->
+            <div id="word-container" class="flex flex-wrap justify-center gap-3 mb-12">
+                <!-- Syllable buttons will be injected here -->
+            </div>
+
+            <div id="feedback-msg" class="h-8 text-xl font-bold text-center transition-all opacity-0">
+                <!-- Feedback message -->
+            </div>
+
+            <button id="next-btn" onclick="nextWord()" class="hidden mt-8 bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-8 rounded-full shadow-[0_4px_0_rgb(21,128,61)] active:shadow-none active:translate-y-1 transition-all">
+                Siguiente <i class="fas fa-arrow-right ml-2"></i>
+            </button>
+        </div>
+
+        <!-- 4. Result Screen -->
+        <div id="screen-result" class="hidden p-8 text-center animate-pop">
+            <div class="mb-6">
+                <i class="fas fa-trophy text-6xl text-yellow-400 mascot-bounce"></i>
+            </div>
+            <h2 class="text-3xl font-bold text-slate-700 mb-2">¡Misión Cumplida!</h2>
+            <p class="text-slate-500 mb-6">Has demostrado ser un gran lingüista.</p>
+            
+            <div class="bg-sky-50 rounded-xl p-8 mb-8 inline-block">
+                <p class="text-slate-600 mb-2">Puntuación final</p>
+                <div class="text-5xl font-bold text-sky-600">
+                    <span id="final-score">0</span><span class="text-2xl text-slate-400">/100</span>
+                </div>
+            </div>
+
+            <div class="flex gap-4 justify-center">
+                <button onclick="restartGame()" class="bg-sky-500 hover:bg-sky-600 text-white font-bold py-3 px-8 rounded-full shadow-[0_4px_0_rgb(14,116,144)] active:shadow-none active:translate-y-1 transition-all">
+                    Jugar otra vez
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const wordData = [
+            // Agudas sin tilde
+            { syllables: ["CA", "LOR"], tonic: 1 },
+            { syllables: ["PA", "RED"], tonic: 1 },
+            { syllables: ["TAM", "BOR"], tonic: 1 },
+            { syllables: ["RE", "LOJ"], tonic: 1 },
+            { syllables: ["PA", "PEL"], tonic: 1 },
+            { syllables: ["CO", "LLAR"], tonic: 1 },
+            { syllables: ["CAR", "TEL"], tonic: 1 },
+            { syllables: ["CO", "MER"], tonic: 1 },
+            { syllables: ["JU", "GAR"], tonic: 1 },
+            { syllables: ["SA", "LIR"], tonic: 1 },
+            { syllables: ["CIU", "DAD"], tonic: 1 },
+            { syllables: ["A", "MIS", "TAD"], tonic: 2 },
+            { syllables: ["VER", "DAD"], tonic: 1 },
+            { syllables: ["FE", "LIZ"], tonic: 1 },
+            { syllables: ["NA", "RIZ"], tonic: 1 },
+            { syllables: ["CO", "ME", "DOR"], tonic: 2 },
+            { syllables: ["CA", "RA", "COL"], tonic: 2 },
+            { syllables: ["BO", "RRA", "DOR"], tonic: 2 },
+            { syllables: ["OR", "DE", "NA", "DOR"], tonic: 3 },
+            { syllables: ["PRO", "FE", "SOR"], tonic: 2 },
+            { syllables: ["A", "NI", "MAL"], tonic: 2 },
+            { syllables: ["A", "ZUL"], tonic: 1 },
+            { syllables: ["GE", "NIAL"], tonic: 1 },
+            { syllables: ["PAS", "TEL"], tonic: 1 },
+            { syllables: ["DOC", "TOR"], tonic: 1 },
+            // Llanas sin tilde
+            { syllables: ["CA", "SA"], tonic: 0 },
+            { syllables: ["PE", "RRO"], tonic: 0 },
+            { syllables: ["GA", "TO"], tonic: 0 },
+            { syllables: ["ME", "SA"], tonic: 0 },
+            { syllables: ["SI", "LLA"], tonic: 0 },
+            { syllables: ["LI", "BRO"], tonic: 0 },
+            { syllables: ["MA", "NO"], tonic: 0 },
+            { syllables: ["PUER", "TA"], tonic: 0 },
+            { syllables: ["VEN", "TA", "NA"], tonic: 1 },
+            { syllables: ["ES", "CUE", "LA"], tonic: 1 },
+            { syllables: ["PAR", "QUE"], tonic: 0 },
+            { syllables: ["NU", "BE"], tonic: 0 },
+            { syllables: ["VA", "SO"], tonic: 0 },
+            { syllables: ["PLA", "TO"], tonic: 0 },
+            { syllables: ["CA", "MA"], tonic: 0 },
+            { syllables: ["CO", "CHE"], tonic: 0 },
+            { syllables: ["FLO", "RES"], tonic: 0 },
+            { syllables: ["MO", "CHI", "LA"], tonic: 1 },
+            { syllables: ["GO", "MA"], tonic: 0 },
+            { syllables: ["RE", "GLA"], tonic: 0 },
+            { syllables: ["ES", "TU", "CHE"], tonic: 1 },
+            { syllables: ["TI", "ZA"], tonic: 0 },
+            { syllables: ["A", "LUM", "NO"], tonic: 1 },
+            { syllables: ["PI", "ZA", "RRA"], tonic: 1 },
+            { syllables: ["CUA", "DER", "NO"], tonic: 1 },
+            { syllables: ["CAR", "PE", "TA"], tonic: 1 },
+            { syllables: ["TI", "JE", "RAS"], tonic: 1 },
+            { syllables: ["ZA", "PA", "TO"], tonic: 1 },
+            { syllables: ["CA", "MI", "SA"], tonic: 1 },
+            { syllables: ["VES", "TI", "DO"], tonic: 1 },
+            { syllables: ["FAL", "DA"], tonic: 0 },
+            { syllables: ["A", "BRI", "GO"], tonic: 1 },
+            { syllables: ["GUAN", "TES"], tonic: 0 },
+            { syllables: ["BU", "FAN", "DA"], tonic: 1 },
+            { syllables: ["GO", "RRO"], tonic: 0 },
+            { syllables: ["SOL", "DA", "DO"], tonic: 1 },
+            { syllables: ["PI", "RA", "TA"], tonic: 1 },
+            { syllables: ["PRIN", "CE", "SA"], tonic: 1 },
+            { syllables: ["CAS", "TI", "LLO"], tonic: 1 },
+            { syllables: ["BRU", "JA"], tonic: 0 },
+            { syllables: ["FAN", "TAS", "MA"], tonic: 1 },
+            { syllables: ["GI", "GAN", "TE"], tonic: 1 },
+            { syllables: ["E", "NA", "NO"], tonic: 1 },
+            { syllables: ["BOS", "QUE"], tonic: 0 },
+            { syllables: ["MON", "TA", "ÑA"], tonic: 1 },
+            { syllables: ["PLA", "YA"], tonic: 0 },
+            { syllables: ["CAM", "PO"], tonic: 0 },
+            { syllables: ["GRA", "NJA"], tonic: 0 },
+            { syllables: ["SEL", "VA"], tonic: 0 },
+            { syllables: ["DE", "SIER", "TO"], tonic: 1 },
+            { syllables: ["PLA", "NE", "TA"], tonic: 1 },
+            { syllables: ["U", "NI", "VER", "SO"], tonic: 2 },
+            { syllables: ["LU", "NA"], tonic: 0 },
+            { syllables: ["MA", "RIS", "CO"], tonic: 1 },
+            { syllables: ["PES", "CA", "DO"], tonic: 1 },
+            { syllables: ["CAR", "NE"], tonic: 0 },
+            { syllables: ["FRU", "TA"], tonic: 0 },
+            { syllables: ["VER", "DU", "RA"], tonic: 1 },
+            { syllables: ["LE", "CHU", "GA"], tonic: 1 },
+            { syllables: ["TO", "MA", "TE"], tonic: 1 },
+            { syllables: ["PA", "TA", "TA"], tonic: 1 },
+            { syllables: ["CE", "BO", "LLA"], tonic: 1 },
+            { syllables: ["PE", "LO", "TA"], tonic: 1 },
+            { syllables: ["MU", "ÑE", "CA"], tonic: 1 },
+            { syllables: ["CO", "CHE", "CI", "TO"], tonic: 2 },
+            { syllables: ["RA", "QUE", "TA"], tonic: 1 },
+            { syllables: ["PA", "TI", "NES"], tonic: 1 },
+            { syllables: ["BI", "CI"], tonic: 0 },
+            { syllables: ["MO", "TO"], tonic: 0 },
+            { syllables: ["BAR", "CO"], tonic: 0 },
+            { syllables: ["ME", "TRO"], tonic: 0 },
+            { syllables: ["TA", "XI"], tonic: 0 },
+            { syllables: ["CA", "MI", "NO"], tonic: 1 },
+            { syllables: ["A", "BE", "JA"], tonic: 1 },
+            { syllables: ["HOR", "MI", "GA"], tonic: 1 },
+            { syllables: ["MA", "RI", "PO", "SA"], tonic: 2 },
+            { syllables: ["E", "LE", "FAN", "TE"], tonic: 2 },
+            { syllables: ["JI", "RA", "FA"], tonic: 1 },
+            // Con tilde
+            { syllables: ["RA", "TÓN"], tonic: 1 },
+            { syllables: ["ÁR", "BOL"], tonic: 0 },
+            { syllables: ["LÁ", "PIZ"], tonic: 0 },
+            { syllables: ["CA", "MIÓN"], tonic: 1 },
+            { syllables: ["SO", "FÁ"], tonic: 1 },
+            { syllables: ["MÉ", "DI", "CO"], tonic: 0 },
+            { syllables: ["PÁ", "JA", "RO"], tonic: 0 },
+            { syllables: ["DRA", "GÓN"], tonic: 1 },
+            { syllables: ["A", "VIÓN"], tonic: 1 },
+            { syllables: ["AU", "TO", "BÚS"], tonic: 2 }
+        ];
+
+        let currentQuestion = 0;
+        let score = 0;
+        let questions = [];
+        let userSeparators = new Set();
+        let correctSeparators = new Set();
+        let currentWordString = "";
+
+        const screens = {
+            intro: document.getElementById('screen-intro'),
+            segment: document.getElementById('screen-segment'),
+            game: document.getElementById('screen-game'),
+            result: document.getElementById('screen-result')
+        };
+        
+        const ui = {
+            header: document.getElementById('game-header'),
+            score: document.getElementById('score-display'),
+            progress: document.getElementById('progress-display'),
+            segmentContainer: document.getElementById('segment-container'),
+            segmentFeedback: document.getElementById('segment-feedback'),
+            wordContainer: document.getElementById('word-container'),
+            feedback: document.getElementById('feedback-msg'),
+            nextBtn: document.getElementById('next-btn'),
+            finalScore: document.getElementById('final-score')
+        };
+
+        function shuffle(array) {
+            return array.sort(() => Math.random() - 0.5);
+        }
+
+        function startGame() {
+            questions = shuffle([...wordData]).slice(0, 10);
+            currentQuestion = 0;
+            score = 0;
+            
+            screens.intro.classList.add('hidden');
+            screens.result.classList.add('hidden');
+            ui.header.classList.remove('hidden');
+            
+            loadSegmentationPhase();
+        }
+
+        function updateScoreBoard() {
+            ui.score.innerText = score;
+            ui.progress.innerText = `${currentQuestion + 1}/${questions.length}`;
+        }
+
+        // --- Phase 1: Segmentation ---
+
+        function loadSegmentationPhase() {
+            const data = questions[currentQuestion];
+            currentWordString = data.syllables.join('');
+            
+            // Calculate correct separator indices
+            // Example: CA-SA. String: CASA. Separator after index 1 (between A and S).
+            correctSeparators.clear();
+            userSeparators.clear();
+            
+            let runningIndex = 0;
+            for(let i = 0; i < data.syllables.length - 1; i++) {
+                runningIndex += data.syllables[i].length;
+                correctSeparators.add(runningIndex - 1); // 0-based index of the letter BEFORE the cut
+            }
+
+            ui.segmentContainer.innerHTML = '';
+            ui.segmentFeedback.style.opacity = '0';
+            
+            screens.game.classList.add('hidden');
+            screens.segment.classList.remove('hidden');
+            updateScoreBoard();
+
+            // Build UI
+            const letters = currentWordString.split('');
+            letters.forEach((letter, index) => {
+                // Add Letter
+                const letterSpan = document.createElement('div');
+                letterSpan.className = 'letter-box';
+                letterSpan.innerText = letter;
+                ui.segmentContainer.appendChild(letterSpan);
+
+                // Add Separator (unless it's the last letter)
+                if (index < letters.length - 1) {
+                    const sep = document.createElement('div');
+                    sep.className = 'separator-zone';
+                    sep.dataset.index = index;
+                    sep.onclick = () => toggleSeparator(sep, index);
+                    
+                    const line = document.createElement('div');
+                    line.className = 'separator-line';
+                    sep.appendChild(line);
+                    
+                    ui.segmentContainer.appendChild(sep);
+                }
+            });
+        }
+
+        function toggleSeparator(el, index) {
+            if (userSeparators.has(index)) {
+                userSeparators.delete(index);
+                el.classList.remove('active');
+            } else {
+                userSeparators.add(index);
+                el.classList.add('active');
+            }
+        }
+
+        function checkSegmentation() {
+            // Check if sets are equal
+            let isCorrect = true;
+            if (userSeparators.size !== correctSeparators.size) isCorrect = false;
+            for (let idx of userSeparators) {
+                if (!correctSeparators.has(idx)) isCorrect = false;
+            }
+
+            if (isCorrect) {
+                ui.segmentFeedback.style.opacity = '0';
+                loadTonicPhase(); // Move to next phase
+            } else {
+                ui.segmentFeedback.style.opacity = '1';
+                ui.segmentContainer.classList.add('wrong');
+                setTimeout(() => ui.segmentContainer.classList.remove('wrong'), 500);
+            }
+        }
+
+        // --- Phase 2: Tonic Identification ---
+
+        function loadTonicPhase() {
+            screens.segment.classList.add('hidden');
+            screens.game.classList.remove('hidden');
+
+            const data = questions[currentQuestion];
+            ui.wordContainer.innerHTML = '';
+            ui.feedback.style.opacity = '0';
+            ui.nextBtn.classList.add('hidden');
+            canClick = true;
+
+            data.syllables.forEach((syl, index) => {
+                const btn = document.createElement('button');
+                btn.innerText = syl;
+                btn.className = 'btn-syllable bg-white border-2 border-sky-200 text-slate-700 font-bold text-3xl py-4 px-6 rounded-2xl min-w-[80px] hover:bg-sky-50 active:scale-95';
+                btn.onclick = () => checkTonicAnswer(btn, index, data.tonic);
+                ui.wordContainer.appendChild(btn);
+            });
+        }
+
+        function checkTonicAnswer(btn, index, correctIndex) {
+            if (!canClick) return;
+            canClick = false;
+
+            const buttons = ui.wordContainer.children;
+
+            if (index === correctIndex) {
+                btn.classList.add('correct');
+                ui.feedback.innerHTML = '<span class="text-green-500"><i class="fas fa-check-circle"></i> ¡Muy bien!</span>';
+                score += 10;
+            } else {
+                btn.classList.add('wrong');
+                setTimeout(() => {
+                    buttons[correctIndex].classList.add('correct');
+                }, 300);
+                ui.feedback.innerHTML = '<span class="text-red-500"><i class="fas fa-times-circle"></i> ¡Ups! La fuerte era esa.</span>';
+            }
+
+            ui.score.innerText = score;
+            ui.feedback.style.opacity = '1';
+            ui.nextBtn.classList.remove('hidden');
+        }
+
+        function nextWord() {
+            currentQuestion++;
+            if (currentQuestion < questions.length) {
+                loadSegmentationPhase();
+            } else {
+                endGame();
+            }
+        }
+
+        function endGame() {
+            screens.game.classList.add('hidden');
+            ui.header.classList.add('hidden');
+            screens.result.classList.remove('hidden');
+            ui.finalScore.innerText = score;
+        }
+
+        function restartGame() {
+            startGame();
+        }
+
+        let canClick = true;
+    </script>
+</body>
+</html>

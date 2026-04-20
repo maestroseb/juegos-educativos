@@ -64,6 +64,12 @@
   }
   .word.locked { cursor: default; pointer-events: none; }
 
+  /* Evita que el :hover de Tailwind se quede "pegado" en un botón
+     deshabilitado cuando el cursor/pulsación no se mueve (habitual en
+     pizarras digitales). */
+  .cat-btn:disabled,
+  .panel-cat-btn:disabled { pointer-events: none; }
+
   /* Mantener los SVG inline alineados verticalmente con texto */
   .icon-inline { display: inline-block; vertical-align: middle; }
 </style>
@@ -626,27 +632,29 @@ function handleSoloWordClick(wordEl, word) {
 document.querySelectorAll('#categories-grid .cat-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     if (step !== 2 || isProcessing) return;
-    isProcessing = true;
     const cat = btn.dataset.cat;
     const container = document.getElementById('sentence-container');
 
-    document.querySelectorAll('#categories-grid .cat-btn').forEach(b => b.disabled = true);
-
     if (cat === currentQuestion.cat) {
+      isProcessing = true;
+      document.querySelectorAll('#categories-grid .cat-btn').forEach(b => b.disabled = true);
       score += 10;
       container.classList.add('bg-green-100');
       showFloatingText(container, '+10', true);
+      document.getElementById('score').textContent = score;
+      setTimeout(() => {
+        container.classList.remove('bg-green-100');
+        loadNextQuestion();
+      }, 800);
     } else {
       score = Math.max(0, score - 5);
       container.classList.add('bg-red-100', 'animate-shake');
       showFloatingText(container, '-5', false);
+      document.getElementById('score').textContent = score;
+      setTimeout(() => {
+        container.classList.remove('bg-red-100', 'animate-shake');
+      }, 500);
     }
-    document.getElementById('score').textContent = score;
-
-    setTimeout(() => {
-      container.classList.remove('bg-green-100', 'bg-red-100', 'animate-shake');
-      loadNextQuestion();
-    }, 800);
   });
 });
 
@@ -702,27 +710,29 @@ document.querySelectorAll('.panel-cat-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     const panelIdx = parseInt(btn.dataset.panel) - 1;
     if (panelSteps[panelIdx] !== 2 || panelProcessing[panelIdx]) return;
-    panelProcessing[panelIdx] = true;
 
     const cat = btn.dataset.cat;
     const sentenceBox = document.getElementById(`panel${panelIdx + 1}-sentence`);
 
-    document.querySelectorAll(`.panel-cat-btn[data-panel="${panelIdx + 1}"]`).forEach(b => b.disabled = true);
-
     if (cat === panelQuestions[panelIdx].cat) {
+      panelProcessing[panelIdx] = true;
+      document.querySelectorAll(`.panel-cat-btn[data-panel="${panelIdx + 1}"]`).forEach(b => b.disabled = true);
       teamScores[panelIdx] += 10;
       sentenceBox.classList.add('bg-green-100');
       showFloatingText(sentenceBox, '+10', true);
+      document.getElementById(`duel-team${panelIdx + 1}-score`).textContent = teamScores[panelIdx];
+      setTimeout(() => {
+        if (timeLeft > 0) loadPanelQuestion(panelIdx);
+      }, 800);
     } else {
       teamScores[panelIdx] = Math.max(0, teamScores[panelIdx] - 5);
       sentenceBox.classList.add('bg-red-100', 'animate-shake');
       showFloatingText(sentenceBox, '-5', false);
+      document.getElementById(`duel-team${panelIdx + 1}-score`).textContent = teamScores[panelIdx];
+      setTimeout(() => {
+        sentenceBox.classList.remove('bg-red-100', 'animate-shake');
+      }, 500);
     }
-    document.getElementById(`duel-team${panelIdx + 1}-score`).textContent = teamScores[panelIdx];
-
-    setTimeout(() => {
-      if (timeLeft > 0) loadPanelQuestion(panelIdx);
-    }, 800);
   });
 });
 
@@ -967,15 +977,15 @@ const ORACIONES = [
   { text: "Mi abuela vive lejos, en otra ciudad.", adv: "lejos", cat: "lugar" },
   { text: "Puedes sentarte ahí si quieres.", adv: "ahí", cat: "lugar" },
   { text: "No dejes tus zapatos aquí en medio del pasillo.", adv: "aquí", cat: "lugar" },
-  { text: "Ven acá para ayudarme con esto.", adv: "acá", cat: "lugar" },
-  { text: "Se fueron hacia allá sin decir ni una palabra.", adv: "allá", cat: "lugar" },
+  { text: "Ven aquí para ayudarme con esto.", adv: "aquí", cat: "lugar" },
+  { text: "Se fueron hacia allí sin decir ni una palabra.", adv: "allí", cat: "lugar" },
   { text: "Había mucha gente allí esperando la llegada del tren.", adv: "allí", cat: "lugar" },
   { text: "El restaurante que te dije está ahí en la esquina.", adv: "ahí", cat: "lugar" },
   { text: "Hace mucho calor aquí en verano.", adv: "aquí", cat: "lugar" },
   { text: "Quédate ahí hasta que yo te avise para salir.", adv: "ahí", cat: "lugar" },
-  { text: "Corrió hacia allá para alcanzar el último autobús.", adv: "allá", cat: "lugar" },
+  { text: "Corrió hacia allí para alcanzar el último autobús.", adv: "allí", cat: "lugar" },
   { text: "Los documentos están allí sobre la estantería del despacho.", adv: "allí", cat: "lugar" },
-  { text: "Tráeme las bolsas acá para ordenarlas en la cocina.", adv: "acá", cat: "lugar" },
+  { text: "Tráeme las bolsas aquí para ordenarlas en la cocina.", adv: "aquí", cat: "lugar" },
   { text: "Tenemos una panadería cerca para comprar el desayuno.", adv: "cerca", cat: "lugar" },
   { text: "El colegio nuevo pilla lejos y tendremos que ir en coche.", adv: "lejos", cat: "lugar" },
   { text: "Hacía mucho frío y nos quedamos dentro toda la tarde.", adv: "dentro", cat: "lugar" },
@@ -1018,7 +1028,7 @@ const ORACIONES = [
   { text: "Siguieron adelante a pesar de las dificultades del camino.", adv: "adelante", cat: "lugar" },
   { text: "No había visto nada semejante por aquí.", adv: "aquí", cat: "lugar" },
   { text: "Fue allí donde nos conocimos hace muchos años.", adv: "allí", cat: "lugar" },
-  { text: "El lago cristalino está allá, al otro lado del bosque.", adv: "allá", cat: "lugar" },
+  { text: "El lago cristalino está allí, al otro lado del bosque.", adv: "allí", cat: "lugar" },
   { text: "Siéntate cerca para poder escucharte con este ruido.", adv: "cerca", cat: "lugar" },
   { text: "Se escuchaban truenos lejos en el horizonte oscurecido.", adv: "lejos", cat: "lugar" },
   { text: "Lo guardé todo dentro para que no se estropeara con la lluvia.", adv: "dentro", cat: "lugar" },
@@ -1033,7 +1043,7 @@ const ORACIONES = [
   { text: "Giramos alrededor de la gran plaza para buscar aparcamiento.", adv: "alrededor", cat: "lugar" },
   { text: "El coche automático se fue para atrás en la pronunciada cuesta.", adv: "atrás", cat: "lugar" },
   { text: "Pasa tú adelante que yo no tengo ninguna prisa.", adv: "adelante", cat: "lugar" },
-  { text: "No vienes por acá desde las Navidades pasadas con la familia.", adv: "acá", cat: "lugar" },
+  { text: "No vienes por aquí desde las Navidades pasadas con la familia.", adv: "aquí", cat: "lugar" },
   { text: "Ahí tienes el pequeño destornillador que me pediste.", adv: "ahí", cat: "lugar" },
   { text: "No vayas lejos con la bicicleta por la montaña.", adv: "lejos", cat: "lugar" },
   { text: "Estuvimos cerca de ganar el torneo de baloncesto.", adv: "cerca", cat: "lugar" },

@@ -1,0 +1,1208 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aventura de Acentos: Separa y Acierta</title>
+    <script src="https://maestroseb.github.io/recursos/tailwind.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Fredoka', sans-serif;
+            background-color: #f0f9ff;
+            touch-action: manipulation;
+        }
+        .card-shadow {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            border-bottom: 6px solid rgba(0,0,0,0.1);
+        }
+        .btn-press:active {
+            transform: translateY(4px);
+            border-bottom-width: 0px;
+        }
+        .animate-pop {
+            animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes pop {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .syllable-box {
+            transition: all 0.2s;
+        }
+        .syllable-box:hover {
+            transform: translateY(-2px);
+        }
+        .shake {
+            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+        }
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+
+        /* Estilos Fase Corte */
+        .separator-zone {
+            width: 20px;
+            height: 50px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+        .separator-zone:hover {
+            background-color: #e0f2fe;
+        }
+        .separator-line {
+            width: 4px;
+            height: 70%;
+            background-color: #cbd5e1;
+            border-radius: 99px;
+            transition: all 0.2s;
+        }
+        .separator-zone.active .separator-line {
+            background-color: #f97316;
+            box-shadow: 0 0 10px rgba(249, 115, 22, 0.5);
+            height: 100%;
+            width: 6px;
+        }
+        
+        @media (min-width: 640px) {
+            .separator-zone {
+                width: 24px;
+                height: 60px;
+            }
+            .separator-line {
+                height: 80%;
+            }
+            .separator-zone.active .separator-line {
+                height: 110%;
+            }
+        }
+
+        /* Estilos del temporizador */
+        .timer-pulse {
+            animation: pulse 1s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        .timer-warning {
+            animation: warning-pulse 0.5s ease-in-out infinite;
+        }
+        @keyframes warning-pulse {
+            0%, 100% { 
+                background-color: #ef4444;
+                transform: scale(1);
+            }
+            50% { 
+                background-color: #dc2626;
+                transform: scale(1.1);
+            }
+        }
+    </style>
+</head>
+<body class="bg-sky-100 min-h-screen flex flex-col items-center justify-center p-4">
+
+    <!-- Toast Notification (Error Message) -->
+    <div class="fixed top-8 left-0 w-full flex justify-center z-50 pointer-events-none">
+        <div id="toast" class="hidden bg-red-500 text-white px-6 py-3 rounded-full shadow-2xl font-bold transition-all duration-300 flex items-center gap-2 border-2 border-white pointer-events-auto">
+            <span class="text-2xl">⚠️</span>
+            <span id="toastMsg">Mensaje de error</span>
+        </div>
+    </div>
+
+    <!-- Game Container -->
+    <div class="w-full max-w-md bg-white rounded-3xl p-6 card-shadow relative overflow-hidden min-h-[600px] flex flex-col">
+        
+        <!-- Header: Score, Lives & Timer -->
+        <div class="flex justify-between items-center mb-6">
+            <div class="flex items-center space-x-2">
+                <div class="bg-yellow-400 p-2 rounded-full text-white">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                    </svg>
+                </div>
+                <span id="scoreDisplay" class="text-2xl font-bold text-gray-700">0</span>
+            </div>
+            
+            <!-- Timer Display -->
+            <div id="timerDisplay" class="flex items-center space-x-2 bg-sky-500 px-4 py-2 rounded-full">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span id="timeText" class="text-xl font-bold text-white">3:00</span>
+            </div>
+
+            <div class="flex space-x-2 items-center">
+                <div class="flex space-x-1" id="livesContainer">
+                    <!-- Hearts injected by JS -->
+                </div>
+                <button onclick="showRanking()" class="bg-yellow-400 p-2 rounded-full text-white hover:bg-yellow-300 transition" title="Ver ranking">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Progress Bar - Ahora muestra palabras completadas -->
+        <div class="w-full mb-4">
+            <div class="flex justify-between text-sm text-gray-500 mb-1">
+                <span>Palabras completadas</span>
+                <span id="wordsCompleted" class="font-bold text-sky-600">0</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2.5">
+                <div id="progressBar" class="bg-gradient-to-r from-sky-500 to-blue-500 h-2.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+            </div>
+        </div>
+
+        <!-- Main Game Area -->
+        <div id="gameScreen" class="flex-grow flex flex-col items-center w-full">
+            
+            <!-- Instructions Header -->
+            <p id="instructionText" class="text-gray-500 font-bold uppercase tracking-widest text-sm mb-4">INSTRUCCIÓN</p>
+
+            <!-- Word Container -->
+            <div id="wordContainer" class="mb-8 w-full min-h-[80px] flex items-center justify-center">
+                <h1 id="mainWord" class="text-4xl sm:text-5xl font-bold text-gray-800 transition-all text-center break-words">PALABRA</h1>
+            </div>
+
+            <!-- INTERACTION AREA -->
+            <div id="interactionArea" class="w-full flex-grow flex flex-col justify-start space-y-4">
+                
+                <!-- Phase 1: Segmentation -->
+                <div id="separationPhase" class="hidden w-full flex flex-col items-center">
+                    <p class="text-sm text-gray-400 mb-4">Haz clic entre las letras para cortar</p>
+                    <div id="segmentContainer" class="flex items-center justify-center flex-wrap mb-8 bg-sky-50 p-3 sm:p-4 rounded-2xl border-2 border-dashed border-sky-200 select-none w-full min-h-[100px]">
+                    </div>
+                    <button onclick="checkSegmentation()" class="w-full py-4 rounded-xl bg-orange-500 text-white font-bold text-xl card-shadow border-orange-700 hover:bg-orange-400 btn-press transition-colors">
+                        ¡CORTAR! ✂️
+                    </button>
+                </div>
+
+                <!-- Phase 2: Identification (Tonic) -->
+                <div id="identificationPhase" class="hidden w-full text-center">
+                    <p class="text-sky-600 mb-4 animate-pulse">👇 Pulsa la sílaba que suena más fuerte 👇</p>
+                    <div id="syllablesInteractive" class="flex justify-center flex-wrap gap-4"></div>
+                </div>
+
+                <!-- Phase 3: Classification -->
+                <div id="classificationPhase" class="hidden w-full grid grid-cols-1 gap-3 animate-pop">
+                    <div class="text-center mb-4 text-gray-700">
+                        <p class="text-lg">La fuerza está en la <span id="classTonicPos" class="font-bold text-sky-600"></span> sílaba.</p>
+                        <p>¿Qué tipo de palabra es?</p>
+                    </div>
+                    <button onclick="handleClassification('aguda')" class="btn-press w-full py-4 rounded-xl bg-blue-500 text-white font-bold text-xl card-shadow border-blue-700 hover:bg-blue-400">
+                        AGUDA
+                        <span class="block text-xs font-normal opacity-90 mt-1">Última sílaba (1)</span>
+                    </button>
+                    <button onclick="handleClassification('llana')" class="btn-press w-full py-4 rounded-xl bg-emerald-500 text-white font-bold text-xl card-shadow border-emerald-700 hover:bg-emerald-400">
+                        LLANA
+                        <span class="block text-xs font-normal opacity-90 mt-1">Penúltima sílaba (2)</span>
+                    </button>
+                    <button onclick="handleClassification('esdrujula')" class="btn-press w-full py-4 rounded-xl bg-purple-500 text-white font-bold text-xl card-shadow border-purple-700 hover:bg-purple-400">
+                        ESDRÚJULA
+                        <span class="block text-xs font-normal opacity-90 mt-1">Antepenúltima sílaba (3)</span>
+                    </button>
+                </div>
+
+                <!-- Phase 4: Tilde Decision -->
+                <div id="tildePhase" class="hidden w-full grid grid-cols-2 gap-4 animate-pop">
+                    <div class="col-span-2 text-center mb-2">
+                        <p class="text-lg text-gray-700">Es una palabra <span class="font-bold text-sky-600 uppercase" id="finalTypeDisplay"></span>.</p>
+                        <p class="text-xl font-bold text-gray-800 mt-2">¿Lleva tilde?</p>
+                    </div>
+                    <button onclick="handleTilde(true)" class="btn-press py-6 rounded-2xl bg-green-500 text-white font-bold text-2xl card-shadow border-green-700 hover:bg-green-400">
+                        SÍ
+                    </button>
+                    <button onclick="handleTilde(false)" class="btn-press py-6 rounded-2xl bg-red-500 text-white font-bold text-2xl card-shadow border-red-700 hover:bg-red-400">
+                        NO
+                    </button>
+                </div>
+
+                <!-- Feedback Area -->
+                <div id="feedbackArea" class="hidden w-full p-6 rounded-2xl bg-gray-100 border-2 border-gray-200 animate-pop text-center shadow-lg">
+                    <p id="feedbackTitle" class="font-bold text-2xl mb-2">¡Correcto!</p>
+                    <p id="feedbackText" class="text-gray-600 text-lg mb-4">Explicación aquí.</p>
+                    <button onclick="nextWord()" class="px-8 py-3 bg-sky-600 text-white rounded-xl font-bold text-lg shadow-md hover:bg-sky-500 transition transform hover:scale-105">Siguiente Palabra ➡</button>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Game Over Screen -->
+        <div id="gameOverScreen" class="hidden absolute inset-0 bg-white z-20 flex flex-col items-center justify-center p-8 text-center">
+            <h2 class="text-4xl font-bold text-gray-800 mb-4">¡Tiempo Terminado!</h2>
+            <div class="text-6xl mb-6">🏆</div>
+            <div class="mb-6">
+                <p class="text-lg text-gray-600">Puntuación Final</p>
+                <p id="finalScore" class="text-6xl font-bold text-sky-600 mb-2">0</p>
+                <p class="text-xl text-gray-500">
+                    <span id="finalWordsCompleted" class="font-bold text-purple-600">0</span> palabras completadas
+                </p>
+            </div>
+            <button onclick="startGame()" class="px-8 py-4 bg-green-500 text-white rounded-xl font-bold text-xl shadow-lg border-b-4 border-green-700 active:border-b-0 active:translate-y-1 hover:bg-green-400 transition w-full max-w-xs">
+                Jugar Otra Vez
+            </button>
+        </div>
+
+    </div>
+
+    <!-- Start Modal -->
+    <div id="startModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+        <div class="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl border-4 border-sky-100">
+            <h1 class="text-3xl font-bold text-sky-600 mb-2">Separa y Acierta</h1>
+            <p class="text-gray-500 mb-6">Conviértete en detective de palabras</p>
+            
+            <!-- Destacar el tiempo -->
+            <div class="bg-gradient-to-r from-sky-500 to-blue-500 text-white p-4 rounded-2xl mb-4">
+                <div class="flex items-center justify-center gap-2 mb-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span class="text-4xl font-bold">3:00</span>
+                </div>
+                <p class="text-sm opacity-90">¡Consigue el máximo de puntos!</p>
+            </div>
+
+            <div class="space-y-3 text-left text-sm text-gray-700 bg-sky-50 p-4 rounded-xl mb-6 border border-sky-100">
+                <div class="flex items-start">
+                    <span class="flex-shrink-0 w-6 h-6 bg-orange-500 text-white rounded-full flex items-center justify-center font-bold text-xs mr-3 mt-0.5">1</span>
+                    <p>Usa las tijeras para separar las sílabas.</p>
+                </div>
+                <div class="flex items-start">
+                    <span class="flex-shrink-0 w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center font-bold text-xs mr-3 mt-0.5">2</span>
+                    <p>Encuentra la sílaba tónica (la fuerte).</p>
+                </div>
+                <div class="flex items-start">
+                    <span class="flex-shrink-0 w-6 h-6 bg-purple-500 text-white rounded-full flex items-center justify-center font-bold text-xs mr-3 mt-0.5">3</span>
+                    <p>Indica si es Aguda, Llana o Esdrújula.</p>
+                </div>
+                <div class="flex items-start">
+                    <span class="flex-shrink-0 w-6 h-6 bg-rose-500 text-white rounded-full flex items-center justify-center font-bold text-xs mr-3 mt-0.5">4</span>
+                    <p>Decide si lleva tilde.</p>
+                </div>
+            </div>
+
+            <button onclick="document.getElementById('startModal').classList.add('hidden'); startGame();" class="w-full py-4 bg-sky-500 text-white rounded-xl font-bold text-xl shadow-lg border-b-4 border-sky-700 active:border-b-0 active:translate-y-1 hover:bg-sky-400 transition">
+                ¡EMPEZAR!
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // ==================== CONFIGURACIÓN DEL JUEGO ====================
+        const GAME_DURATION = 180; // 3 minutos en segundos
+
+        // Game State
+        let score = 0;
+        let lives = 3;
+        let gameActive = false;
+        let currentWordData = null;
+        let gameQueue = [];
+        let userSeparators = new Set();
+        let correctSeparators = new Set();
+        let currentTonicIndex = -1;
+        let currentType = "";
+        let wordsCompleted = 0;
+        let timeRemaining = GAME_DURATION;
+        let timerInterval = null;
+
+        // DOM Elements
+        const mainWordDisplay = document.getElementById('mainWord');
+        const wordContainer = document.getElementById('wordContainer');
+        const instructionText = document.getElementById('instructionText');
+        const separationPhase = document.getElementById('separationPhase');
+        const identificationPhase = document.getElementById('identificationPhase');
+        const classificationPhase = document.getElementById('classificationPhase');
+        const tildePhase = document.getElementById('tildePhase');
+        const feedbackArea = document.getElementById('feedbackArea');
+        const segmentContainer = document.getElementById('segmentContainer');
+        const syllablesInteractive = document.getElementById('syllablesInteractive');
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        const livesContainer = document.getElementById('livesContainer');
+        const progressBar = document.getElementById('progressBar');
+        const toast = document.getElementById('toast');
+        const toastMsg = document.getElementById('toastMsg');
+        const feedbackTitle = document.getElementById('feedbackTitle');
+        const feedbackText = document.getElementById('feedbackText');
+        const wordsCompletedDisplay = document.getElementById('wordsCompleted');
+        const timerDisplay = document.getElementById('timerDisplay');
+        const timeText = document.getElementById('timeText');
+
+        // Audio Context
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function playSound(type) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            if (type === 'correct') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(500, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(1000, audioCtx.currentTime + 0.1);
+                gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.3);
+            } else if (type === 'wrong') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+                osc.frequency.linearRampToValueAtTime(100, audioCtx.currentTime + 0.2);
+                gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.3);
+            }
+        }
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function updateLives() {
+            livesContainer.innerHTML = '';
+            for(let i=0; i<3; i++) {
+                livesContainer.innerHTML += (i < lives) 
+                    ? `<span class="text-red-500 text-2xl animate-pulse">❤️</span>` 
+                    : `<span class="text-gray-300 text-2xl">🖤</span>`;
+            }
+        }
+
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function updateTimer() {
+            timeRemaining--;
+            timeText.textContent = formatTime(timeRemaining);
+            
+            // Cambiar a rojo cuando queden 30 segundos
+            if (timeRemaining <= 30) {
+                timerDisplay.className = 'flex items-center space-x-2 px-4 py-2 rounded-full timer-warning';
+            } else if (timeRemaining <= 60) {
+                timerDisplay.className = 'flex items-center space-x-2 bg-orange-500 px-4 py-2 rounded-full timer-pulse';
+            }
+            
+            // Terminar juego cuando se acabe el tiempo
+            if (timeRemaining <= 0) {
+                clearInterval(timerInterval);
+                endGame('time');
+            }
+        }
+
+        function startTimer() {
+            timeRemaining = GAME_DURATION;
+            timeText.textContent = formatTime(timeRemaining);
+            timerDisplay.className = 'flex items-center space-x-2 bg-sky-500 px-4 py-2 rounded-full';
+            
+            // Actualizar cada segundo
+            timerInterval = setInterval(updateTimer, 1000);
+        }
+
+        function stopTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+        }
+
+        function updateWordsCompleted() {
+            wordsCompletedDisplay.textContent = wordsCompleted;
+            // Animar la barra de progreso basándose en el número de palabras (cada 5 palabras = 100%)
+            const progressPercent = Math.min((wordsCompleted / 5) * 100, 100);
+            progressBar.style.width = `${progressPercent}%`;
+        }
+
+        function showToast(msg) {
+            toastMsg.textContent = msg;
+            toast.classList.remove('hidden');
+            toast.classList.add('animate-pop');
+            
+            setTimeout(() => {
+                toast.classList.add('opacity-0');
+                setTimeout(() => {
+                    toast.classList.add('hidden');
+                    toast.classList.remove('opacity-0', 'animate-pop');
+                }, 300);
+            }, 2500);
+        }
+
+        function startGame() {
+            gameActive = true;
+            score = 0;
+            lives = 3;
+            wordsCompleted = 0;
+            scoreDisplay.textContent = score;
+            
+            // Usar TODA la base de datos mezclada
+            gameQueue = shuffleArray([...database]);
+            
+            document.getElementById('gameOverScreen').classList.add('hidden');
+            document.getElementById('gameScreen').classList.remove('hidden');
+            updateLives();
+            updateWordsCompleted();
+            
+            // Iniciar temporizador
+            startTimer();
+            
+            loadNextWord();
+        }
+
+        function analyzeWord(data) {
+            currentType = data.type;
+            const len = data.syllClean.length;
+            
+            if (currentType === 'aguda') {
+                return len - 1; 
+            } else if (currentType === 'llana') {
+                return len - 2; 
+            } else if (currentType === 'esdrujula') {
+                return len - 3; 
+            }
+            return 0; 
+        }
+
+        function loadNextWord() {
+            // Si no hay más palabras en la cola, volver a mezclar todas
+            if (gameQueue.length === 0) {
+                gameQueue = shuffleArray([...database]);
+            }
+
+            // Si el jugador perdió todas las vidas, terminar
+            if (lives <= 0) {
+                endGame('lives');
+                return;
+            }
+
+            currentWordData = gameQueue.pop();
+            currentTonicIndex = analyzeWord(currentWordData);
+
+            // Reset UI
+            mainWordDisplay.textContent = currentWordData.clean.toUpperCase();
+            if (currentWordData.clean.length > 10) {
+                mainWordDisplay.className = "text-3xl sm:text-4xl font-bold text-gray-800 transition-all text-center break-words";
+            } else {
+                mainWordDisplay.className = "text-4xl sm:text-5xl font-bold text-gray-800 transition-all text-center break-words";
+            }
+
+            wordContainer.classList.add('hidden'); 
+            
+            separationPhase.classList.remove('hidden');
+            identificationPhase.classList.add('hidden');
+            classificationPhase.classList.add('hidden');
+            tildePhase.classList.add('hidden');
+            feedbackArea.classList.add('hidden');
+            
+            instructionText.textContent = "1. SEPARA LAS SÍLABAS";
+            
+            renderSegmentationUI();
+        }
+
+        function renderSegmentationUI() {
+            segmentContainer.innerHTML = '';
+            userSeparators.clear();
+            correctSeparators.clear();
+            
+            const wordStr = currentWordData.clean.toUpperCase();
+            const syllables = currentWordData.syllClean;
+            
+            let runningIndex = 0;
+            for(let i=0; i < syllables.length - 1; i++) {
+                runningIndex += syllables[i].length;
+                correctSeparators.add(runningIndex - 1);
+            }
+
+            const letters = wordStr.split('');
+            letters.forEach((letter, index) => {
+                const lDiv = document.createElement('div');
+                lDiv.className = "text-3xl sm:text-4xl font-bold text-gray-700 mx-0.5 sm:mx-1 mb-2";
+                lDiv.textContent = letter;
+                segmentContainer.appendChild(lDiv);
+                
+                if (index < letters.length - 1) {
+                    const sep = document.createElement('div');
+                    sep.className = "separator-zone mb-2 mx-0.5";
+                    sep.onclick = () => toggleSeparator(sep, index);
+                    
+                    const line = document.createElement('div');
+                    line.className = "separator-line";
+                    sep.appendChild(line);
+                    
+                    segmentContainer.appendChild(sep);
+                }
+            });
+        }
+
+        function toggleSeparator(el, index) {
+            if (userSeparators.has(index)) {
+                userSeparators.delete(index);
+                el.classList.remove('active');
+            } else {
+                userSeparators.add(index);
+                el.classList.add('active');
+            }
+        }
+
+        function checkSegmentation() {
+            if (!gameActive) return;
+
+            let isCorrect = true;
+            if (userSeparators.size !== correctSeparators.size) isCorrect = false;
+            for (let idx of userSeparators) {
+                if (!correctSeparators.has(idx)) isCorrect = false;
+            }
+
+            if (isCorrect) {
+                playSound('correct');
+                transitionToIdentification();
+            } else {
+                handleError("La separación no es correcta. ¡Inténtalo de nuevo!");
+            }
+        }
+
+        function transitionToIdentification() {
+            separationPhase.classList.add('hidden');
+            identificationPhase.classList.remove('hidden');
+            instructionText.textContent = "2. IDENTIFICA LA SÍLABA TÓNICA (FUERTE)";
+            
+            renderInteractiveSyllables();
+        }
+
+        function renderInteractiveSyllables() {
+            syllablesInteractive.innerHTML = '';
+            
+            const syllables = currentWordData.syllClean;
+            const total = syllables.length;
+
+            syllables.forEach((syll, index) => {
+                const positionNum = total - index;
+                
+                const container = document.createElement('div');
+                container.className = "flex flex-col items-center cursor-pointer group";
+                container.onclick = () => handleTonicSelection(index, positionNum);
+
+                const box = document.createElement('div');
+                box.className = "syllable-box w-16 h-16 sm:w-20 sm:h-20 bg-white border-4 border-sky-200 rounded-2xl flex items-center justify-center text-xl sm:text-2xl font-bold text-gray-700 shadow-md group-hover:border-sky-400 group-hover:bg-sky-50 transition-colors";
+                box.textContent = syll.toUpperCase();
+                box.id = `syll-${index}`;
+
+                const badge = document.createElement('div');
+                badge.className = "mt-2 w-8 h-8 rounded-full bg-gray-200 text-gray-600 font-bold flex items-center justify-center text-sm group-hover:bg-sky-200 transition-colors";
+                badge.textContent = positionNum;
+
+                container.appendChild(box);
+                container.appendChild(badge);
+                syllablesInteractive.appendChild(container);
+            });
+        }
+
+        function handleTonicSelection(index, positionNum) {
+            if (!gameActive) return;
+
+            const boxes = syllablesInteractive.querySelectorAll('.syllable-box');
+            boxes.forEach(b => {
+                b.className = "syllable-box w-16 h-16 sm:w-20 sm:h-20 bg-white border-4 border-sky-200 rounded-2xl flex items-center justify-center text-xl sm:text-2xl font-bold text-gray-700 shadow-md group-hover:border-sky-400 group-hover:bg-sky-50 transition-colors";
+            });
+            
+            const selectedBox = document.getElementById(`syll-${index}`);
+
+            if (index === currentTonicIndex) {
+                selectedBox.className = "syllable-box w-16 h-16 sm:w-20 sm:h-20 bg-sky-500 text-white border-4 border-sky-600 rounded-2xl flex items-center justify-center text-xl sm:text-2xl font-bold shadow-md transform scale-110";
+                playSound('correct');
+                setTimeout(() => transitionToClassification(positionNum), 500);
+            } else {
+                selectedBox.className = "syllable-box w-16 h-16 sm:w-20 sm:h-20 bg-red-500 text-white border-4 border-red-600 rounded-2xl flex items-center justify-center text-xl sm:text-2xl font-bold shadow-md shake";
+                handleError("¡Esa no es la sílaba más fuerte! Escucha bien.");
+                
+                setTimeout(() => {
+                    selectedBox.className = "syllable-box w-16 h-16 sm:w-20 sm:h-20 bg-white border-4 border-sky-200 rounded-2xl flex items-center justify-center text-xl sm:text-2xl font-bold text-gray-700 shadow-md";
+                }, 1000);
+            }
+        }
+
+        function transitionToClassification(positionNum) {
+            const syllablesDiv = document.getElementById('syllablesInteractive');
+            Array.from(syllablesDiv.children).forEach(child => child.onclick = null);
+
+            classificationPhase.classList.remove('hidden');
+            instructionText.textContent = "3. CLASIFICA LA PALABRA";
+            
+            let posName = "";
+            if (positionNum === 1) posName = "ÚLTIMA";
+            else if (positionNum === 2) posName = "PENÚLTIMA";
+            else if (positionNum === 3) posName = "ANTEPENÚLTIMA";
+            else posName = `${positionNum}ª`;
+            
+            document.getElementById('classTonicPos').textContent = posName;
+            
+            classificationPhase.scrollIntoView({behavior: "smooth", block: "center"});
+        }
+
+        function handleClassification(selectedType) {
+            if (!gameActive) return;
+
+            if (selectedType === currentType) {
+                playSound('correct');
+                transitionToTilde();
+            } else {
+                let hint = "";
+                if(currentType === 'aguda') hint = "Recuerda: Si la fuerza está en la ÚLTIMA sílaba, es Aguda.";
+                if(currentType === 'llana') hint = "Recuerda: Si la fuerza está en la PENÚLTIMA sílaba, es Llana.";
+                if(currentType === 'esdrujula') hint = "Recuerda: Si la fuerza está en la ANTEPENÚLTIMA sílaba, es Esdrújula.";
+                
+                handleError("¡Ups! Tipo incorrecto. " + hint);
+            }
+        }
+
+        function transitionToTilde() {
+            classificationPhase.classList.add('hidden');
+            tildePhase.classList.remove('hidden');
+            instructionText.textContent = "4. REGLA DE ACENTUACIÓN";
+            
+            document.getElementById('finalTypeDisplay').textContent = currentType === 'esdrujula' ? 'Esdrújula' : currentType;
+        }
+
+        function handleTilde(userSaysYes) {
+            if (!gameActive) return;
+
+            const needsTilde = currentWordData.tilde;
+
+            if (userSaysYes === needsTilde) {
+                playSound('correct');
+                score += 100;
+                wordsCompleted++;
+                scoreDisplay.textContent = score;
+                updateWordsCompleted();
+                showFeedback(true);
+            } else {
+                const reason = needsTilde 
+                    ? "¡Incorrecto! Esta palabra SÍ lleva tilde."
+                    : "¡Incorrecto! Esta palabra NO lleva tilde.";
+                handleError(reason);
+            }
+        }
+
+        function handleError(msg) {
+            playSound('wrong');
+            lives--;
+            updateLives();
+            
+            const container = document.querySelector('.card-shadow');
+            container.classList.remove('shake');
+            void container.offsetWidth; 
+            container.classList.add('shake');
+
+            if (lives <= 0) {
+                endGame('lives');
+            } else {
+                showToast(msg);
+            }
+        }
+
+        function showFeedback(isSuccess, errorMsg = "") {
+            tildePhase.classList.add('hidden');
+            identificationPhase.classList.add('hidden');
+            separationPhase.classList.add('hidden');
+            classificationPhase.classList.add('hidden');
+            
+            feedbackArea.classList.remove('hidden');
+            feedbackArea.className = "w-full p-6 rounded-2xl bg-green-100 border-2 border-green-300 animate-pop text-center shadow-lg";
+
+            feedbackTitle.textContent = "¡Excelente!";
+            feedbackTitle.className = "font-bold text-2xl mb-2 text-green-700";
+
+            feedbackText.innerHTML = `
+                <span class="block text-4xl mb-4 text-green-800 font-bold">${currentWordData.word.toUpperCase()}</span>
+                Es ${currentType.toUpperCase()}. ${currentWordData.rule}
+            `;
+        }
+
+        function nextWord() {
+            loadNextWord();
+        }
+
+        async function endGame(reason = 'time') {
+            gameActive = false;
+            stopTimer();
+            
+            document.getElementById('gameScreen').classList.add('hidden');
+            document.getElementById('gameOverScreen').classList.remove('hidden');
+            document.getElementById('finalScore').textContent = score;
+            document.getElementById('finalWordsCompleted').textContent = wordsCompleted;
+            
+            // Cambiar título según la razón
+            const title = document.querySelector('#gameOverScreen h2');
+            if (reason === 'lives') {
+                title.textContent = '¡Sin Vidas!';
+                title.classList.add('text-red-600');
+                title.classList.remove('text-gray-800');
+            } else {
+                title.textContent = '¡Tiempo Terminado!';
+            }
+            
+            progressBar.style.width = `100%`;
+            
+            if (score > 0) {
+                showNameInput();
+            }
+        }
+
+        function showNameInput() {
+            const container = document.getElementById('gameOverScreen');
+            const existingInput = document.getElementById('nameInputSection');
+            if (existingInput) existingInput.remove();
+            
+            const html = `
+                <div id="nameInputSection" class="w-full max-w-xs mt-4 animate-pop">
+                    <input type="text" id="playerName" maxlength="20" placeholder="Tu nombre"
+                           class="w-full px-4 py-3 rounded-xl border-2 border-sky-200 text-center font-bold text-lg focus:border-sky-500 focus:outline-none mb-3">
+                    <button onclick="saveAndShowRanking()" 
+                            class="w-full py-3 bg-yellow-500 text-white rounded-xl font-bold shadow-lg border-b-4 border-yellow-700 active:border-b-0 active:translate-y-1 hover:bg-yellow-400 transition">
+                        💾 Guardar Puntuación
+                    </button>
+                </div>
+            `;
+            
+            const playAgainBtn = container.querySelector('button');
+            playAgainBtn.insertAdjacentHTML('beforebegin', html);
+        }
+
+        async function saveAndShowRanking() {
+            const nameInput = document.getElementById('playerName');
+            const nombre = nameInput.value.trim();
+            
+            if (!nombre) {
+                nameInput.classList.add('shake', 'border-red-500');
+                setTimeout(() => nameInput.classList.remove('shake', 'border-red-500'), 500);
+                return;
+            }
+            
+            nameInput.disabled = true;
+            const btn = nameInput.nextElementSibling;
+            btn.textContent = '⏳ Guardando...';
+            btn.disabled = true;
+            
+            const success = await submitScore(nombre, score);
+            
+            if (success) {
+                document.getElementById('nameInputSection').remove();
+                showRanking();
+            } else {
+                btn.textContent = '❌ Error - Reintentar';
+                btn.disabled = false;
+                nameInput.disabled = false;
+            }
+        }
+        
+        // ==================== SISTEMA DE RANKING ====================
+        const RANKING_API_URL = 'https://script.google.com/macros/s/AKfycbwLcZMQF_UQH-VK8yqjd-axzzlLT7vgdQJeu1XaRiMQLEWmT8y0x9d9iq2cF9tVHu8RqQ/exec';
+
+        async function fetchRanking() {
+            try {
+                const response = await fetch(`${RANKING_API_URL}?action=getRanking`, {
+                    redirect: 'follow'
+                });
+                const data = await response.json();
+                if (data.success) {
+                    return data.ranking;
+                }
+            } catch (error) {
+                console.error('Error al obtener ranking:', error);
+            }
+            return [];
+        }
+
+        async function submitScore(nombre, puntuacion) {
+            try {
+                const url = `${RANKING_API_URL}?action=addScore&nombre=${encodeURIComponent(nombre)}&puntuacion=${encodeURIComponent(puntuacion)}`;
+                const response = await fetch(url, {
+                    redirect: 'follow'
+                });
+                const data = await response.json();
+                console.log('Respuesta:', data);
+                return data.success === true;
+            } catch (error) {
+                console.error('Error al enviar puntuación:', error);
+                return false;
+            }
+        }
+
+        function renderRankingModal(ranking) {
+            const rankingHTML = ranking.length > 0 
+                ? ranking.map((r, i) => {
+                    const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}.`;
+                    return `<div class="flex justify-between items-center py-2 ${i < 3 ? 'text-lg font-bold' : ''}">
+                        <span>${medal} ${r.nombre}</span>
+                        <span class="text-sky-600">${r.puntuacion}</span>
+                    </div>`;
+                }).join('')
+                : '<p class="text-gray-500 text-center py-4">¡Sé el primero en entrar al ranking!</p>';
+            
+            return `
+                <div id="rankingModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+                    <div class="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl border-4 border-yellow-100 max-h-[80vh] overflow-hidden flex flex-col">
+                        <h2 class="text-2xl font-bold text-yellow-600 mb-4 text-center">🏆 Ranking Top 20</h2>
+                        <div class="overflow-y-auto flex-grow divide-y divide-gray-100">
+                            ${rankingHTML}
+                        </div>
+                        <button onclick="document.getElementById('rankingModal').remove()" 
+                                class="mt-4 w-full py-3 bg-gray-200 text-gray-700 rounded-xl font-bold hover:bg-gray-300 transition">
+                            Cerrar
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function showRanking() {
+            const loadingModal = `
+                <div id="rankingModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+                    <div class="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl border-4 border-yellow-100 text-center">
+                        <div class="animate-spin inline-block w-12 h-12 border-4 border-yellow-400 border-t-transparent rounded-full mb-4"></div>
+                        <p class="text-gray-600 font-bold">Cargando ranking...</p>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', loadingModal);
+            
+            const ranking = await fetchRanking();
+            
+            document.getElementById('rankingModal').remove();
+            document.body.insertAdjacentHTML('beforeend', renderRankingModal(ranking));
+        }
+      
+      // Data Structure - Updated with explicit type
+        const database = [
+    // ==================== AGUDAS (100 palabras) ====================
+    // Agudas CON tilde (terminan en vocal, n, s)
+    { word: "Canción", clean: "Cancion", syllClean: ["Can", "cion"], type: "aguda", tilde: true, rule: "Termina en 'n'." },
+    { word: "Café", clean: "Cafe", syllClean: ["Ca", "fe"], type: "aguda", tilde: true, rule: "Termina en vocal." },
+    { word: "Compás", clean: "Compas", syllClean: ["Com", "pas"], type: "aguda", tilde: true, rule: "Termina en 's'." },
+    { word: "Sofá", clean: "Sofa", syllClean: ["So", "fa"], type: "aguda", tilde: true, rule: "Termina en vocal." },
+    { word: "Corazón", clean: "Corazon", syllClean: ["Co", "ra", "zon"], type: "aguda", tilde: true, rule: "Termina en 'n'." },
+    { word: "Jamás", clean: "Jamas", syllClean: ["Ja", "mas"], type: "aguda", tilde: true, rule: "Termina en 's'." },
+    { word: "Maní", clean: "Mani", syllClean: ["Ma", "ni"], type: "aguda", tilde: true, rule: "Termina en vocal." },
+    { word: "Ratón", clean: "Raton", syllClean: ["Ra", "ton"], type: "aguda", tilde: true, rule: "Termina en 'n'." },
+    { word: "Detrás", clean: "Detras", syllClean: ["De", "tras"], type: "aguda", tilde: true, rule: "Termina en 's'." },
+    { word: "Papá", clean: "Papa", syllClean: ["Pa", "pa"], type: "aguda", tilde: true, rule: "Termina en vocal." },
+    { word: "Mamá", clean: "Mama", syllClean: ["Ma", "ma"], type: "aguda", tilde: true, rule: "Termina en vocal." },
+    { word: "Bebé", clean: "Bebe", syllClean: ["Be", "be"], type: "aguda", tilde: true, rule: "Termina en vocal." },
+    { word: "Avión", clean: "Avion", syllClean: ["A", "vion"], type: "aguda", tilde: true, rule: "Termina en 'n'." },
+    { word: "Camión", clean: "Camion", syllClean: ["Ca", "mion"], type: "aguda", tilde: true, rule: "Termina en 'n'." },
+    { word: "Autobús", clean: "Autobus", syllClean: ["Au", "to", "bus"], type: "aguda", tilde: true, rule: "Termina en 's'." },
+    { word: "País", clean: "Pais", syllClean: ["Pa", "is"], type: "aguda", tilde: true, rule: "Termina en 's'." },
+    { word: "Maíz", clean: "Maiz", syllClean: ["Ma", "iz"], type: "aguda", tilde: true, rule: "Termina en 'z' y hay hiato." },
+    { word: "Raíz", clean: "Raiz", syllClean: ["Ra", "iz"], type: "aguda", tilde: true, rule: "Termina en 'z' y hay hiato." },
+    { word: "Salón", clean: "Salon", syllClean: ["Sa", "lon"], type: "aguda", tilde: true, rule: "Termina en 'n'." },
+    { word: "Balón", clean: "Balon", syllClean: ["Ba", "lon"], type: "aguda", tilde: true, rule: "Termina en 'n'." },
+    { word: "Limón", clean: "Limon", syllClean: ["Li", "mon"], type: "aguda", tilde: true, rule: "Termina en 'n'." },
+    { word: "Melón", clean: "Melon", syllClean: ["Me", "lon"], type: "aguda", tilde: true, rule: "Termina en 'n'." },
+    { word: "Jabón", clean: "Jabon", syllClean: ["Ja", "bon"], type: "aguda", tilde: true, rule: "Termina en 'n'." },
+    { word: "Cajón", clean: "Cajon", syllClean: ["Ca", "jon"], type: "aguda", tilde: true, rule: "Termina en 'n'." },
+    { word: "Sillón", clean: "Sillon", syllClean: ["Si", "llon"], type: "aguda", tilde: true, rule: "Termina en 'n'." },
+    { word: "Rincón", clean: "Rincon", syllClean: ["Rin", "con"], type: "aguda", tilde: true, rule: "Termina en 'n'." },
+    { word: "Tacón", clean: "Tacon", syllClean: ["Ta", "con"], type: "aguda", tilde: true, rule: "Termina en 'n'." },
+    { word: "Pantalón", clean: "Pantalon", syllClean: ["Pan", "ta", "lon"], type: "aguda", tilde: true, rule: "Termina en 'n'." },
+    { word: "Cinturón", clean: "Cinturon", syllClean: ["Cin", "tu", "ron"], type: "aguda", tilde: true, rule: "Termina en 'n'." },
+    { word: "Algodón", clean: "Algodon", syllClean: ["Al", "go", "don"], type: "aguda", tilde: true, rule: "Termina en 'n'." },
+    { word: "Emoción", clean: "Emocion", syllClean: ["E", "mo", "cion"], type: "aguda", tilde: true, rule: "Termina en 'n'." },
+    { word: "Solución", clean: "Solucion", syllClean: ["So", "lu", "cion"], type: "aguda", tilde: true, rule: "Termina en 'n'." },
+    { word: "Atención", clean: "Atencion", syllClean: ["A", "ten", "cion"], type: "aguda", tilde: true, rule: "Termina en 'n'." },
+    { word: "Educación", clean: "Educacion", syllClean: ["E", "du", "ca", "cion"], type: "aguda", tilde: true, rule: "Termina en 'n'." },
+    { word: "Natación", clean: "Natacion", syllClean: ["Na", "ta", "cion"], type: "aguda", tilde: true, rule: "Termina en 'n'." },
+    { word: "Televisión", clean: "Television", syllClean: ["Te", "le", "vi", "sion"], type: "aguda", tilde: true, rule: "Termina en 'n'." },
+    { word: "Ocasión", clean: "Ocasion", syllClean: ["O", "ca", "sion"], type: "aguda", tilde: true, rule: "Termina en 'n'." },
+    { word: "Invasión", clean: "Invasion", syllClean: ["In", "va", "sion"], type: "aguda", tilde: true, rule: "Termina en 'n'." },
+    { word: "Mansión", clean: "Mansion", syllClean: ["Man", "sion"], type: "aguda", tilde: true, rule: "Termina en 'n'." },
+    { word: "Pensión", clean: "Pension", syllClean: ["Pen", "sion"], type: "aguda", tilde: true, rule: "Termina en 'n'." },
+    { word: "Después", clean: "Despues", syllClean: ["Des", "pues"], type: "aguda", tilde: true, rule: "Termina en 's'." },
+    { word: "Interés", clean: "Interes", syllClean: ["In", "te", "res"], type: "aguda", tilde: true, rule: "Termina en 's'." },
+    { word: "Inglés", clean: "Ingles", syllClean: ["In", "gles"], type: "aguda", tilde: true, rule: "Termina en 's'." },
+    { word: "Francés", clean: "Frances", syllClean: ["Fran", "ces"], type: "aguda", tilde: true, rule: "Termina en 's'." },
+    { word: "Japonés", clean: "Japones", syllClean: ["Ja", "po", "nes"], type: "aguda", tilde: true, rule: "Termina en 's'." },
+    { word: "Portugués", clean: "Portugues", syllClean: ["Por", "tu", "gues"], type: "aguda", tilde: true, rule: "Termina en 's'." },
+    { word: "Quizás", clean: "Quizas", syllClean: ["Qui", "zas"], type: "aguda", tilde: true, rule: "Termina en 's'." },
+    { word: "Además", clean: "Ademas", syllClean: ["A", "de", "mas"], type: "aguda", tilde: true, rule: "Termina en 's'." },
+    { word: "Menú", clean: "Menu", syllClean: ["Me", "nu"], type: "aguda", tilde: true, rule: "Termina en vocal." },
+    { word: "Bambú", clean: "Bambu", syllClean: ["Bam", "bu"], type: "aguda", tilde: true, rule: "Termina en vocal." },
+    
+    // Agudas SIN tilde (no terminan en vocal, n, s)
+    { word: "Pared", clean: "Pared", syllClean: ["Pa", "red"], type: "aguda", tilde: false, rule: "Termina en 'd'." },
+    { word: "Reloj", clean: "Reloj", syllClean: ["Re", "loj"], type: "aguda", tilde: false, rule: "Termina en 'j'." },
+    { word: "Ciudad", clean: "Ciudad", syllClean: ["Ciu", "dad"], type: "aguda", tilde: false, rule: "Termina en 'd'." },
+    { word: "Verdad", clean: "Verdad", syllClean: ["Ver", "dad"], type: "aguda", tilde: false, rule: "Termina en 'd'." },
+    { word: "Amistad", clean: "Amistad", syllClean: ["A", "mis", "tad"], type: "aguda", tilde: false, rule: "Termina en 'd'." },
+    { word: "Felicidad", clean: "Felicidad", syllClean: ["Fe", "li", "ci", "dad"], type: "aguda", tilde: false, rule: "Termina en 'd'." },
+    { word: "Navidad", clean: "Navidad", syllClean: ["Na", "vi", "dad"], type: "aguda", tilde: false, rule: "Termina en 'd'." },
+    { word: "Mitad", clean: "Mitad", syllClean: ["Mi", "tad"], type: "aguda", tilde: false, rule: "Termina en 'd'." },
+    { word: "Edad", clean: "Edad", syllClean: ["E", "dad"], type: "aguda", tilde: false, rule: "Termina en 'd'." },
+    { word: "Salud", clean: "Salud", syllClean: ["Sa", "lud"], type: "aguda", tilde: false, rule: "Termina en 'd'." },
+    { word: "Virtud", clean: "Virtud", syllClean: ["Vir", "tud"], type: "aguda", tilde: false, rule: "Termina en 'd'." },
+    { word: "Actitud", clean: "Actitud", syllClean: ["Ac", "ti", "tud"], type: "aguda", tilde: false, rule: "Termina en 'd'." },
+    { word: "Papel", clean: "Papel", syllClean: ["Pa", "pel"], type: "aguda", tilde: false, rule: "Termina en 'l'." },
+    { word: "Hotel", clean: "Hotel", syllClean: ["Ho", "tel"], type: "aguda", tilde: false, rule: "Termina en 'l'." },
+    { word: "Pastel", clean: "Pastel", syllClean: ["Pas", "tel"], type: "aguda", tilde: false, rule: "Termina en 'l'." },
+    { word: "Cartel", clean: "Cartel", syllClean: ["Car", "tel"], type: "aguda", tilde: false, rule: "Termina en 'l'." },
+    { word: "Animal", clean: "Animal", syllClean: ["A", "ni", "mal"], type: "aguda", tilde: false, rule: "Termina en 'l'." },
+    { word: "Hospital", clean: "Hospital", syllClean: ["Hos", "pi", "tal"], type: "aguda", tilde: false, rule: "Termina en 'l'." },
+    { word: "General", clean: "General", syllClean: ["Ge", "ne", "ral"], type: "aguda", tilde: false, rule: "Termina en 'l'." },
+    { word: "Natural", clean: "Natural", syllClean: ["Na", "tu", "ral"], type: "aguda", tilde: false, rule: "Termina en 'l'." },
+    { word: "Normal", clean: "Normal", syllClean: ["Nor", "mal"], type: "aguda", tilde: false, rule: "Termina en 'l'." },
+    { word: "Final", clean: "Final", syllClean: ["Fi", "nal"], type: "aguda", tilde: false, rule: "Termina en 'l'." },
+    { word: "Canal", clean: "Canal", syllClean: ["Ca", "nal"], type: "aguda", tilde: false, rule: "Termina en 'l'." },
+    { word: "Metal", clean: "Metal", syllClean: ["Me", "tal"], type: "aguda", tilde: false, rule: "Termina en 'l'." },
+    { word: "Total", clean: "Total", syllClean: ["To", "tal"], type: "aguda", tilde: false, rule: "Termina en 'l'." },
+    { word: "Local", clean: "Local", syllClean: ["Lo", "cal"], type: "aguda", tilde: false, rule: "Termina en 'l'." },
+    { word: "Vocal", clean: "Vocal", syllClean: ["Vo", "cal"], type: "aguda", tilde: false, rule: "Termina en 'l'." },
+    { word: "Color", clean: "Color", syllClean: ["Co", "lor"], type: "aguda", tilde: false, rule: "Termina en 'r'." },
+    { word: "Calor", clean: "Calor", syllClean: ["Ca", "lor"], type: "aguda", tilde: false, rule: "Termina en 'r'." },
+    { word: "Dolor", clean: "Dolor", syllClean: ["Do", "lor"], type: "aguda", tilde: false, rule: "Termina en 'r'." },
+    { word: "Amor", clean: "Amor", syllClean: ["A", "mor"], type: "aguda", tilde: false, rule: "Termina en 'r'." },
+    { word: "Temor", clean: "Temor", syllClean: ["Te", "mor"], type: "aguda", tilde: false, rule: "Termina en 'r'." },
+    { word: "Favor", clean: "Favor", syllClean: ["Fa", "vor"], type: "aguda", tilde: false, rule: "Termina en 'r'." },
+    { word: "Valor", clean: "Valor", syllClean: ["Va", "lor"], type: "aguda", tilde: false, rule: "Termina en 'r'." },
+    { word: "Sabor", clean: "Sabor", syllClean: ["Sa", "bor"], type: "aguda", tilde: false, rule: "Termina en 'r'." },
+    { word: "Motor", clean: "Motor", syllClean: ["Mo", "tor"], type: "aguda", tilde: false, rule: "Termina en 'r'." },
+    { word: "Tractor", clean: "Tractor", syllClean: ["Trac", "tor"], type: "aguda", tilde: false, rule: "Termina en 'r'." },
+    { word: "Doctor", clean: "Doctor", syllClean: ["Doc", "tor"], type: "aguda", tilde: false, rule: "Termina en 'r'." },
+    { word: "Actor", clean: "Actor", syllClean: ["Ac", "tor"], type: "aguda", tilde: false, rule: "Termina en 'r'." },
+    { word: "Pastor", clean: "Pastor", syllClean: ["Pas", "tor"], type: "aguda", tilde: false, rule: "Termina en 'r'." },
+    { word: "Comer", clean: "Comer", syllClean: ["Co", "mer"], type: "aguda", tilde: false, rule: "Termina en 'r'." },
+    { word: "Correr", clean: "Correr", syllClean: ["Co", "rrer"], type: "aguda", tilde: false, rule: "Termina en 'r'." },
+    { word: "Leer", clean: "Leer", syllClean: ["Le", "er"], type: "aguda", tilde: false, rule: "Termina en 'r'." },
+    { word: "Nariz", clean: "Nariz", syllClean: ["Na", "riz"], type: "aguda", tilde: false, rule: "Termina en 'z'." },
+    { word: "Perdiz", clean: "Perdiz", syllClean: ["Per", "diz"], type: "aguda", tilde: false, rule: "Termina en 'z'." },
+    { word: "Feliz", clean: "Feliz", syllClean: ["Fe", "liz"], type: "aguda", tilde: false, rule: "Termina en 'z'." },
+    { word: "Capaz", clean: "Capaz", syllClean: ["Ca", "paz"], type: "aguda", tilde: false, rule: "Termina en 'z'." },
+    { word: "Audaz", clean: "Audaz", syllClean: ["Au", "daz"], type: "aguda", tilde: false, rule: "Termina en 'z'." },
+    { word: "Tenaz", clean: "Tenaz", syllClean: ["Te", "naz"], type: "aguda", tilde: false, rule: "Termina en 'z'." },
+
+    // ==================== LLANAS (100 palabras) ====================
+    // Llanas CON tilde (no terminan en vocal, n, s)
+    { word: "Árbol", clean: "Arbol", syllClean: ["Ar", "bol"], type: "llana", tilde: true, rule: "Termina en 'l'." },
+    { word: "Lápiz", clean: "Lapiz", syllClean: ["La", "piz"], type: "llana", tilde: true, rule: "Termina en 'z'." },
+    { word: "Fácil", clean: "Facil", syllClean: ["Fa", "cil"], type: "llana", tilde: true, rule: "Termina en 'l'." },
+    { word: "Difícil", clean: "Dificil", syllClean: ["Di", "fi", "cil"], type: "llana", tilde: true, rule: "Termina en 'l'." },
+    { word: "Útil", clean: "Util", syllClean: ["U", "til"], type: "llana", tilde: true, rule: "Termina en 'l'." },
+    { word: "Débil", clean: "Debil", syllClean: ["De", "bil"], type: "llana", tilde: true, rule: "Termina en 'l'." },
+    { word: "Ágil", clean: "Agil", syllClean: ["A", "gil"], type: "llana", tilde: true, rule: "Termina en 'l'." },
+    { word: "Móvil", clean: "Movil", syllClean: ["Mo", "vil"], type: "llana", tilde: true, rule: "Termina en 'l'." },
+    { word: "Táctil", clean: "Tactil", syllClean: ["Tac", "til"], type: "llana", tilde: true, rule: "Termina en 'l'." },
+    { word: "Frágil", clean: "Fragil", syllClean: ["Fra", "gil"], type: "llana", tilde: true, rule: "Termina en 'l'." },
+    { word: "Hábil", clean: "Habil", syllClean: ["Ha", "bil"], type: "llana", tilde: true, rule: "Termina en 'l'." },
+    { word: "Túnel", clean: "Tunel", syllClean: ["Tu", "nel"], type: "llana", tilde: true, rule: "Termina en 'l'." },
+    { word: "Ángel", clean: "Angel", syllClean: ["An", "gel"], type: "llana", tilde: true, rule: "Termina en 'l'." },
+    { word: "Cárcel", clean: "Carcel", syllClean: ["Car", "cel"], type: "llana", tilde: true, rule: "Termina en 'l'." },
+    { word: "Mármol", clean: "Marmol", syllClean: ["Mar", "mol"], type: "llana", tilde: true, rule: "Termina en 'l'." },
+    { word: "Fútbol", clean: "Futbol", syllClean: ["Fut", "bol"], type: "llana", tilde: true, rule: "Termina en 'l'." },
+    { word: "Cónsul", clean: "Consul", syllClean: ["Con", "sul"], type: "llana", tilde: true, rule: "Termina en 'l'." },
+    { word: "Azúcar", clean: "Azucar", syllClean: ["A", "zu", "car"], type: "llana", tilde: true, rule: "Termina en 'r'." },
+    { word: "Néctar", clean: "Nectar", syllClean: ["Nec", "tar"], type: "llana", tilde: true, rule: "Termina en 'r'." },
+    { word: "César", clean: "Cesar", syllClean: ["Ce", "sar"], type: "llana", tilde: true, rule: "Termina en 'r'." },
+    { word: "Cráter", clean: "Crater", syllClean: ["Cra", "ter"], type: "llana", tilde: true, rule: "Termina en 'r'." },
+    { word: "Carácter", clean: "Caracter", syllClean: ["Ca", "rac", "ter"], type: "llana", tilde: true, rule: "Termina en 'r'." },
+    { word: "Cadáver", clean: "Cadaver", syllClean: ["Ca", "da", "ver"], type: "llana", tilde: true, rule: "Termina en 'r'." },
+    { word: "Cáncer", clean: "Cancer", syllClean: ["Can", "cer"], type: "llana", tilde: true, rule: "Termina en 'r'." },
+    { word: "Líder", clean: "Lider", syllClean: ["Li", "der"], type: "llana", tilde: true, rule: "Termina en 'r'." },
+    { word: "Póster", clean: "Poster", syllClean: ["Pos", "ter"], type: "llana", tilde: true, rule: "Termina en 'r'." },
+    { word: "Trébol", clean: "Trebol", syllClean: ["Tre", "bol"], type: "llana", tilde: true, rule: "Termina en 'l'." },
+    { word: "Cóndor", clean: "Condor", syllClean: ["Con", "dor"], type: "llana", tilde: true, rule: "Termina en 'r'." },
+    { word: "Álbum", clean: "Album", syllClean: ["Al", "bum"], type: "llana", tilde: true, rule: "Termina en 'm'." },
+    { word: "Cáliz", clean: "Caliz", syllClean: ["Ca", "liz"], type: "llana", tilde: true, rule: "Termina en 'z'." },
+    { word: "Cádiz", clean: "Cadiz", syllClean: ["Ca", "diz"], type: "llana", tilde: true, rule: "Termina en 'z'." },
+    { word: "Félix", clean: "Felix", syllClean: ["Fe", "lix"], type: "llana", tilde: true, rule: "Termina en 'x'." },
+    { word: "Fénix", clean: "Fenix", syllClean: ["Fe", "nix"], type: "llana", tilde: true, rule: "Termina en 'x'." },
+    { word: "Tórax", clean: "Torax", syllClean: ["To", "rax"], type: "llana", tilde: true, rule: "Termina en 'x'." },
+    { word: "Clímax", clean: "Climax", syllClean: ["Cli", "max"], type: "llana", tilde: true, rule: "Termina en 'x'." },
+    { word: "Bíceps", clean: "Biceps", syllClean: ["Bi", "ceps"], type: "llana", tilde: true, rule: "Termina en 's' precedida de consonante." },
+    { word: "Tríceps", clean: "Triceps", syllClean: ["Tri", "ceps"], type: "llana", tilde: true, rule: "Termina en 's' precedida de consonante." },
+    { word: "Récord", clean: "Record", syllClean: ["Re", "cord"], type: "llana", tilde: true, rule: "Termina en 'd'." },
+    { word: "Huésped", clean: "Huesped", syllClean: ["Hues", "ped"], type: "llana", tilde: true, rule: "Termina en 'd'." },
+    { word: "Césped", clean: "Cesped", syllClean: ["Ces", "ped"], type: "llana", tilde: true, rule: "Termina en 'd'." },
+    
+    // Llanas SIN tilde (terminan en vocal, n, s)
+    { word: "Mesa", clean: "Mesa", syllClean: ["Me", "sa"], type: "llana", tilde: false, rule: "Termina en vocal." },
+    { word: "Examen", clean: "Examen", syllClean: ["E", "xa", "men"], type: "llana", tilde: false, rule: "Termina en 'n'." },
+    { word: "Casa", clean: "Casa", syllClean: ["Ca", "sa"], type: "llana", tilde: false, rule: "Termina en vocal." },      
+    { word: "Margen", clean: "Margen", syllClean: ["Mar", "gen"], type: "llana", tilde: false, rule: "Termina en 'n'." },
+    { word: "Libro", clean: "Libro", syllClean: ["Li", "bro"], type: "llana", tilde: false, rule: "Termina en vocal." },
+    { word: "Perro", clean: "Perro", syllClean: ["Pe", "rro"], type: "llana", tilde: false, rule: "Termina en vocal." },
+    { word: "Gato", clean: "Gato", syllClean: ["Ga", "to"], type: "llana", tilde: false, rule: "Termina en vocal." },
+    { word: "Luna", clean: "Luna", syllClean: ["Lu", "na"], type: "llana", tilde: false, rule: "Termina en vocal." },
+    { word: "Pluma", clean: "Pluma", syllClean: ["Plu", "ma"], type: "llana", tilde: false, rule: "Termina en vocal." },
+    { word: "Nube", clean: "Nube", syllClean: ["Nu", "be"], type: "llana", tilde: false, rule: "Termina en vocal." },
+    { word: "Lluvia", clean: "Lluvia", syllClean: ["Llu", "via"], type: "llana", tilde: false, rule: "Termina en vocal." },
+    { word: "Tierra", clean: "Tierra", syllClean: ["Tie", "rra"], type: "llana", tilde: false, rule: "Termina en vocal." },
+    { word: "Fuego", clean: "Fuego", syllClean: ["Fue", "go"], type: "llana", tilde: false, rule: "Termina en vocal." },
+    { word: "Agua", clean: "Agua", syllClean: ["A", "gua"], type: "llana", tilde: false, rule: "Termina en vocal." },
+    { word: "Viento", clean: "Viento", syllClean: ["Vien", "to"], type: "llana", tilde: false, rule: "Termina en vocal." },
+    { word: "Cielo", clean: "Cielo", syllClean: ["Cie", "lo"], type: "llana", tilde: false, rule: "Termina en vocal." },
+    { word: "Suelo", clean: "Suelo", syllClean: ["Sue", "lo"], type: "llana", tilde: false, rule: "Termina en vocal." },
+    { word: "Pelo", clean: "Pelo", syllClean: ["Pe", "lo"], type: "llana", tilde: false, rule: "Termina en vocal." },
+    { word: "Mano", clean: "Mano", syllClean: ["Ma", "no"], type: "llana", tilde: false, rule: "Termina en vocal." },
+    { word: "Dedo", clean: "Dedo", syllClean: ["De", "do"], type: "llana", tilde: false, rule: "Termina en vocal." },
+    { word: "Brazo", clean: "Brazo", syllClean: ["Bra", "zo"], type: "llana", tilde: false, rule: "Termina en vocal." },
+    { word: "Pierna", clean: "Pierna", syllClean: ["Pier", "na"], type: "llana", tilde: false, rule: "Termina en vocal." },
+    { word: "Cabeza", clean: "Cabeza", syllClean: ["Ca", "be", "za"], type: "llana", tilde: false, rule: "Termina en vocal." },
+    { word: "Cuello", clean: "Cuello", syllClean: ["Cue", "llo"], type: "llana", tilde: false, rule: "Termina en vocal." },
+    { word: "Espalda", clean: "Espalda", syllClean: ["Es", "pal", "da"], type: "llana", tilde: false, rule: "Termina en vocal." },
+    { word: "Hombro", clean: "Hombro", syllClean: ["Hom", "bro"], type: "llana", tilde: false, rule: "Termina en vocal." },
+    { word: "Codo", clean: "Codo", syllClean: ["Co", "do"], type: "llana", tilde: false, rule: "Termina en vocal." },
+    { word: "Rodilla", clean: "Rodilla", syllClean: ["Ro", "di", "lla"], type: "llana", tilde: false, rule: "Termina en vocal." },
+    { word: "Tobillo", clean: "Tobillo", syllClean: ["To", "bi", "llo"], type: "llana", tilde: false, rule: "Termina en vocal." },
+    { word: "Escuela", clean: "Escuela", syllClean: ["Es", "cue", "la"], type: "llana", tilde: false, rule: "Termina en vocal." },
+    { word: "Maestro", clean: "Maestro", syllClean: ["Ma", "es", "tro"], type: "llana", tilde: false, rule: "Termina en vocal." },
+    { word: "Alumno", clean: "Alumno", syllClean: ["A", "lum", "no"], type: "llana", tilde: false, rule: "Termina en vocal." },
+    { word: "Clase", clean: "Clase", syllClean: ["Cla", "se"], type: "llana", tilde: false, rule: "Termina en vocal." },
+    { word: "Puerta", clean: "Puerta", syllClean: ["Puer", "ta"], type: "llana", tilde: false, rule: "Termina en vocal." },
+    { word: "Ventana", clean: "Ventana", syllClean: ["Ven", "ta", "na"], type: "llana", tilde: false, rule: "Termina en vocal." },
+    { word: "Silla", clean: "Silla", syllClean: ["Si", "lla"], type: "llana", tilde: false, rule: "Termina en vocal." },
+    { word: "Cama", clean: "Cama", syllClean: ["Ca", "ma"], type: "llana", tilde: false, rule: "Termina en vocal." },
+    { word: "Cocina", clean: "Cocina", syllClean: ["Co", "ci", "na"], type: "llana", tilde: false, rule: "Termina en vocal." },
+    { word: "Comida", clean: "Comida", syllClean: ["Co", "mi", "da"], type: "llana", tilde: false, rule: "Termina en vocal." },
+    { word: "Cena", clean: "Cena", syllClean: ["Ce", "na"], type: "llana", tilde: false, rule: "Termina en vocal." },
+    { word: "Desayuno", clean: "Desayuno", syllClean: ["De", "sa", "yu", "no"], type: "llana", tilde: false, rule: "Termina en vocal." },
+    { word: "Almuerzo", clean: "Almuerzo", syllClean: ["Al", "muer", "zo"], type: "llana", tilde: false, rule: "Termina en vocal." },
+    { word: "Periodo", clean: "Periodo", syllClean: ["Pe", "rio", "do"], type: "llana", tilde: false, rule: "Termina en vocal." },
+    { word: "Merienda", clean: "Merienda", syllClean: ["Me", "rien", "da"], type: "llana", tilde: false, rule: "Termina en vocal." },
+    { word: "Fruta", clean: "Fruta", syllClean: ["Fru", "ta"], type: "llana", tilde: false, rule: "Termina en vocal." },
+    { word: "Verdura", clean: "Verdura", syllClean: ["Ver", "du", "ra"], type: "llana", tilde: false, rule: "Termina en vocal." },
+    { word: "Carne", clean: "Carne", syllClean: ["Car", "ne"], type: "llana", tilde: false, rule: "Termina en vocal." },
+    { word: "Pescado", clean: "Pescado", syllClean: ["Pes", "ca", "do"], type: "llana", tilde: false, rule: "Termina en vocal." },
+    { word: "Leche", clean: "Leche", syllClean: ["Le", "che"], type: "llana", tilde: false, rule: "Termina en vocal." },
+    { word: "Queso", clean: "Queso", syllClean: ["Que", "so"], type: "llana", tilde: false, rule: "Termina en vocal." },
+    { word: "Huevo", clean: "Huevo", syllClean: ["Hue", "vo"], type: "llana", tilde: false, rule: "Termina en vocal." },
+    { word: "Joven", clean: "Joven", syllClean: ["Jo", "ven"], type: "llana", tilde: false, rule: "Termina en 'n'." },
+    { word: "Imagen", clean: "Imagen", syllClean: ["I", "ma", "gen"], type: "llana", tilde: false, rule: "Termina en 'n'." },
+    { word: "Origen", clean: "Origen", syllClean: ["O", "ri", "gen"], type: "llana", tilde: false, rule: "Termina en 'n'." },
+    { word: "Margen", clean: "Margen", syllClean: ["Mar", "gen"], type: "llana", tilde: false, rule: "Termina en 'n'." },
+    { word: "Orden", clean: "Orden", syllClean: ["Or", "den"], type: "llana", tilde: false, rule: "Termina en 'n'." },
+    { word: "Carmen", clean: "Carmen", syllClean: ["Car", "men"], type: "llana", tilde: false, rule: "Termina en 'n'." },
+    { word: "Resumen", clean: "Resumen", syllClean: ["Re", "su", "men"], type: "llana", tilde: false, rule: "Termina en 'n'." },
+    { word: "Volumen", clean: "Volumen", syllClean: ["Vo", "lu", "men"], type: "llana", tilde: false, rule: "Termina en 'n'." },
+    { word: "Viernes", clean: "Viernes", syllClean: ["Vier", "nes"], type: "llana", tilde: false, rule: "Termina en 's'." },
+    { word: "Lunes", clean: "Lunes", syllClean: ["Lu", "nes"], type: "llana", tilde: false, rule: "Termina en 's'." },
+    { word: "Martes", clean: "Martes", syllClean: ["Mar", "tes"], type: "llana", tilde: false, rule: "Termina en 's'." },
+
+    // ==================== ESDRÚJULAS (100 palabras) ====================
+    // Todas las esdrújulas SIEMPRE llevan tilde
+    { word: "Pájaro", clean: "Pajaro", syllClean: ["Pa", "ja", "ro"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Música", clean: "Musica", syllClean: ["Mu", "si", "ca"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Sábado", clean: "Sabado", syllClean: ["Sa", "ba", "do"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Teléfono", clean: "Telefono", syllClean: ["Te", "le", "fo", "no"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Cámara", clean: "Camara", syllClean: ["Ca", "ma", "ra"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Lámpara", clean: "Lampara", syllClean: ["Lam", "pa", "ra"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Brújula", clean: "Brujula", syllClean: ["Bru", "ju", "la"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Fórmula", clean: "Formula", syllClean: ["For", "mu", "la"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Número", clean: "Numero", syllClean: ["Nu", "me", "ro"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Público", clean: "Publico", syllClean: ["Pu", "bli", "co"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Médico", clean: "Medico", syllClean: ["Me", "di", "co"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Técnico", clean: "Tecnico", syllClean: ["Tec", "ni", "co"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Clásico", clean: "Clasico", syllClean: ["Cla", "si", "co"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Práctico", clean: "Practico", syllClean: ["Prac", "ti", "co"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Mágico", clean: "Magico", syllClean: ["Ma", "gi", "co"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Lógico", clean: "Logico", syllClean: ["Lo", "gi", "co"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Trágico", clean: "Tragico", syllClean: ["Tra", "gi", "co"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Cómico", clean: "Comico", syllClean: ["Co", "mi", "co"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Típico", clean: "Tipico", syllClean: ["Ti", "pi", "co"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Único", clean: "Unico", syllClean: ["U", "ni", "co"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Rápido", clean: "Rapido", syllClean: ["Ra", "pi", "do"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Líquido", clean: "Liquido", syllClean: ["Li", "qui", "do"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Sólido", clean: "Solido", syllClean: ["So", "li", "do"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Tímido", clean: "Timido", syllClean: ["Ti", "mi", "do"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Húmedo", clean: "Humedo", syllClean: ["Hu", "me", "do"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Cómodo", clean: "Comodo", syllClean: ["Co", "mo", "do"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Método", clean: "Metodo", syllClean: ["Me", "to", "do"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Círculo", clean: "Circulo", syllClean: ["Cir", "cu", "lo"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Triángulo", clean: "Triangulo", syllClean: ["Tri","an", "gu", "lo"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Rectángulo", clean: "Rectangulo", syllClean: ["Rec", "tan", "gu", "lo"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Espectáculo", clean: "Espectaculo", syllClean: ["Es", "pec", "ta", "cu", "lo"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Obstáculo", clean: "Obstaculo", syllClean: ["Obs", "ta", "cu", "lo"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Vehículo", clean: "Vehiculo", syllClean: ["Ve", "hi", "cu", "lo"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Artículo", clean: "Articulo", syllClean: ["Ar", "ti", "cu", "lo"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Músculo", clean: "Musculo", syllClean: ["Mus", "cu", "lo"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Ridículo", clean: "Ridiculo", syllClean: ["Ri", "di", "cu", "lo"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Película", clean: "Pelicula", syllClean: ["Pe", "li", "cu", "la"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Cláusula", clean: "Clausula", syllClean: ["Clau", "su", "la"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Cápsula", clean: "Capsula", syllClean: ["Cap", "su", "la"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Península", clean: "Peninsula", syllClean: ["Pe", "nin", "su", "la"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Máquina", clean: "Maquina", syllClean: ["Ma", "qui", "na"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Página", clean: "Pagina", syllClean: ["Pa", "gi", "na"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Fábrica", clean: "Fabrica", syllClean: ["Fa", "bri", "ca"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Cerámica", clean: "Ceramica", syllClean: ["Ce", "ra", "mi", "ca"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Química", clean: "Quimica", syllClean: ["Qui", "mi", "ca"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Física", clean: "Fisica", syllClean: ["Fi", "si", "ca"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Matemáticas", clean: "Matematicas", syllClean: ["Ma", "te", "ma", "ti", "cas"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Gramática", clean: "Gramatica", syllClean: ["Gra", "ma", "ti", "ca"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Informática", clean: "Informatica", syllClean: ["In", "for", "ma", "ti", "ca"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Automática", clean: "Automatica", syllClean: ["Au", "to", "ma", "ti", "ca"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "República", clean: "Republica", syllClean: ["Re", "pu", "bli", "ca"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "América", clean: "America", syllClean: ["A", "me", "ri", "ca"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "África", clean: "Africa", syllClean: ["A", "fri", "ca"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Atlántico", clean: "Atlantico", syllClean: ["At", "lan", "ti", "co"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Pacífico", clean: "Pacifico", syllClean: ["Pa", "ci", "fi", "co"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Científico", clean: "Cientifico", syllClean: ["Cien", "ti", "fi", "co"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Histórico", clean: "Historico", syllClean: ["His", "to", "ri", "co"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Fantástico", clean: "Fantastico", syllClean: ["Fan", "tas", "ti", "co"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Romántico", clean: "Romantico", syllClean: ["Ro", "man", "ti", "co"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Simpático", clean: "Simpatico", syllClean: ["Sim", "pa", "ti", "co"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Antipático", clean: "Antipatico", syllClean: ["An", "ti", "pa", "ti", "co"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Económico", clean: "Economico", syllClean: ["E", "co", "no", "mi", "co"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Electrónico", clean: "Electronico", syllClean: ["E", "lec", "tro", "ni", "co"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Mecánico", clean: "Mecanico", syllClean: ["Me", "ca", "ni", "co"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Orgánico", clean: "Organico", syllClean: ["Or", "ga", "ni", "co"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Botánico", clean: "Botanico", syllClean: ["Bo", "ta", "ni", "co"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Volcánico", clean: "Volcanico", syllClean: ["Vol", "ca", "ni", "co"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Oceánico", clean: "Oceanico", syllClean: ["O", "ce", "a", "ni", "co"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Eléctrico", clean: "Electrico", syllClean: ["E", "lec", "tri", "co"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Plástico", clean: "Plastico", syllClean: ["Plas", "ti", "co"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Elástico", clean: "Elastico", syllClean: ["E", "las", "ti", "co"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Doméstico", clean: "Domestico", syllClean: ["Do", "mes", "ti", "co"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Acústico", clean: "Acustico", syllClean: ["A", "cus", "ti", "co"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Artístico", clean: "Artistico", syllClean: ["Ar", "tis", "ti", "co"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Miércoles", clean: "Miercoles", syllClean: ["Mier", "co", "les"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Brócoli", clean: "Brocoli", syllClean: ["Bro", "co", "li"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Murciélago", clean: "Murcielago", syllClean: ["Mur", "cie", "la", "go"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Relámpago", clean: "Relampago", syllClean: ["Re", "lam", "pa", "go"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Estómago", clean: "Estomago", syllClean: ["Es", "to", "ma", "go"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Espárrago", clean: "Esparrago", syllClean: ["Es", "pa", "rra", "go"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Helicóptero", clean: "Helicoptero", syllClean: ["He", "li", "cop", "te", "ro"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Hipopótamo", clean: "Hipopotamo", syllClean: ["Hi", "po", "po", "ta", "mo"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Termómetro", clean: "Termometro", syllClean: ["Ter", "mo", "me", "tro"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Kilómetro", clean: "Kilometro", syllClean: ["Ki", "lo", "me", "tro"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Centímetro", clean: "Centimetro", syllClean: ["Cen", "ti", "me", "tro"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Milímetro", clean: "Milimetro", syllClean: ["Mi", "li", "me", "tro"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Perímetro", clean: "Perimetro", syllClean: ["Pe", "ri", "me", "tro"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Diámetro", clean: "Diametro", syllClean: ["Dia", "me", "tro"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Barómetro", clean: "Barometro", syllClean: ["Ba", "ro", "me", "tro"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Semáforo", clean: "Semaforo", syllClean: ["Se", "ma", "fo", "ro"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Fósforo", clean: "Fosforo", syllClean: ["Fos", "fo", "ro"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Carnívoro", clean: "Carnivoro", syllClean: ["Car", "ni", "vo", "ro"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Herbívoro", clean: "Herbivoro", syllClean: ["Her", "bi", "vo", "ro"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Omnívoro", clean: "Omnivoro", syllClean: ["Om", "ni", "vo", "ro"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Pirámide", clean: "Piramide", syllClean: ["Pi", "ra", "mi", "de"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Décimo", clean: "Decimo", syllClean: ["De", "ci", "mo"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Último", clean: "Ultimo", syllClean: ["Ul", "ti", "mo"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Próximo", clean: "Proximo", syllClean: ["Pro", "xi", "mo"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Mínimo", clean: "Minimo", syllClean: ["Mi", "ni", "mo"], type: "esdrujula", tilde: true, rule: "Siempre lleva tilde." },
+    { word: "Marrón", clean: "Marron", syllClean: ["Ma", "rron"], type: "aguda", tilde: true, rule: "Termina en 'n'." }
+];
+    </script>
+</body>
+</html>
