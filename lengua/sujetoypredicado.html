@@ -1,0 +1,1118 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Detective de Sujetos</title>
+<script src="https://maestroseb.github.io/recursos/tailwind.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  body {
+    font-family: 'Fredoka', sans-serif;
+    background-color: #f0f9ff;
+    background-image: radial-gradient(#bae6fd 2px, transparent 2px);
+    background-size: 30px 30px;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-5px); }
+    40%, 80% { transform: translateX(5px); }
+  }
+  .animate-shake { animation: shake 0.4s ease-in-out; }
+
+  @keyframes popIn {
+    0% { transform: scale(0.8); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  .animate-pop { animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+
+  @keyframes floatUp {
+    0% { transform: translateY(0); opacity: 1; }
+    100% { transform: translateY(-40px); opacity: 0; }
+  }
+  .floating-score {
+    position: absolute;
+    animation: floatUp 1s ease-out forwards;
+    font-weight: bold;
+    font-size: 1.5rem;
+    pointer-events: none;
+    z-index: 50;
+  }
+
+  .word {
+    display: inline-block;
+    padding: 0.15rem 0.55rem;
+    margin: 0.1rem 0.05rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: background-color 0.15s, transform 0.15s, color 0.15s;
+    border-bottom: 3px solid transparent;
+  }
+  .word:hover { background-color: #e0e7ff; }
+  .word.selected {
+    background-color: #3b82f6;
+    color: white;
+    border-bottom-color: #1d4ed8;
+  }
+  .word.sujeto-correct {
+    background-color: #3b82f6;
+    color: white;
+    border-bottom-color: #1d4ed8;
+    animation: popIn 0.3s ease;
+  }
+  .word.predicado-correct {
+    background-color: #f97316;
+    color: white;
+    border-bottom-color: #c2410c;
+    animation: popIn 0.3s ease;
+  }
+  .word.wrong {
+    background-color: #ef4444;
+    color: white;
+    animation: shake 0.4s ease;
+  }
+  .word.locked { cursor: default; pointer-events: none; }
+
+  .action-btn:disabled,
+  .pron-btn:disabled,
+  .panel-action-btn:disabled,
+  .panel-pron-btn:disabled { pointer-events: none; }
+
+  .icon-inline { display: inline-block; vertical-align: middle; }
+
+  /* Etiqueta tipo "burbuja" para mostrar el sujeto omitido */
+  .so-bubble {
+    display: inline-block;
+    background: #3b82f6;
+    color: white;
+    padding: 0.15rem 0.6rem;
+    border-radius: 9999px;
+    font-size: 0.85em;
+    font-weight: 600;
+    margin-right: 0.3rem;
+    animation: popIn 0.3s ease;
+    vertical-align: middle;
+  }
+</style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-2 md:p-4 text-slate-800">
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+    </symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+    </symbol>
+    <symbol id="i-book" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+    </symbol>
+    <symbol id="i-stopwatch" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="10" y1="2" x2="14" y2="2"/><line x1="12" y1="14" x2="15" y2="11"/><circle cx="12" cy="14" r="8"/>
+    </symbol>
+    <symbol id="i-swords" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/><line x1="13" y1="19" x2="19" y2="13"/><line x1="16" y1="16" x2="20" y2="20"/><line x1="19" y1="21" x2="21" y2="19"/><polyline points="14.5 6.5 18 3 21 3 21 6 17.5 9.5"/><line x1="5" y1="14" x2="9" y2="18"/><line x1="7" y1="17" x2="4" y2="20"/><line x1="3" y1="19" x2="5" y2="21"/>
+    </symbol>
+    <symbol id="i-target" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>
+    </symbol>
+    <symbol id="i-trophy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
+    </symbol>
+    <symbol id="i-crown" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M11.562 3.266a.5.5 0 0 1 .876 0L15.39 8.87a1 1 0 0 0 1.516.294L21.183 5.5a.5.5 0 0 1 .798.519l-2.834 10.246a1 1 0 0 1-.956.734H5.81a1 1 0 0 1-.957-.734L2.02 6.02a.5.5 0 0 1 .798-.519l4.276 3.664a1 1 0 0 0 1.516-.294z"/><path d="M5 21h14"/>
+    </symbol>
+    <symbol id="i-star" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+    </symbol>
+    <symbol id="i-handshake" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="m11 17 2 2a1 1 0 1 0 3-3"/><path d="m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 1 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l.47.28a2 2 0 0 0 1.42.25L21 4"/><path d="m21 3 1 11h-2"/><path d="M3 3 2 14l6.5 6.5a1 1 0 1 0 3-3"/><path d="M3 4h8"/>
+    </symbol>
+    <symbol id="i-skip" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/>
+    </symbol>
+    <symbol id="i-home" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+    </symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/>
+    </symbol>
+    <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="20 6 9 17 4 12"/>
+    </symbol>
+    <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+    </symbol>
+    <symbol id="i-eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" y1="2" x2="22" y2="22"/>
+    </symbol>
+    <symbol id="i-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+    </symbol>
+  </defs>
+</svg>
+
+
+<div class="w-full max-w-5xl bg-white rounded-3xl shadow-xl overflow-hidden relative border-4 border-slate-100">
+
+  <!-- =========== PANTALLA DE INICIO =========== -->
+  <div id="start-screen" class="p-6 md:p-12 flex flex-col items-center text-center animate-pop">
+    <div class="bg-blue-100 p-4 rounded-full mb-6">
+      <svg class="h-16 w-16 text-blue-600"><use href="#i-search"/></svg>
+    </div>
+    <h1 class="text-4xl md:text-5xl font-bold text-slate-800 mb-3 tracking-tight">Detective de Sujetos</h1>
+    <p class="text-lg text-slate-600 mb-2 max-w-md">
+      Encuentra el <span class="text-blue-600 font-bold">sujeto</span> de cada oración.
+    </p>
+    <p class="text-sm text-slate-500 mb-8 max-w-md">
+      ¡Atención! A veces el sujeto está <span class="font-semibold text-blue-600">omitido</span>: no aparece escrito y tendrás que descubrir qué pronombre lo representa.
+    </p>
+
+    <p class="text-slate-500 font-semibold mb-4 text-sm uppercase tracking-wider">Elige un modo de juego</p>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 w-full max-w-3xl mb-6">
+      <button onclick="chooseMode('classic')" class="bg-white hover:bg-blue-50 border-4 border-blue-200 hover:border-blue-500 rounded-2xl p-5 transition-all transform hover:-translate-y-1 text-left shadow-sm group">
+        <svg class="h-10 w-10 text-blue-500 mb-2"><use href="#i-book"/></svg>
+        <div class="font-bold text-lg text-slate-800 mb-1">Clásico</div>
+        <div class="text-sm text-slate-600">10 oraciones a tu ritmo. Sin prisas.</div>
+      </button>
+      <button onclick="chooseMode('timer')" class="bg-white hover:bg-orange-50 border-4 border-orange-200 hover:border-orange-500 rounded-2xl p-5 transition-all transform hover:-translate-y-1 text-left shadow-sm group">
+        <svg class="h-10 w-10 text-orange-500 mb-2"><use href="#i-stopwatch"/></svg>
+        <div class="font-bold text-lg text-slate-800 mb-1">Contrarreloj</div>
+        <div class="text-sm text-slate-600">90 segundos para acertar todo lo que puedas.</div>
+      </button>
+      <button onclick="chooseMode('teams')" class="bg-white hover:bg-pink-50 border-4 border-pink-200 hover:border-pink-500 rounded-2xl p-5 transition-all transform hover:-translate-y-1 text-left shadow-sm group">
+        <svg class="h-10 w-10 text-pink-500 mb-2"><use href="#i-swords"/></svg>
+        <div class="font-bold text-lg text-slate-800 mb-1">Duelo 2 Equipos</div>
+        <div class="text-sm text-slate-600">90 s en pantalla dividida. ¡Compiten a la vez!</div>
+      </button>
+    </div>
+
+    <!-- Config de equipos -->
+    <div id="team-config" class="hidden w-full max-w-lg bg-slate-50 border-2 border-slate-200 rounded-2xl p-6 mb-6 animate-pop">
+      <h3 class="font-bold text-lg text-slate-700 mb-4">Configurar el duelo</h3>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+        <div>
+          <label class="flex items-center gap-2 text-sm font-semibold text-slate-600 mb-1">
+            <span class="w-3 h-3 bg-blue-500 rounded-full inline-block"></span> Equipo 1
+          </label>
+          <input id="team1-name" type="text" value="Equipo Azul" maxlength="18"
+                 class="w-full px-3 py-2 border-2 border-slate-200 rounded-lg focus:border-blue-500 focus:outline-none">
+        </div>
+        <div>
+          <label class="flex items-center gap-2 text-sm font-semibold text-slate-600 mb-1">
+            <span class="w-3 h-3 bg-pink-500 rounded-full inline-block"></span> Equipo 2
+          </label>
+          <input id="team2-name" type="text" value="Equipo Rojo" maxlength="18"
+                 class="w-full px-3 py-2 border-2 border-slate-200 rounded-lg focus:border-pink-500 focus:outline-none">
+        </div>
+      </div>
+      <button onclick="startGame('teams')" class="w-full bg-pink-500 hover:bg-pink-600 text-white text-lg font-bold py-3 px-8 rounded-xl shadow-lg shadow-pink-200 transition-transform transform hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2">
+        <svg class="h-5 w-5"><use href="#i-swords"/></svg>
+        ¡Empezar duelo!
+      </button>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm bg-slate-50 p-4 rounded-2xl w-full max-w-lg border border-slate-200">
+      <div class="flex items-center gap-2">
+        <svg class="h-5 w-5 text-green-500"><use href="#i-check"/></svg>
+        <span>Acierto: <strong>+10</strong> puntos</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <svg class="h-5 w-5 text-red-500"><use href="#i-x"/></svg>
+        <span>Fallo: <strong>-5</strong> puntos</span>
+      </div>
+      <div class="col-span-1 sm:col-span-2 flex items-center gap-2 text-slate-600">
+        <svg class="h-5 w-5 text-blue-500"><use href="#i-eye-off"/></svg>
+        <span>Detectar sujeto omitido con el pronombre correcto: <strong>+15</strong> puntos.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========== PANTALLA DE JUEGO (CLÁSICO / CONTRARRELOJ) =========== -->
+  <div id="game-screen" class="hidden flex-col">
+    <div class="bg-slate-800 text-white p-4 flex justify-between items-center">
+      <div class="flex items-center gap-2">
+        <svg class="h-6 w-6 text-yellow-400"><use href="#i-clock"/></svg>
+        <span id="timer" class="text-2xl font-bold font-mono">90</span>
+      </div>
+      <div class="text-center font-bold text-lg text-slate-300">
+        <span id="round-label">Pregunta</span> <span id="question-counter" class="text-white">1</span><span id="question-total" class="text-slate-400"></span>
+      </div>
+      <div class="flex items-center gap-2">
+        <svg class="h-6 w-6 text-green-400"><use href="#i-star"/></svg>
+        <span id="score" class="text-2xl font-bold font-mono">0</span>
+      </div>
+    </div>
+
+    <div id="step-indicator" class="bg-blue-50 border-b-2 border-blue-100 px-4 py-2 text-center text-sm font-semibold text-blue-700 flex items-center justify-center gap-2">
+      <svg class="h-4 w-4"><use href="#i-target"/></svg>
+      <span>Pulsa las palabras del <strong>sujeto</strong>. Si está omitido, pulsa el botón azul.</span>
+    </div>
+
+    <div id="sentence-container" class="p-6 md:p-10 flex items-center justify-center text-center min-h-[180px] bg-slate-50 transition-colors duration-300 relative">
+      <h2 id="sentence-text" class="text-2xl md:text-3xl lg:text-4xl text-slate-700 leading-relaxed"></h2>
+    </div>
+
+    <!-- Acciones / pronombres -->
+    <div class="p-4 md:p-6 bg-white border-t border-slate-100">
+
+      <!-- Botonera principal -->
+      <div id="main-actions" class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+        <button id="check-btn" class="action-btn col-span-1 sm:col-span-2 bg-green-500 hover:bg-green-600 text-white font-bold py-4 px-3 rounded-xl shadow-lg shadow-green-200 transition-transform hover:scale-[1.01] active:scale-95 flex items-center justify-center gap-2 text-lg">
+          <svg class="h-6 w-6"><use href="#i-check"/></svg>
+          Comprobar
+        </button>
+        <button id="omitted-btn" class="action-btn bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 px-3 rounded-xl shadow-lg shadow-blue-200 transition-transform hover:scale-[1.01] active:scale-95 flex items-center justify-center gap-2">
+          <svg class="h-5 w-5"><use href="#i-eye-off"/></svg>
+          Sujeto omitido
+        </button>
+      </div>
+
+      <!-- Selector de pronombres (oculto por defecto) -->
+      <div id="pron-selector" class="hidden bg-blue-50 border-2 border-blue-200 rounded-xl p-3 mb-3 animate-pop">
+        <p class="text-center text-blue-700 font-semibold text-sm mb-2">
+          <svg class="h-4 w-4 icon-inline"><use href="#i-user"/></svg>
+          ¿Qué pronombre representa el sujeto omitido?
+        </p>
+        <div id="pron-grid" class="grid grid-cols-3 sm:grid-cols-5 gap-2"></div>
+        <div class="flex justify-center mt-2">
+          <button id="pron-cancel-btn" class="text-xs text-blue-600 hover:text-blue-800 underline">Cancelar</button>
+        </div>
+      </div>
+
+      <div class="flex justify-center gap-2 mt-1">
+        <button id="skip-btn" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold py-2 px-5 rounded-lg text-sm transition-colors flex items-center gap-2">
+          <svg class="h-4 w-4"><use href="#i-skip"/></svg>
+          Saltar
+        </button>
+        <button id="menu-btn" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold py-2 px-5 rounded-lg text-sm transition-colors flex items-center gap-2">
+          <svg class="h-4 w-4"><use href="#i-home"/></svg>
+          Menú
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========== PANTALLA DE JUEGO (DUELO EQUIPOS) =========== -->
+  <div id="duel-screen" class="hidden flex-col">
+    <div class="bg-slate-800 text-white p-4 flex justify-between items-center">
+      <div class="flex items-center gap-2">
+        <span class="w-3 h-3 bg-blue-400 rounded-full"></span>
+        <span id="duel-team1-name" class="font-bold hidden sm:inline">Equipo 1</span>
+        <span id="duel-team1-score" class="text-2xl font-bold font-mono text-blue-400">0</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <svg class="h-6 w-6 text-yellow-400"><use href="#i-clock"/></svg>
+        <span id="duel-timer" class="text-3xl font-bold font-mono">90</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span id="duel-team2-score" class="text-2xl font-bold font-mono text-pink-400">0</span>
+        <span id="duel-team2-name" class="font-bold hidden sm:inline">Equipo 2</span>
+        <span class="w-3 h-3 bg-pink-400 rounded-full"></span>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 divide-x-4 divide-slate-200">
+
+      <!-- PANEL EQUIPO 1 -->
+      <div class="bg-blue-50">
+        <div class="bg-blue-500 text-white text-center py-2 font-bold flex items-center justify-center gap-2">
+          <span class="w-3 h-3 bg-white rounded-full"></span>
+          <span id="panel1-name">Equipo 1</span>
+        </div>
+        <div id="panel1-sentence" class="p-3 md:p-6 min-h-[110px] flex items-center justify-center text-center bg-white relative">
+          <p id="panel1-text" class="text-base md:text-xl lg:text-2xl text-slate-700 leading-relaxed"></p>
+        </div>
+        <div class="p-2 md:p-3 bg-blue-50">
+          <div class="grid grid-cols-2 gap-2 mb-2">
+            <button data-panel="1" data-action="check" class="panel-action-btn bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-2 rounded-lg text-sm flex items-center justify-center gap-1">
+              <svg class="h-4 w-4"><use href="#i-check"/></svg> Comprobar
+            </button>
+            <button data-panel="1" data-action="omitted" class="panel-action-btn bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-2 rounded-lg text-sm flex items-center justify-center gap-1">
+              <svg class="h-4 w-4"><use href="#i-eye-off"/></svg> Omitido
+            </button>
+          </div>
+          <div id="panel1-pron" class="hidden bg-white border-2 border-blue-300 rounded-lg p-2 animate-pop">
+            <p class="text-blue-700 text-xs font-semibold text-center mb-1">¿Qué pronombre?</p>
+            <div class="grid grid-cols-3 gap-1" data-pron-panel="1"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PANEL EQUIPO 2 -->
+      <div class="bg-pink-50">
+        <div class="bg-pink-500 text-white text-center py-2 font-bold flex items-center justify-center gap-2">
+          <span class="w-3 h-3 bg-white rounded-full"></span>
+          <span id="panel2-name">Equipo 2</span>
+        </div>
+        <div id="panel2-sentence" class="p-3 md:p-6 min-h-[110px] flex items-center justify-center text-center bg-white relative">
+          <p id="panel2-text" class="text-base md:text-xl lg:text-2xl text-slate-700 leading-relaxed"></p>
+        </div>
+        <div class="p-2 md:p-3 bg-pink-50">
+          <div class="grid grid-cols-2 gap-2 mb-2">
+            <button data-panel="2" data-action="check" class="panel-action-btn bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-2 rounded-lg text-sm flex items-center justify-center gap-1">
+              <svg class="h-4 w-4"><use href="#i-check"/></svg> Comprobar
+            </button>
+            <button data-panel="2" data-action="omitted" class="panel-action-btn bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-2 rounded-lg text-sm flex items-center justify-center gap-1">
+              <svg class="h-4 w-4"><use href="#i-eye-off"/></svg> Omitido
+            </button>
+          </div>
+          <div id="panel2-pron" class="hidden bg-white border-2 border-pink-300 rounded-lg p-2 animate-pop">
+            <p class="text-pink-700 text-xs font-semibold text-center mb-1">¿Qué pronombre?</p>
+            <div class="grid grid-cols-3 gap-1" data-pron-panel="2"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="p-3 bg-white border-t border-slate-100 flex justify-center">
+      <button id="duel-menu-btn" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold py-2 px-5 rounded-lg text-sm transition-colors flex items-center gap-2">
+        <svg class="h-4 w-4"><use href="#i-home"/></svg>
+        Abandonar duelo
+      </button>
+    </div>
+  </div>
+
+  <!-- =========== PANTALLA DE RESULTADOS =========== -->
+  <div id="end-screen" class="hidden p-8 md:p-12 flex-col items-center text-center">
+    <div id="end-icon-wrapper" class="mb-4">
+      <svg id="end-icon-svg" class="h-20 w-20 text-yellow-500"><use href="#i-trophy"/></svg>
+    </div>
+    <h2 id="end-title" class="text-4xl font-bold text-slate-800 mb-2">¡Fin del juego!</h2>
+    <p id="end-message" class="text-xl text-slate-600 mb-6">Has hecho un gran trabajo.</p>
+
+    <div id="end-solo" class="bg-slate-50 rounded-2xl p-6 w-full max-w-sm mb-8 border border-slate-200">
+      <div class="text-slate-500 text-sm font-bold uppercase mb-1">Puntuación Final</div>
+      <div id="final-score" class="text-5xl font-black text-blue-500">0</div>
+    </div>
+
+    <div id="end-teams" class="hidden w-full max-w-xl mb-8">
+      <div class="grid grid-cols-2 gap-4">
+        <div id="end-team1-card" class="bg-blue-50 rounded-2xl p-5 border-4 border-blue-200">
+          <div id="end-team1-name" class="font-bold text-blue-700 mb-1">Equipo 1</div>
+          <div id="end-team1-score" class="text-5xl font-black text-blue-500">0</div>
+        </div>
+        <div id="end-team2-card" class="bg-pink-50 rounded-2xl p-5 border-4 border-pink-200">
+          <div id="end-team2-name" class="font-bold text-pink-700 mb-1">Equipo 2</div>
+          <div id="end-team2-score" class="text-5xl font-black text-pink-500">0</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex gap-3 flex-wrap justify-center">
+      <button onclick="resetGame()" class="bg-blue-500 hover:bg-blue-600 text-white text-lg font-bold py-3 px-8 rounded-full shadow-lg shadow-blue-200 transition-transform transform hover:scale-105 active:scale-95 flex items-center gap-2">
+        <svg class="h-5 w-5"><use href="#i-refresh"/></svg>
+        Volver a jugar
+      </button>
+      <button onclick="goToMenu()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 text-lg font-bold py-3 px-8 rounded-full transition-transform transform hover:scale-105 active:scale-95 flex items-center gap-2">
+        <svg class="h-5 w-5"><use href="#i-home"/></svg>
+        Menú principal
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ========================================================================
+// CONSTANTES
+// ========================================================================
+const PRONOMBRES = ['yo', 'tú', 'él', 'ella', 'nosotros', 'nosotras', 'vosotros', 'vosotras', 'ellos', 'ellas'];
+const DURACION_TIMER = 90;
+
+// ========================================================================
+// ESTADO
+// ========================================================================
+let mode = 'classic';
+let score = 0;
+let timeLeft = DURACION_TIMER;
+let timerInterval = null;
+let questionCount = 0;
+let questions = [];
+let currentQuestion = null;
+let selectedIdx = new Set();
+let isProcessing = false;
+
+// Duelo equipos
+let teamNames = ['Equipo 1', 'Equipo 2'];
+let teamScores = [0, 0];
+let panelQuestions = [null, null];
+let panelSelected = [new Set(), new Set()];
+let panelProcessing = [false, false];
+
+const screens = {
+  start: document.getElementById('start-screen'),
+  game: document.getElementById('game-screen'),
+  duel: document.getElementById('duel-screen'),
+  end: document.getElementById('end-screen')
+};
+
+// ========================================================================
+// NAVEGACIÓN
+// ========================================================================
+function chooseMode(m) {
+  const config = document.getElementById('team-config');
+  if (m === 'teams') {
+    config.classList.remove('hidden');
+    config.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  } else {
+    config.classList.add('hidden');
+    startGame(m);
+  }
+}
+
+function goToMenu() {
+  stopTimer();
+  Object.values(screens).forEach(s => { s.classList.add('hidden'); s.classList.remove('flex'); });
+  screens.start.classList.remove('hidden');
+  screens.start.classList.add('flex');
+  document.getElementById('team-config').classList.add('hidden');
+}
+
+function resetGame() {
+  startGame(mode);
+}
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// ========================================================================
+// INICIAR JUEGO
+// ========================================================================
+function startGame(m) {
+  mode = m;
+  score = 0;
+  questionCount = 0;
+  teamScores = [0, 0];
+  isProcessing = false;
+  panelProcessing = [false, false];
+  questions = shuffle(ORACIONES);
+
+  Object.values(screens).forEach(s => { s.classList.add('hidden'); s.classList.remove('flex'); });
+
+  if (mode === 'teams') {
+    teamNames = [
+      (document.getElementById('team1-name').value.trim() || 'Equipo 1'),
+      (document.getElementById('team2-name').value.trim() || 'Equipo 2')
+    ];
+    document.getElementById('duel-team1-name').textContent = teamNames[0];
+    document.getElementById('duel-team2-name').textContent = teamNames[1];
+    document.getElementById('panel1-name').textContent = teamNames[0];
+    document.getElementById('panel2-name').textContent = teamNames[1];
+    document.getElementById('duel-team1-score').textContent = '0';
+    document.getElementById('duel-team2-score').textContent = '0';
+
+    timeLeft = DURACION_TIMER;
+    document.getElementById('duel-timer').textContent = timeLeft;
+    document.getElementById('duel-timer').classList.remove('text-red-500', 'animate-pulse');
+
+    buildPanelPronGrid(0);
+    buildPanelPronGrid(1);
+
+    screens.duel.classList.remove('hidden');
+    screens.duel.classList.add('flex');
+
+    loadPanelQuestion(0);
+    loadPanelQuestion(1);
+    startDuelTimer();
+
+  } else {
+    document.getElementById('score').textContent = '0';
+    buildSoloPronGrid();
+
+    if (mode === 'timer') {
+      timeLeft = DURACION_TIMER;
+      document.getElementById('timer').textContent = timeLeft;
+      document.getElementById('timer').classList.remove('text-red-500', 'animate-pulse');
+      document.getElementById('round-label').textContent = 'Pregunta';
+      document.getElementById('question-total').textContent = '';
+      startSoloTimer();
+    } else {
+      timeLeft = -1;
+      document.getElementById('timer').textContent = '∞';
+      document.getElementById('timer').classList.remove('text-red-500', 'animate-pulse');
+      document.getElementById('round-label').textContent = 'Pregunta';
+      document.getElementById('question-total').textContent = '/10';
+    }
+
+    screens.game.classList.remove('hidden');
+    screens.game.classList.add('flex');
+    loadNextQuestion();
+  }
+}
+
+// ========================================================================
+// TEMPORIZADORES
+// ========================================================================
+function startSoloTimer() {
+  stopTimer();
+  timerInterval = setInterval(() => {
+    timeLeft--;
+    const el = document.getElementById('timer');
+    el.textContent = timeLeft;
+    if (timeLeft <= 10) el.classList.add('text-red-500', 'animate-pulse');
+    if (timeLeft <= 0) {
+      stopTimer();
+      endGame();
+    }
+  }, 1000);
+}
+
+function startDuelTimer() {
+  stopTimer();
+  timerInterval = setInterval(() => {
+    timeLeft--;
+    const el = document.getElementById('duel-timer');
+    el.textContent = timeLeft;
+    if (timeLeft <= 10) el.classList.add('text-red-500', 'animate-pulse');
+    if (timeLeft <= 0) {
+      stopTimer();
+      endGame();
+    }
+  }, 1000);
+}
+
+function stopTimer() {
+  if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+}
+
+// ========================================================================
+// MODO SOLO
+// ========================================================================
+function loadNextQuestion() {
+  if (questions.length === 0) questions = shuffle(ORACIONES);
+  currentQuestion = questions.pop();
+  questionCount++;
+  document.getElementById('question-counter').textContent = questionCount;
+
+  selectedIdx = new Set();
+  isProcessing = false;
+
+  renderSentence(document.getElementById('sentence-text'), currentQuestion, (idx, span) => toggleSoloWord(idx, span));
+  document.getElementById('pron-selector').classList.add('hidden');
+  document.getElementById('sentence-container').classList.remove('bg-green-100', 'bg-red-100');
+
+  if (mode === 'classic' && questionCount > 10) {
+    endGame();
+  }
+}
+
+function toggleSoloWord(idx, span) {
+  if (isProcessing) return;
+  if (selectedIdx.has(idx)) {
+    selectedIdx.delete(idx);
+    span.classList.remove('selected');
+  } else {
+    selectedIdx.add(idx);
+    span.classList.add('selected');
+  }
+}
+
+function buildSoloPronGrid() {
+  const grid = document.getElementById('pron-grid');
+  grid.innerHTML = '';
+  PRONOMBRES.forEach(p => {
+    const btn = document.createElement('button');
+    btn.className = 'pron-btn bg-white hover:bg-blue-500 hover:text-white border-2 border-blue-300 text-blue-700 font-bold py-2 px-2 rounded-lg text-sm transition-colors';
+    btn.textContent = p;
+    btn.addEventListener('click', () => handleSoloPronClick(p));
+    grid.appendChild(btn);
+  });
+}
+
+document.getElementById('omitted-btn').addEventListener('click', () => {
+  if (isProcessing) return;
+  document.getElementById('pron-selector').classList.remove('hidden');
+});
+
+document.getElementById('pron-cancel-btn').addEventListener('click', () => {
+  document.getElementById('pron-selector').classList.add('hidden');
+});
+
+function handleSoloPronClick(pron) {
+  if (isProcessing) return;
+  const correctPron = currentQuestion.pronombre;
+  const isOmitted = Array.isArray(correctPron);
+  const container = document.getElementById('sentence-container');
+
+  if (isOmitted && correctPron.includes(pron)) {
+    isProcessing = true;
+    score += 15;
+    document.getElementById('score').textContent = score;
+    container.classList.add('bg-green-100');
+    showFloatingText(container, '+15', true);
+    revealSolution(true);
+    setTimeout(() => loadNextQuestion(), 1400);
+  } else {
+    score = Math.max(0, score - 5);
+    document.getElementById('score').textContent = score;
+    container.classList.add('bg-red-100', 'animate-shake');
+    showFloatingText(container, '-5', false);
+    showHint(isOmitted
+      ? `El sujeto es "${correctPron[0]}" (omitido).`
+      : 'Esta oración tiene sujeto explícito. Márcalo en la frase.');
+    setTimeout(() => {
+      container.classList.remove('bg-red-100', 'animate-shake');
+    }, 600);
+    document.getElementById('pron-selector').classList.add('hidden');
+  }
+}
+
+document.getElementById('check-btn').addEventListener('click', () => {
+  if (isProcessing) return;
+  const correctPron = currentQuestion.pronombre;
+  const isOmitted = Array.isArray(correctPron);
+  const expected = currentQuestion.sujeto || [];
+  const container = document.getElementById('sentence-container');
+
+  if (isOmitted) {
+    score = Math.max(0, score - 5);
+    document.getElementById('score').textContent = score;
+    container.classList.add('bg-red-100', 'animate-shake');
+    showFloatingText(container, '-5', false);
+    showHint('¡Cuidado! Esta oración tiene sujeto omitido. Pulsa el botón azul.');
+    setTimeout(() => container.classList.remove('bg-red-100', 'animate-shake'), 600);
+    return;
+  }
+
+  const sel = [...selectedIdx].sort((a,b)=>a-b);
+  const exp = [...expected].sort((a,b)=>a-b);
+  const equal = sel.length === exp.length && sel.every((v,i) => v === exp[i]);
+
+  if (equal && sel.length > 0) {
+    isProcessing = true;
+    score += 10;
+    document.getElementById('score').textContent = score;
+    container.classList.add('bg-green-100');
+    showFloatingText(container, '+10', true);
+    revealSolution(true);
+    setTimeout(() => loadNextQuestion(), 1400);
+  } else {
+    score = Math.max(0, score - 5);
+    document.getElementById('score').textContent = score;
+    container.classList.add('bg-red-100', 'animate-shake');
+    showFloatingText(container, '-5', false);
+    setTimeout(() => container.classList.remove('bg-red-100', 'animate-shake'), 600);
+  }
+});
+
+function revealSolution(soloMode) {
+  const text = soloMode
+    ? document.getElementById('sentence-text')
+    : null;
+  if (!text) return;
+  const expected = currentQuestion.sujeto || [];
+  const correctPron = currentQuestion.pronombre;
+  const isOmitted = Array.isArray(correctPron);
+
+  text.querySelectorAll('.word').forEach(span => {
+    const idx = parseInt(span.dataset.idx);
+    span.classList.remove('selected');
+    span.classList.add('locked');
+    if (expected.includes(idx)) {
+      span.classList.add('sujeto-correct');
+    } else {
+      span.classList.add('predicado-correct');
+    }
+  });
+
+  if (isOmitted) {
+    const bubble = document.createElement('span');
+    bubble.className = 'so-bubble';
+    bubble.textContent = `(${correctPron[0]})`;
+    text.insertBefore(bubble, text.firstChild);
+  }
+}
+
+function showHint(msg) {
+  const indicator = document.getElementById('step-indicator');
+  const old = indicator.innerHTML;
+  indicator.innerHTML = `<svg class="h-4 w-4"><use href="#i-x"/></svg><span>${msg}</span>`;
+  indicator.className = 'bg-red-50 border-b-2 border-red-100 px-4 py-2 text-center text-sm font-semibold text-red-700 flex items-center justify-center gap-2';
+  setTimeout(() => {
+    indicator.innerHTML = old;
+    indicator.className = 'bg-blue-50 border-b-2 border-blue-100 px-4 py-2 text-center text-sm font-semibold text-blue-700 flex items-center justify-center gap-2';
+  }, 2500);
+}
+
+document.getElementById('skip-btn').addEventListener('click', () => {
+  if (isProcessing) return;
+  loadNextQuestion();
+});
+document.getElementById('menu-btn').addEventListener('click', goToMenu);
+document.getElementById('duel-menu-btn').addEventListener('click', goToMenu);
+
+// ========================================================================
+// MODO DUELO
+// ========================================================================
+function buildPanelPronGrid(panelIdx) {
+  const grid = document.querySelector(`[data-pron-panel="${panelIdx + 1}"]`);
+  grid.innerHTML = '';
+  const cls = panelIdx === 0
+    ? 'panel-pron-btn bg-white hover:bg-blue-500 hover:text-white border border-blue-300 text-blue-700 font-semibold py-1 px-1 rounded text-xs transition-colors'
+    : 'panel-pron-btn bg-white hover:bg-pink-500 hover:text-white border border-pink-300 text-pink-700 font-semibold py-1 px-1 rounded text-xs transition-colors';
+  PRONOMBRES.forEach(p => {
+    const btn = document.createElement('button');
+    btn.className = cls;
+    btn.textContent = p;
+    btn.addEventListener('click', () => handlePanelPronClick(panelIdx, p));
+    grid.appendChild(btn);
+  });
+}
+
+function loadPanelQuestion(panelIdx) {
+  if (questions.length === 0) questions = shuffle(ORACIONES);
+  panelQuestions[panelIdx] = questions.pop();
+  panelSelected[panelIdx] = new Set();
+  panelProcessing[panelIdx] = false;
+
+  const textEl = document.getElementById(`panel${panelIdx + 1}-text`);
+  renderSentence(textEl, panelQuestions[panelIdx], (idx, span) => togglePanelWord(panelIdx, idx, span));
+
+  const sentenceBox = document.getElementById(`panel${panelIdx + 1}-sentence`);
+  sentenceBox.classList.remove('bg-green-100', 'bg-red-100', 'animate-shake');
+  document.getElementById(`panel${panelIdx + 1}-pron`).classList.add('hidden');
+}
+
+function togglePanelWord(panelIdx, idx, span) {
+  if (panelProcessing[panelIdx]) return;
+  if (panelSelected[panelIdx].has(idx)) {
+    panelSelected[panelIdx].delete(idx);
+    span.classList.remove('selected');
+  } else {
+    panelSelected[panelIdx].add(idx);
+    span.classList.add('selected');
+  }
+}
+
+document.querySelectorAll('.panel-action-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const panelIdx = parseInt(btn.dataset.panel) - 1;
+    if (panelProcessing[panelIdx]) return;
+    const action = btn.dataset.action;
+    if (action === 'omitted') {
+      document.getElementById(`panel${panelIdx + 1}-pron`).classList.remove('hidden');
+    } else if (action === 'check') {
+      checkPanel(panelIdx);
+    }
+  });
+});
+
+function checkPanel(panelIdx) {
+  const q = panelQuestions[panelIdx];
+  const correctPron = q.pronombre;
+  const isOmitted = Array.isArray(correctPron);
+  const sentenceBox = document.getElementById(`panel${panelIdx + 1}-sentence`);
+
+  if (isOmitted) {
+    teamScores[panelIdx] = Math.max(0, teamScores[panelIdx] - 5);
+    document.getElementById(`duel-team${panelIdx + 1}-score`).textContent = teamScores[panelIdx];
+    sentenceBox.classList.add('bg-red-100', 'animate-shake');
+    showFloatingText(sentenceBox, '-5', false);
+    setTimeout(() => sentenceBox.classList.remove('bg-red-100', 'animate-shake'), 600);
+    return;
+  }
+
+  const expected = q.sujeto || [];
+  const sel = [...panelSelected[panelIdx]].sort((a,b)=>a-b);
+  const exp = [...expected].sort((a,b)=>a-b);
+  const equal = sel.length === exp.length && sel.every((v,i) => v === exp[i]);
+
+  if (equal && sel.length > 0) {
+    panelProcessing[panelIdx] = true;
+    teamScores[panelIdx] += 10;
+    document.getElementById(`duel-team${panelIdx + 1}-score`).textContent = teamScores[panelIdx];
+    sentenceBox.classList.add('bg-green-100');
+    showFloatingText(sentenceBox, '+10', true);
+    revealPanelSolution(panelIdx);
+    setTimeout(() => { if (timeLeft > 0) loadPanelQuestion(panelIdx); }, 1200);
+  } else {
+    teamScores[panelIdx] = Math.max(0, teamScores[panelIdx] - 5);
+    document.getElementById(`duel-team${panelIdx + 1}-score`).textContent = teamScores[panelIdx];
+    sentenceBox.classList.add('bg-red-100', 'animate-shake');
+    showFloatingText(sentenceBox, '-5', false);
+    setTimeout(() => sentenceBox.classList.remove('bg-red-100', 'animate-shake'), 600);
+  }
+}
+
+function handlePanelPronClick(panelIdx, pron) {
+  if (panelProcessing[panelIdx]) return;
+  const q = panelQuestions[panelIdx];
+  const correctPron = q.pronombre;
+  const isOmitted = Array.isArray(correctPron);
+  const sentenceBox = document.getElementById(`panel${panelIdx + 1}-sentence`);
+
+  if (isOmitted && correctPron.includes(pron)) {
+    panelProcessing[panelIdx] = true;
+    teamScores[panelIdx] += 15;
+    document.getElementById(`duel-team${panelIdx + 1}-score`).textContent = teamScores[panelIdx];
+    sentenceBox.classList.add('bg-green-100');
+    showFloatingText(sentenceBox, '+15', true);
+    revealPanelSolution(panelIdx);
+    setTimeout(() => { if (timeLeft > 0) loadPanelQuestion(panelIdx); }, 1200);
+  } else {
+    teamScores[panelIdx] = Math.max(0, teamScores[panelIdx] - 5);
+    document.getElementById(`duel-team${panelIdx + 1}-score`).textContent = teamScores[panelIdx];
+    sentenceBox.classList.add('bg-red-100', 'animate-shake');
+    showFloatingText(sentenceBox, '-5', false);
+    setTimeout(() => sentenceBox.classList.remove('bg-red-100', 'animate-shake'), 600);
+    document.getElementById(`panel${panelIdx + 1}-pron`).classList.add('hidden');
+  }
+}
+
+function revealPanelSolution(panelIdx) {
+  const q = panelQuestions[panelIdx];
+  const text = document.getElementById(`panel${panelIdx + 1}-text`);
+  const expected = q.sujeto || [];
+  const isOmitted = Array.isArray(q.pronombre);
+
+  text.querySelectorAll('.word').forEach(span => {
+    const idx = parseInt(span.dataset.idx);
+    span.classList.remove('selected');
+    span.classList.add('locked');
+    if (expected.includes(idx)) {
+      span.classList.add('sujeto-correct');
+    } else {
+      span.classList.add('predicado-correct');
+    }
+  });
+
+  if (isOmitted) {
+    const bubble = document.createElement('span');
+    bubble.className = 'so-bubble';
+    bubble.textContent = `(${q.pronombre[0]})`;
+    text.insertBefore(bubble, text.firstChild);
+  }
+}
+
+// ========================================================================
+// HELPERS
+// ========================================================================
+function renderSentence(container, question, onWordClick) {
+  container.innerHTML = '';
+  const words = question.text.split(/\s+/);
+  words.forEach((part, idx) => {
+    const span = document.createElement('span');
+    span.className = 'word';
+    span.textContent = part;
+    span.dataset.idx = idx;
+    span.addEventListener('click', () => onWordClick(idx, span));
+    container.appendChild(span);
+    container.appendChild(document.createTextNode(' '));
+  });
+  container.classList.remove('animate-pop');
+  void container.offsetWidth;
+  container.classList.add('animate-pop');
+}
+
+function showFloatingText(container, text, positive) {
+  const el = document.createElement('div');
+  el.textContent = text;
+  el.className = `floating-score ${positive ? 'text-green-500' : 'text-red-500'}`;
+  el.style.left = '50%';
+  el.style.top = '50%';
+  el.style.transform = 'translate(-50%, -50%)';
+  container.appendChild(el);
+  setTimeout(() => el.remove(), 1000);
+}
+
+function setEndIcon(iconId, colorClass) {
+  const svg = document.getElementById('end-icon-svg');
+  svg.innerHTML = `<use href="#${iconId}"/>`;
+  svg.className = `h-20 w-20 ${colorClass}`;
+}
+
+// ========================================================================
+// FIN DEL JUEGO
+// ========================================================================
+function endGame() {
+  stopTimer();
+  Object.values(screens).forEach(s => { s.classList.add('hidden'); s.classList.remove('flex'); });
+  screens.end.classList.remove('hidden');
+  screens.end.classList.add('flex');
+
+  if (mode === 'teams') {
+    document.getElementById('end-solo').classList.add('hidden');
+    document.getElementById('end-teams').classList.remove('hidden');
+    document.getElementById('end-team1-name').textContent = teamNames[0];
+    document.getElementById('end-team2-name').textContent = teamNames[1];
+    document.getElementById('end-team1-score').textContent = teamScores[0];
+    document.getElementById('end-team2-score').textContent = teamScores[1];
+
+    const card1 = document.getElementById('end-team1-card');
+    const card2 = document.getElementById('end-team2-card');
+    card1.className = 'bg-blue-50 rounded-2xl p-5 border-4 border-blue-200';
+    card2.className = 'bg-pink-50 rounded-2xl p-5 border-4 border-pink-200';
+
+    document.getElementById('end-title').textContent = '¡Fin del duelo!';
+    if (teamScores[0] > teamScores[1]) {
+      setEndIcon('i-trophy', 'text-yellow-500');
+      document.getElementById('end-message').textContent = `¡Victoria para ${teamNames[0]}!`;
+      card1.className = 'bg-blue-50 rounded-2xl p-5 border-4 border-blue-500 shadow-xl shadow-blue-200';
+    } else if (teamScores[1] > teamScores[0]) {
+      setEndIcon('i-trophy', 'text-yellow-500');
+      document.getElementById('end-message').textContent = `¡Victoria para ${teamNames[1]}!`;
+      card2.className = 'bg-pink-50 rounded-2xl p-5 border-4 border-pink-500 shadow-xl shadow-pink-200';
+    } else {
+      setEndIcon('i-handshake', 'text-slate-500');
+      document.getElementById('end-message').textContent = '¡Empate! Muy igualado.';
+    }
+  } else {
+    document.getElementById('end-solo').classList.remove('hidden');
+    document.getElementById('end-teams').classList.add('hidden');
+    document.getElementById('final-score').textContent = score;
+
+    if (mode === 'timer') {
+      document.getElementById('end-title').textContent = '¡Tiempo!';
+    } else {
+      document.getElementById('end-title').textContent = '¡Fin del juego!';
+    }
+
+    if (score >= 120) {
+      setEndIcon('i-crown', 'text-yellow-500');
+      document.getElementById('end-message').textContent = '¡Increíble! Detective experto en sujetos.';
+    } else if (score >= 70) {
+      setEndIcon('i-trophy', 'text-yellow-500');
+      document.getElementById('end-message').textContent = '¡Muy bien! Tienes un gran dominio.';
+    } else if (score >= 30) {
+      setEndIcon('i-star', 'text-blue-500');
+      document.getElementById('end-message').textContent = '¡Bien hecho! Sigue practicando.';
+    } else {
+      setEndIcon('i-book', 'text-slate-500');
+      document.getElementById('end-message').textContent = 'Repasa sujeto y predicado y vuelve a intentarlo.';
+    }
+  }
+}
+
+
+// ==========================================================================
+// ==========================================================================
+//
+//        📚 BANCO DE ORACIONES — AMPLIABLE FÁCILMENTE 📚
+//
+//  Formato de cada oración:
+//
+//      { text: "Oración palabra a palabra.", sujeto: [0, 1], pronombre: null },
+//
+//  CAMPOS:
+//  - text: La oración completa. La división por palabras se hace por espacios.
+//          El índice de cada palabra empieza en 0 (la primera palabra es 0).
+//          Los signos de puntuación van pegados a la palabra (forman parte
+//          del "chip", igual que cuando se subraya en un cuaderno).
+//
+//  - sujeto: Array con los ÍNDICES de las palabras que forman el sujeto.
+//            Si el sujeto está OMITIDO, debe ser [] (vacío).
+//
+//  - pronombre:
+//        · null         → el sujeto está EXPLÍCITO en la oración.
+//        · ["yo"]       → sujeto OMITIDO; el pronombre tácito es "yo".
+//        · ["él","ella"]→ sujeto OMITIDO con varios pronombres válidos
+//                         (p. ej. "Corre por el parque" admite él/ella).
+//
+//  REGLAS:
+//  - Si pronombre es un array, sujeto DEBE ser [] y viceversa.
+//  - Cuenta bien los índices: separa por espacios. "Mi hermano corre." →
+//    [0]="Mi", [1]="hermano", [2]="corre." → sujeto = [0, 1].
+//
+// ==========================================================================
+// ==========================================================================
+
+const ORACIONES = [
+
+  // --- SUJETO EXPLÍCITO ---
+  { text: "Mi hermano juega al fútbol.", sujeto: [0, 1], pronombre: null },
+  { text: "Los niños corren por el patio.", sujeto: [0, 1], pronombre: null },
+  { text: "La profesora explica la lección.", sujeto: [0, 1], pronombre: null },
+  { text: "El perro de Lucía ladra mucho.", sujeto: [0, 1, 2, 3], pronombre: null },
+  { text: "Mis abuelos viven en el pueblo.", sujeto: [0, 1], pronombre: null },
+  { text: "El gato negro duerme en el sofá.", sujeto: [0, 1, 2], pronombre: null },
+  { text: "Marta canta una canción bonita.", sujeto: [0], pronombre: null },
+  { text: "Las flores del jardín huelen muy bien.", sujeto: [0, 1, 2, 3], pronombre: null },
+  { text: "El cartero trae una carta urgente.", sujeto: [0, 1], pronombre: null },
+  { text: "Mi padre cocina los domingos.", sujeto: [0, 1], pronombre: null },
+  { text: "La luna brilla en el cielo oscuro.", sujeto: [0, 1], pronombre: null },
+  { text: "Tres pájaros vuelan sobre el tejado.", sujeto: [0, 1], pronombre: null },
+  { text: "El profesor de música toca el piano.", sujeto: [0, 1, 2, 3], pronombre: null },
+  { text: "Aquel coche rojo va muy rápido.", sujeto: [0, 1, 2], pronombre: null },
+  { text: "Los pasteles de chocolate están deliciosos.", sujeto: [0, 1, 2, 3], pronombre: null },
+  { text: "Mi mejor amiga viene a casa.", sujeto: [0, 1, 2], pronombre: null },
+  { text: "Las hojas caen en otoño.", sujeto: [0, 1], pronombre: null },
+  { text: "El sol calienta la playa en verano.", sujeto: [0, 1], pronombre: null },
+  { text: "Mi tío Pedro pinta cuadros preciosos.", sujeto: [0, 1, 2], pronombre: null },
+  { text: "Esos alumnos estudian para el examen.", sujeto: [0, 1], pronombre: null },
+  { text: "La pelota rebota contra la pared.", sujeto: [0, 1], pronombre: null },
+  { text: "Mi hermana pequeña dibuja un castillo.", sujeto: [0, 1, 2], pronombre: null },
+  { text: "El cocinero prepara la comida.", sujeto: [0, 1], pronombre: null },
+  { text: "Aquellos turistas visitan el museo.", sujeto: [0, 1], pronombre: null },
+  { text: "La vecina del quinto regala bombones.", sujeto: [0, 1, 2, 3], pronombre: null },
+  { text: "Los bomberos apagan el incendio.", sujeto: [0, 1], pronombre: null },
+  { text: "El tren llega a la estación.", sujeto: [0, 1], pronombre: null },
+  { text: "Carlos y Andrea pintan la valla.", sujeto: [0, 1, 2], pronombre: null },
+  { text: "Mi gato persigue una mariposa.", sujeto: [0, 1], pronombre: null },
+  { text: "El médico atiende a los pacientes.", sujeto: [0, 1], pronombre: null },
+  { text: "Los aviones despegan del aeropuerto.", sujeto: [0, 1], pronombre: null },
+  { text: "Una serpiente larga repta por la hierba.", sujeto: [0, 1, 2], pronombre: null },
+  { text: "Las ardillas saltan entre los árboles.", sujeto: [0, 1], pronombre: null },
+  { text: "El panadero amasa el pan cada mañana.", sujeto: [0, 1], pronombre: null },
+  { text: "Mi prima Lucía baila en el escenario.", sujeto: [0, 1, 2], pronombre: null },
+
+  // --- SUJETO OMITIDO ---
+  { text: "Estudio todas las tardes en mi cuarto.", sujeto: [], pronombre: ["yo"] },
+  { text: "Tengo mucha hambre.", sujeto: [], pronombre: ["yo"] },
+  { text: "Voy al cine esta tarde.", sujeto: [], pronombre: ["yo"] },
+  { text: "Como fruta después de cenar.", sujeto: [], pronombre: ["yo"] },
+  { text: "Cantas muy bien las canciones.", sujeto: [], pronombre: ["tú"] },
+  { text: "Tienes los ojos azules.", sujeto: [], pronombre: ["tú"] },
+  { text: "Llegas tarde otra vez.", sujeto: [], pronombre: ["tú"] },
+  { text: "Corre todos los días por el parque.", sujeto: [], pronombre: ["él", "ella"] },
+  { text: "Vive en una casa enorme.", sujeto: [], pronombre: ["él", "ella"] },
+  { text: "Pinta cuadros muy bonitos.", sujeto: [], pronombre: ["él", "ella"] },
+  { text: "Sabe la respuesta correcta.", sujeto: [], pronombre: ["él", "ella"] },
+  { text: "Vamos a la piscina esta tarde.", sujeto: [], pronombre: ["nosotros", "nosotras"] },
+  { text: "Jugamos al baloncesto en el recreo.", sujeto: [], pronombre: ["nosotros", "nosotras"] },
+  { text: "Hicimos los deberes ayer juntos.", sujeto: [], pronombre: ["nosotros", "nosotras"] },
+  { text: "Cantamos en el coro del colegio.", sujeto: [], pronombre: ["nosotros", "nosotras"] },
+  { text: "Coméis demasiados dulces antes de cenar.", sujeto: [], pronombre: ["vosotros", "vosotras"] },
+  { text: "Vivís en el mismo barrio.", sujeto: [], pronombre: ["vosotros", "vosotras"] },
+  { text: "Sois muy buenos amigos.", sujeto: [], pronombre: ["vosotros", "vosotras"] },
+  { text: "Estudian inglés todos los lunes.", sujeto: [], pronombre: ["ellos", "ellas"] },
+  { text: "Trabajan en la misma oficina.", sujeto: [], pronombre: ["ellos", "ellas"] },
+  { text: "Han ganado el campeonato regional.", sujeto: [], pronombre: ["ellos", "ellas"] },
+  { text: "Vienen mañana en el primer tren.", sujeto: [], pronombre: ["ellos", "ellas"] },
+  { text: "Iré a tu casa después del colegio.", sujeto: [], pronombre: ["yo"] },
+  { text: "Te ayudaré con los deberes.", sujeto: [], pronombre: ["yo"] },
+  { text: "Hablas demasiado en clase.", sujeto: [], pronombre: ["tú"] },
+  { text: "Compraste un regalo precioso.", sujeto: [], pronombre: ["tú"] },
+  { text: "Limpia su habitación los sábados.", sujeto: [], pronombre: ["él", "ella"] },
+  { text: "Dibujó un paisaje increíble.", sujeto: [], pronombre: ["él", "ella"] },
+  { text: "Subimos a la montaña el domingo.", sujeto: [], pronombre: ["nosotros", "nosotras"] },
+  { text: "Vemos una película de aventuras.", sujeto: [], pronombre: ["nosotros", "nosotras"] },
+  { text: "Tenéis mucha suerte con el tiempo.", sujeto: [], pronombre: ["vosotros", "vosotras"] },
+  { text: "Habéis dejado los abrigos en la silla.", sujeto: [], pronombre: ["vosotros", "vosotras"] },
+  { text: "Construyen una casa nueva en el pueblo.", sujeto: [], pronombre: ["ellos", "ellas"] },
+  { text: "Cantaron en el festival de fin de curso.", sujeto: [], pronombre: ["ellos", "ellas"] },
+  { text: "Estoy muy cansado después del partido.", sujeto: [], pronombre: ["yo"] },
+  { text: "Necesitas descansar un poco.", sujeto: [], pronombre: ["tú"] },
+  { text: "Llegó pronto a la reunión.", sujeto: [], pronombre: ["él", "ella"] },
+  { text: "Salimos del cine muy contentos.", sujeto: [], pronombre: ["nosotros", "nosotras"] },
+  { text: "Olvidasteis las llaves en la mesa.", sujeto: [], pronombre: ["vosotros", "vosotras"] },
+  { text: "Volverán pronto de las vacaciones.", sujeto: [], pronombre: ["ellos", "ellas"] },
+
+];
+</script>
+
+</body>
+</html>
