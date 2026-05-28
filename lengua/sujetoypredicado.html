@@ -46,45 +46,72 @@
   .word {
     display: inline-block;
     padding: 0.15rem 0.55rem;
-    margin: 0.1rem 0.05rem;
+    margin: 0.6rem 0.05rem 0.1rem 0.05rem;
     border-radius: 0.5rem;
     cursor: pointer;
     transition: background-color 0.15s, transform 0.15s, color 0.15s;
     border-bottom: 3px solid transparent;
+    position: relative;
   }
   .word:hover { background-color: #e0e7ff; }
 
-  /* Selección en curso del SUJETO */
-  .word.subj-selected {
-    background-color: #3b82f6;
-    color: white;
-    border-bottom-color: #1d4ed8;
-  }
-  /* Selección en curso del VERBO */
-  .word.verb-selected {
+  /* Selecciones en curso */
+  .word.verb-pick {
     background-color: #a855f7;
     color: white;
     border-bottom-color: #7e22ce;
   }
-  /* Estado final tras acierto */
-  .word.sujeto-correct {
+  .word.subj-pick {
     background-color: #3b82f6;
     color: white;
     border-bottom-color: #1d4ed8;
-    animation: popIn 0.3s ease;
   }
+  .word.pred-pick {
+    background-color: #dc2626;
+    color: white;
+    border-bottom-color: #991b1b;
+  }
+
+  /* Estados finales tras acierto */
   .word.verbo-correct {
     background-color: #a855f7;
     color: white;
     border-bottom-color: #7e22ce;
     animation: popIn 0.3s ease;
   }
-  .word.predicado-correct {
-    background-color: #f97316;
+  .word.sujeto-correct {
+    background-color: #3b82f6;
     color: white;
-    border-bottom-color: #c2410c;
+    border-bottom-color: #1d4ed8;
     animation: popIn 0.3s ease;
   }
+  .word.predicado-correct {
+    background-color: #dc2626;
+    color: white;
+    border-bottom-color: #991b1b;
+    animation: popIn 0.3s ease;
+  }
+
+  /* Etiqueta "verbo" flotando encima de la palabra acertada */
+  .word.verb-label::before {
+    content: "verbo";
+    position: absolute;
+    top: -0.95rem;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.55rem;
+    background: #7e22ce;
+    color: white;
+    padding: 0.05rem 0.45rem;
+    border-radius: 9999px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    line-height: 1.2;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+  }
+
   .word.wrong {
     background-color: #ef4444;
     color: white;
@@ -111,6 +138,10 @@
     animation: popIn 0.3s ease;
     vertical-align: middle;
   }
+
+  /* Por defecto, ocultar todos los grupos de acción y solo mostrar el activo */
+  .step-actions { display: none; }
+  .step-actions.active { display: grid; }
 </style>
 </head>
 <body class="min-h-screen flex flex-col items-center justify-center p-2 md:p-4 text-slate-800">
@@ -131,9 +162,6 @@
     </symbol>
     <symbol id="i-swords" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/><line x1="13" y1="19" x2="19" y2="13"/><line x1="16" y1="16" x2="20" y2="20"/><line x1="19" y1="21" x2="21" y2="19"/><polyline points="14.5 6.5 18 3 21 3 21 6 17.5 9.5"/><line x1="5" y1="14" x2="9" y2="18"/><line x1="7" y1="17" x2="4" y2="20"/><line x1="3" y1="19" x2="5" y2="21"/>
-    </symbol>
-    <symbol id="i-target" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>
     </symbol>
     <symbol id="i-trophy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
@@ -168,9 +196,11 @@
     <symbol id="i-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
     </symbol>
-    <!-- Rayo / acción (verbo) -->
     <symbol id="i-bolt" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+    </symbol>
+    <symbol id="i-underline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M6 4v6a6 6 0 0 0 12 0V4"/><line x1="4" y1="20" x2="20" y2="20"/>
     </symbol>
   </defs>
 </svg>
@@ -185,10 +215,10 @@
     </div>
     <h1 class="text-4xl md:text-5xl font-bold text-slate-800 mb-3 tracking-tight">Detective de Sujetos</h1>
     <p class="text-lg text-slate-600 mb-2 max-w-md">
-      Primero busca el <span class="text-purple-600 font-bold">verbo</span>, luego el <span class="text-blue-600 font-bold">sujeto</span>.
+      Subraya el <span class="text-purple-600 font-bold">verbo</span>, el <span class="text-blue-600 font-bold">sujeto</span> y el <span class="text-red-600 font-bold">predicado</span>.
     </p>
     <p class="text-sm text-slate-500 mb-8 max-w-lg">
-      ¡Atención! El verbo puede ser compuesto (<em>ha cantado</em>, <em>está corriendo</em>) y a veces el sujeto está <span class="font-semibold text-blue-600">omitido</span>: tendrás que descubrir qué pronombre lo representa.
+      El verbo puede ser compuesto (<em>ha cantado</em>, <em>está corriendo</em>) y a veces el sujeto está <span class="font-semibold text-blue-600">omitido</span>: tendrás que descubrir qué pronombre lo representa.
     </p>
 
     <p class="text-slate-500 font-semibold mb-4 text-sm uppercase tracking-wider">Elige un modo de juego</p>
@@ -239,19 +269,23 @@
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm bg-slate-50 p-4 rounded-2xl w-full max-w-lg border border-slate-200">
       <div class="flex items-center gap-2">
         <svg class="h-5 w-5 text-purple-500"><use href="#i-bolt"/></svg>
-        <span>Acertar el verbo: <strong>+5</strong> puntos</span>
+        <span>Verbo: <strong>+5</strong></span>
       </div>
       <div class="flex items-center gap-2">
         <svg class="h-5 w-5 text-blue-500"><use href="#i-user"/></svg>
-        <span>Acertar el sujeto: <strong>+10</strong> puntos</span>
+        <span>Sujeto: <strong>+10</strong></span>
       </div>
-      <div class="flex items-center gap-2 col-span-1 sm:col-span-2">
+      <div class="flex items-center gap-2">
+        <svg class="h-5 w-5 text-red-500"><use href="#i-underline"/></svg>
+        <span>Predicado: <strong>+5</strong></span>
+      </div>
+      <div class="flex items-center gap-2">
         <svg class="h-5 w-5 text-blue-500"><use href="#i-eye-off"/></svg>
-        <span>Detectar sujeto omitido con el pronombre correcto: <strong>+15</strong> puntos.</span>
+        <span>Sujeto omitido: <strong>+15</strong></span>
       </div>
-      <div class="flex items-center gap-2 col-span-1 sm:col-span-2">
+      <div class="flex items-center gap-2 col-span-1 sm:col-span-2 text-slate-600">
         <svg class="h-5 w-5 text-red-500"><use href="#i-x"/></svg>
-        <span>Cada fallo: <strong>-3</strong> puntos.</span>
+        <span>Cada fallo: <strong>-3</strong>.</span>
       </div>
     </div>
   </div>
@@ -272,36 +306,50 @@
       </div>
     </div>
 
-    <div id="step-indicator" class="bg-purple-50 border-b-2 border-purple-100 px-4 py-2 text-center text-sm font-semibold text-purple-700 flex items-center justify-center gap-2">
-      <svg class="h-4 w-4"><use href="#i-bolt"/></svg>
-      <span><strong>Paso 1:</strong> Marca el verbo (puede tener varias palabras).</span>
-    </div>
+    <div id="step-indicator" class="bg-purple-50 border-b-2 border-purple-100 px-4 py-2 text-center text-sm font-semibold text-purple-700 flex items-center justify-center gap-2"></div>
 
-    <div id="sentence-container" class="p-6 md:p-10 flex items-center justify-center text-center min-h-[180px] bg-slate-50 transition-colors duration-300 relative">
+    <div id="sentence-container" class="px-6 pt-10 pb-8 md:px-10 md:pt-12 md:pb-10 flex items-center justify-center text-center min-h-[200px] bg-slate-50 transition-colors duration-300 relative">
       <h2 id="sentence-text" class="text-2xl md:text-3xl lg:text-4xl text-slate-700 leading-relaxed"></h2>
     </div>
 
     <div class="p-4 md:p-6 bg-white border-t border-slate-100">
 
-      <div id="main-actions" class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
-        <button id="check-btn" class="action-btn col-span-1 sm:col-span-2 bg-green-500 hover:bg-green-600 text-white font-bold py-4 px-3 rounded-xl shadow-lg shadow-green-200 transition-transform hover:scale-[1.01] active:scale-95 flex items-center justify-center gap-2 text-lg">
-          <svg class="h-6 w-6"><use href="#i-check"/></svg>
-          Comprobar
+      <!-- Paso 1: VERBO -->
+      <div id="actions-verb" class="step-actions active grid-cols-1 gap-3 mb-3">
+        <button id="check-verb-btn" class="action-btn bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 px-3 rounded-xl shadow-lg shadow-purple-200 transition-transform hover:scale-[1.01] active:scale-95 flex items-center justify-center gap-2 text-lg">
+          <svg class="h-6 w-6"><use href="#i-bolt"/></svg>
+          Comprobar verbo
         </button>
-        <button id="omitted-btn" class="action-btn bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 px-3 rounded-xl shadow-lg shadow-blue-200 transition-transform hover:scale-[1.01] active:scale-95 flex items-center justify-center gap-2" disabled>
+      </div>
+
+      <!-- Paso 2: SUJETO -->
+      <div id="actions-subj" class="step-actions grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+        <button id="check-subj-btn" class="action-btn col-span-1 sm:col-span-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-3 rounded-xl shadow-lg shadow-blue-200 transition-transform hover:scale-[1.01] active:scale-95 flex items-center justify-center gap-2 text-lg">
+          <svg class="h-6 w-6"><use href="#i-user"/></svg>
+          Comprobar sujeto
+        </button>
+        <button id="omitted-btn" class="action-btn bg-sky-400 hover:bg-sky-500 text-white font-bold py-4 px-3 rounded-xl shadow-lg shadow-sky-200 transition-transform hover:scale-[1.01] active:scale-95 flex items-center justify-center gap-2">
           <svg class="h-5 w-5"><use href="#i-eye-off"/></svg>
           Sujeto omitido
         </button>
       </div>
 
-      <div id="pron-selector" class="hidden bg-blue-50 border-2 border-blue-200 rounded-xl p-3 mb-3 animate-pop">
-        <p class="text-center text-blue-700 font-semibold text-sm mb-2">
+      <!-- Paso 3: PREDICADO -->
+      <div id="actions-pred" class="step-actions grid-cols-1 gap-3 mb-3">
+        <button id="check-pred-btn" class="action-btn bg-red-600 hover:bg-red-700 text-white font-bold py-4 px-3 rounded-xl shadow-lg shadow-red-200 transition-transform hover:scale-[1.01] active:scale-95 flex items-center justify-center gap-2 text-lg">
+          <svg class="h-6 w-6"><use href="#i-underline"/></svg>
+          Comprobar predicado
+        </button>
+      </div>
+
+      <div id="pron-selector" class="hidden bg-sky-50 border-2 border-sky-300 rounded-xl p-3 mb-3 animate-pop">
+        <p class="text-center text-sky-700 font-semibold text-sm mb-2">
           <svg class="h-4 w-4 icon-inline"><use href="#i-user"/></svg>
           ¿Qué pronombre representa el sujeto omitido?
         </p>
         <div id="pron-grid" class="grid grid-cols-3 sm:grid-cols-5 gap-2"></div>
         <div class="flex justify-center mt-2">
-          <button id="pron-cancel-btn" class="text-xs text-blue-600 hover:text-blue-800 underline">Cancelar</button>
+          <button id="pron-cancel-btn" class="text-xs text-sky-600 hover:text-sky-800 underline">Cancelar</button>
         </div>
       </div>
 
@@ -345,23 +393,14 @@
           <span class="w-3 h-3 bg-white rounded-full"></span>
           <span id="panel1-name">Equipo 1</span>
         </div>
-        <div id="panel1-step" class="bg-purple-100 text-purple-700 text-center py-1 text-xs font-semibold">
-          Paso 1: marca el verbo
-        </div>
-        <div id="panel1-sentence" class="p-3 md:p-6 min-h-[110px] flex items-center justify-center text-center bg-white relative">
+        <div id="panel1-step" class="bg-purple-100 text-purple-700 text-center py-1 text-xs font-semibold"></div>
+        <div id="panel1-sentence" class="px-3 pt-8 pb-5 md:px-6 md:pt-10 md:pb-6 min-h-[120px] flex items-center justify-center text-center bg-white relative">
           <p id="panel1-text" class="text-base md:text-xl lg:text-2xl text-slate-700 leading-relaxed"></p>
         </div>
         <div class="p-2 md:p-3 bg-blue-50">
-          <div class="grid grid-cols-2 gap-2 mb-2">
-            <button data-panel="1" data-action="check" class="panel-action-btn bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-2 rounded-lg text-sm flex items-center justify-center gap-1">
-              <svg class="h-4 w-4"><use href="#i-check"/></svg> Comprobar
-            </button>
-            <button data-panel="1" data-action="omitted" class="panel-action-btn bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-2 rounded-lg text-sm flex items-center justify-center gap-1" disabled>
-              <svg class="h-4 w-4"><use href="#i-eye-off"/></svg> Omitido
-            </button>
-          </div>
-          <div id="panel1-pron" class="hidden bg-white border-2 border-blue-300 rounded-lg p-2 animate-pop">
-            <p class="text-blue-700 text-xs font-semibold text-center mb-1">¿Qué pronombre?</p>
+          <div id="panel1-actions" class="grid grid-cols-2 gap-2 mb-2"></div>
+          <div id="panel1-pron" class="hidden bg-white border-2 border-sky-300 rounded-lg p-2 animate-pop">
+            <p class="text-sky-700 text-xs font-semibold text-center mb-1">¿Qué pronombre?</p>
             <div class="grid grid-cols-3 gap-1" data-pron-panel="1"></div>
           </div>
         </div>
@@ -373,23 +412,14 @@
           <span class="w-3 h-3 bg-white rounded-full"></span>
           <span id="panel2-name">Equipo 2</span>
         </div>
-        <div id="panel2-step" class="bg-purple-100 text-purple-700 text-center py-1 text-xs font-semibold">
-          Paso 1: marca el verbo
-        </div>
-        <div id="panel2-sentence" class="p-3 md:p-6 min-h-[110px] flex items-center justify-center text-center bg-white relative">
+        <div id="panel2-step" class="bg-purple-100 text-purple-700 text-center py-1 text-xs font-semibold"></div>
+        <div id="panel2-sentence" class="px-3 pt-8 pb-5 md:px-6 md:pt-10 md:pb-6 min-h-[120px] flex items-center justify-center text-center bg-white relative">
           <p id="panel2-text" class="text-base md:text-xl lg:text-2xl text-slate-700 leading-relaxed"></p>
         </div>
         <div class="p-2 md:p-3 bg-pink-50">
-          <div class="grid grid-cols-2 gap-2 mb-2">
-            <button data-panel="2" data-action="check" class="panel-action-btn bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-2 rounded-lg text-sm flex items-center justify-center gap-1">
-              <svg class="h-4 w-4"><use href="#i-check"/></svg> Comprobar
-            </button>
-            <button data-panel="2" data-action="omitted" class="panel-action-btn bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-2 rounded-lg text-sm flex items-center justify-center gap-1" disabled>
-              <svg class="h-4 w-4"><use href="#i-eye-off"/></svg> Omitido
-            </button>
-          </div>
-          <div id="panel2-pron" class="hidden bg-white border-2 border-pink-300 rounded-lg p-2 animate-pop">
-            <p class="text-pink-700 text-xs font-semibold text-center mb-1">¿Qué pronombre?</p>
+          <div id="panel2-actions" class="grid grid-cols-2 gap-2 mb-2"></div>
+          <div id="panel2-pron" class="hidden bg-white border-2 border-sky-300 rounded-lg p-2 animate-pop">
+            <p class="text-sky-700 text-xs font-semibold text-center mb-1">¿Qué pronombre?</p>
             <div class="grid grid-cols-3 gap-1" data-pron-panel="2"></div>
           </div>
         </div>
@@ -453,6 +483,7 @@ const PRONOMBRES = ['yo', 'tú', 'él', 'ella', 'nosotros', 'nosotras', 'vosotro
 const DURACION_TIMER = 120;
 const PTS_VERBO = 5;
 const PTS_SUJETO = 10;
+const PTS_PREDICADO = 5;
 const PTS_OMITIDO = 15;
 const PTS_FALLO = 3;
 
@@ -468,7 +499,8 @@ let questions = [];
 let currentQuestion = null;
 let selectedVerb = new Set();
 let selectedSubj = new Set();
-let step = 1; // 1 = verbo, 2 = sujeto
+let selectedPred = new Set();
+let step = 1; // 1 = verbo, 2 = sujeto, 3 = predicado
 let isProcessing = false;
 
 // ========================================================================
@@ -479,6 +511,7 @@ let teamScores = [0, 0];
 let panelQuestions = [null, null];
 let panelVerb = [new Set(), new Set()];
 let panelSubj = [new Set(), new Set()];
+let panelPred = [new Set(), new Set()];
 let panelStep = [1, 1];
 let panelProcessing = [false, false];
 
@@ -529,6 +562,18 @@ function arraysEqual(a, b) {
   const x = [...a].sort((p,q)=>p-q);
   const y = [...b].sort((p,q)=>p-q);
   return x.every((v, i) => v === y[i]);
+}
+
+function expectedPredicado(q) {
+  // Predicado = todas las palabras NO sujeto y NO verbo
+  const total = q.text.split(/\s+/).length;
+  const sujeto = q.sujeto || [];
+  const verbo = q.verbo || [];
+  const out = [];
+  for (let i = 0; i < total; i++) {
+    if (!sujeto.includes(i) && !verbo.includes(i)) out.push(i);
+  }
+  return out;
 }
 
 // ========================================================================
@@ -642,49 +687,59 @@ function loadNextQuestion() {
 
   selectedVerb = new Set();
   selectedSubj = new Set();
+  selectedPred = new Set();
   step = 1;
   isProcessing = false;
 
   renderSentence(document.getElementById('sentence-text'), currentQuestion, (idx, span) => toggleSoloWord(idx, span));
   document.getElementById('pron-selector').classList.add('hidden');
   document.getElementById('sentence-container').classList.remove('bg-green-100', 'bg-red-100');
-  document.getElementById('omitted-btn').disabled = true;
 
-  updateSoloStepIndicator();
+  updateSoloUI();
 
   if (mode === 'classic' && questionCount > 10) {
     endGame();
   }
 }
 
-function updateSoloStepIndicator() {
+function updateSoloUI() {
+  // Indicador
   const ind = document.getElementById('step-indicator');
   if (step === 1) {
     ind.innerHTML = '<svg class="h-4 w-4"><use href="#i-bolt"/></svg><span><strong>Paso 1:</strong> Marca el <span class="text-purple-800">verbo</span> (puede tener varias palabras).</span>';
     ind.className = 'bg-purple-50 border-b-2 border-purple-100 px-4 py-2 text-center text-sm font-semibold text-purple-700 flex items-center justify-center gap-2';
-  } else {
-    ind.innerHTML = '<svg class="h-4 w-4"><use href="#i-user"/></svg><span><strong>Paso 2:</strong> Marca el <span class="text-blue-800">sujeto</span>. Si está omitido, pulsa el botón azul.</span>';
+  } else if (step === 2) {
+    ind.innerHTML = '<svg class="h-4 w-4"><use href="#i-user"/></svg><span><strong>Paso 2:</strong> Marca el <span class="text-blue-800">sujeto</span>. Si está omitido, pulsa el botón azul claro.</span>';
     ind.className = 'bg-blue-50 border-b-2 border-blue-100 px-4 py-2 text-center text-sm font-semibold text-blue-700 flex items-center justify-center gap-2';
+  } else {
+    ind.innerHTML = '<svg class="h-4 w-4"><use href="#i-underline"/></svg><span><strong>Paso 3:</strong> Marca el <span class="text-red-700">predicado</span> (lo que falta por subrayar).</span>';
+    ind.className = 'bg-red-50 border-b-2 border-red-100 px-4 py-2 text-center text-sm font-semibold text-red-700 flex items-center justify-center gap-2';
   }
+  // Botoneras
+  document.getElementById('actions-verb').classList.toggle('active', step === 1);
+  document.getElementById('actions-subj').classList.toggle('active', step === 2);
+  document.getElementById('actions-pred').classList.toggle('active', step === 3);
 }
 
 function toggleSoloWord(idx, span) {
   if (isProcessing) return;
   if (step === 1) {
     if (selectedVerb.has(idx)) {
-      selectedVerb.delete(idx);
-      span.classList.remove('verb-selected');
+      selectedVerb.delete(idx); span.classList.remove('verb-pick');
     } else {
-      selectedVerb.add(idx);
-      span.classList.add('verb-selected');
+      selectedVerb.add(idx); span.classList.add('verb-pick');
+    }
+  } else if (step === 2) {
+    if (selectedSubj.has(idx)) {
+      selectedSubj.delete(idx); span.classList.remove('subj-pick');
+    } else {
+      selectedSubj.add(idx); span.classList.add('subj-pick');
     }
   } else {
-    if (selectedSubj.has(idx)) {
-      selectedSubj.delete(idx);
-      span.classList.remove('subj-selected');
+    if (selectedPred.has(idx)) {
+      selectedPred.delete(idx); span.classList.remove('pred-pick');
     } else {
-      selectedSubj.add(idx);
-      span.classList.add('subj-selected');
+      selectedPred.add(idx); span.classList.add('pred-pick');
     }
   }
 }
@@ -694,7 +749,7 @@ function buildSoloPronGrid() {
   grid.innerHTML = '';
   PRONOMBRES.forEach(p => {
     const btn = document.createElement('button');
-    btn.className = 'pron-btn bg-white hover:bg-blue-500 hover:text-white border-2 border-blue-300 text-blue-700 font-bold py-2 px-2 rounded-lg text-sm transition-colors';
+    btn.className = 'pron-btn bg-white hover:bg-sky-500 hover:text-white border-2 border-sky-300 text-sky-700 font-bold py-2 px-2 rounded-lg text-sm transition-colors';
     btn.textContent = p;
     btn.addEventListener('click', () => handleSoloPronClick(p));
     grid.appendChild(btn);
@@ -703,6 +758,12 @@ function buildSoloPronGrid() {
 
 document.getElementById('omitted-btn').addEventListener('click', () => {
   if (isProcessing || step !== 2) return;
+  const correctPron = currentQuestion.pronombre;
+  if (!Array.isArray(correctPron)) {
+    // Esta oración tiene sujeto explícito: error.
+    penaltySolo('Esta oración tiene sujeto. Búscalo en la frase y márcalo.');
+    return;
+  }
   document.getElementById('pron-selector').classList.remove('hidden');
 });
 
@@ -713,75 +774,110 @@ document.getElementById('pron-cancel-btn').addEventListener('click', () => {
 function handleSoloPronClick(pron) {
   if (isProcessing || step !== 2) return;
   const correctPron = currentQuestion.pronombre;
-  const isOmitted = Array.isArray(correctPron);
   const container = document.getElementById('sentence-container');
 
-  if (isOmitted && correctPron.includes(pron)) {
-    isProcessing = true;
+  if (Array.isArray(correctPron) && correctPron.includes(pron)) {
+    // Acierto: el sujeto es omitido y el pronombre es correcto.
     score += PTS_OMITIDO;
     document.getElementById('score').textContent = score;
     container.classList.add('bg-green-100');
     showFloatingText(container, '+' + PTS_OMITIDO, true);
-    revealSoloSolution();
-    setTimeout(() => loadNextQuestion(), 1400);
-  } else {
-    penaltySolo(isOmitted
-      ? `El sujeto es "${correctPron[0]}" (omitido). Otro pronombre.`
-      : 'Esta oración tiene sujeto explícito. Márcalo en la frase.');
+    setTimeout(() => container.classList.remove('bg-green-100'), 500);
     document.getElementById('pron-selector').classList.add('hidden');
+    // Las palabras ya no pertenecen al sujeto (no hay), todas son predicado o verbo.
+    advanceSoloToPredicado();
+  } else {
+    // Pronombre incorrecto: penaliza pero MANTIENE el selector abierto.
+    penaltySolo();
   }
 }
 
-document.getElementById('check-btn').addEventListener('click', () => {
-  if (isProcessing) return;
-  const container = document.getElementById('sentence-container');
-
-  if (step === 1) {
-    // Validar verbo
-    const sel = [...selectedVerb];
-    if (arraysEqual(sel, currentQuestion.verbo) && sel.length > 0) {
-      score += PTS_VERBO;
-      document.getElementById('score').textContent = score;
-      container.classList.add('bg-green-100');
-      showFloatingText(container, '+' + PTS_VERBO, true);
-      setTimeout(() => container.classList.remove('bg-green-100'), 600);
-      // Bloquear palabras del verbo y avanzar
-      document.getElementById('sentence-text').querySelectorAll('.word').forEach(span => {
-        const idx = parseInt(span.dataset.idx);
-        if (currentQuestion.verbo.includes(idx)) {
-          span.classList.remove('verb-selected');
-          span.classList.add('verbo-correct', 'locked');
-        } else {
-          span.classList.remove('verb-selected');
-        }
-      });
-      step = 2;
-      document.getElementById('omitted-btn').disabled = false;
-      updateSoloStepIndicator();
-    } else {
-      penaltySolo('Revisa el verbo. Puede ser simple (corre) o compuesto (ha corrido, está corriendo).');
-    }
+function advanceSoloToPredicado() {
+  step = 3;
+  // Si no hay palabras de predicado restantes (toda la oración es verbo), auto-validar.
+  const exp = expectedPredicado(currentQuestion);
+  if (exp.length === 0) {
+    finishSoloSentence();
     return;
   }
+  updateSoloUI();
+}
 
-  // step === 2 — validar sujeto
+function finishSoloSentence() {
+  isProcessing = true;
+  revealSoloSolution();
+  setTimeout(() => loadNextQuestion(), 1500);
+}
+
+document.getElementById('check-verb-btn').addEventListener('click', () => {
+  if (isProcessing || step !== 1) return;
+  const container = document.getElementById('sentence-container');
+  const sel = [...selectedVerb];
+  if (arraysEqual(sel, currentQuestion.verbo) && sel.length > 0) {
+    score += PTS_VERBO;
+    document.getElementById('score').textContent = score;
+    container.classList.add('bg-green-100');
+    showFloatingText(container, '+' + PTS_VERBO, true);
+    setTimeout(() => container.classList.remove('bg-green-100'), 500);
+    // Bloquear y etiquetar el verbo
+    const minV = Math.min(...currentQuestion.verbo);
+    document.getElementById('sentence-text').querySelectorAll('.word').forEach(span => {
+      const idx = parseInt(span.dataset.idx);
+      span.classList.remove('verb-pick');
+      if (currentQuestion.verbo.includes(idx)) {
+        span.classList.add('verbo-correct', 'locked');
+        if (idx === minV) span.classList.add('verb-label');
+      }
+    });
+    step = 2;
+    updateSoloUI();
+  } else {
+    penaltySolo('Revisa el verbo. Puede ser simple (corre) o compuesto (ha corrido, está corriendo, voy a estudiar).');
+  }
+});
+
+document.getElementById('check-subj-btn').addEventListener('click', () => {
+  if (isProcessing || step !== 2) return;
   const correctPron = currentQuestion.pronombre;
-  const isOmitted = Array.isArray(correctPron);
+  const container = document.getElementById('sentence-container');
 
-  if (isOmitted) {
-    penaltySolo('¡Cuidado! Esta oración tiene sujeto omitido. Pulsa el botón azul.');
+  if (Array.isArray(correctPron)) {
+    penaltySolo('¡Cuidado! Esta oración tiene sujeto omitido. Pulsa el botón azul claro.');
     return;
   }
 
   const sel = [...selectedSubj];
   if (arraysEqual(sel, currentQuestion.sujeto) && sel.length > 0) {
-    isProcessing = true;
     score += PTS_SUJETO;
     document.getElementById('score').textContent = score;
     container.classList.add('bg-green-100');
     showFloatingText(container, '+' + PTS_SUJETO, true);
-    revealSoloSolution();
-    setTimeout(() => loadNextQuestion(), 1400);
+    setTimeout(() => container.classList.remove('bg-green-100'), 500);
+    // Bloquear el sujeto
+    document.getElementById('sentence-text').querySelectorAll('.word').forEach(span => {
+      const idx = parseInt(span.dataset.idx);
+      span.classList.remove('subj-pick');
+      if (currentQuestion.sujeto.includes(idx)) {
+        span.classList.add('sujeto-correct', 'locked');
+      }
+    });
+    advanceSoloToPredicado();
+  } else {
+    penaltySolo();
+  }
+});
+
+document.getElementById('check-pred-btn').addEventListener('click', () => {
+  if (isProcessing || step !== 3) return;
+  const container = document.getElementById('sentence-container');
+  const exp = expectedPredicado(currentQuestion);
+  const sel = [...selectedPred];
+  if (arraysEqual(sel, exp) && sel.length > 0) {
+    score += PTS_PREDICADO;
+    document.getElementById('score').textContent = score;
+    container.classList.add('bg-green-100');
+    showFloatingText(container, '+' + PTS_PREDICADO, true);
+    finishSoloSentence();
   } else {
     penaltySolo();
   }
@@ -799,18 +895,20 @@ function penaltySolo(hintMsg) {
 
 function revealSoloSolution() {
   const text = document.getElementById('sentence-text');
-  const expected = currentQuestion.sujeto || [];
+  const sujeto = currentQuestion.sujeto || [];
   const verbo = currentQuestion.verbo || [];
   const isOmitted = Array.isArray(currentQuestion.pronombre);
+  const minV = verbo.length ? Math.min(...verbo) : -1;
 
   text.querySelectorAll('.word').forEach(span => {
     const idx = parseInt(span.dataset.idx);
-    span.classList.remove('subj-selected', 'verb-selected');
+    span.classList.remove('subj-pick', 'verb-pick', 'pred-pick');
     span.classList.add('locked');
-    if (expected.includes(idx)) {
+    if (sujeto.includes(idx)) {
       span.classList.add('sujeto-correct');
     } else if (verbo.includes(idx)) {
       span.classList.add('verbo-correct');
+      if (idx === minV) span.classList.add('verb-label');
     } else {
       span.classList.add('predicado-correct');
     }
@@ -849,16 +947,37 @@ document.getElementById('duel-menu-btn').addEventListener('click', goToMenu);
 function buildPanelPronGrid(panelIdx) {
   const grid = document.querySelector(`[data-pron-panel="${panelIdx + 1}"]`);
   grid.innerHTML = '';
-  const cls = panelIdx === 0
-    ? 'panel-pron-btn bg-white hover:bg-blue-500 hover:text-white border border-blue-300 text-blue-700 font-semibold py-1 px-1 rounded text-xs transition-colors'
-    : 'panel-pron-btn bg-white hover:bg-pink-500 hover:text-white border border-pink-300 text-pink-700 font-semibold py-1 px-1 rounded text-xs transition-colors';
   PRONOMBRES.forEach(p => {
     const btn = document.createElement('button');
-    btn.className = cls;
+    btn.className = 'panel-pron-btn bg-white hover:bg-sky-500 hover:text-white border border-sky-300 text-sky-700 font-semibold py-1 px-1 rounded text-xs transition-colors';
     btn.textContent = p;
     btn.addEventListener('click', () => handlePanelPronClick(panelIdx, p));
     grid.appendChild(btn);
   });
+}
+
+function renderPanelActions(panelIdx) {
+  const wrap = document.getElementById(`panel${panelIdx + 1}-actions`);
+  wrap.innerHTML = '';
+  const st = panelStep[panelIdx];
+  const make = (label, iconId, bg, action) => {
+    const btn = document.createElement('button');
+    btn.className = `panel-action-btn ${bg} text-white font-bold py-2 px-2 rounded-lg text-sm flex items-center justify-center gap-1`;
+    btn.innerHTML = `<svg class="h-4 w-4"><use href="#${iconId}"/></svg> ${label}`;
+    btn.addEventListener('click', () => handlePanelAction(panelIdx, action));
+    return btn;
+  };
+  if (st === 1) {
+    wrap.className = 'grid grid-cols-1 gap-2 mb-2';
+    wrap.appendChild(make('Comprobar verbo', 'i-bolt', 'bg-purple-600 hover:bg-purple-700', 'check'));
+  } else if (st === 2) {
+    wrap.className = 'grid grid-cols-2 gap-2 mb-2';
+    wrap.appendChild(make('Comprobar sujeto', 'i-user', 'bg-blue-600 hover:bg-blue-700', 'check'));
+    wrap.appendChild(make('Sujeto omitido', 'i-eye-off', 'bg-sky-400 hover:bg-sky-500', 'omitted'));
+  } else {
+    wrap.className = 'grid grid-cols-1 gap-2 mb-2';
+    wrap.appendChild(make('Comprobar predicado', 'i-underline', 'bg-red-600 hover:bg-red-700', 'check'));
+  }
 }
 
 function loadPanelQuestion(panelIdx) {
@@ -866,6 +985,7 @@ function loadPanelQuestion(panelIdx) {
   panelQuestions[panelIdx] = questions.pop();
   panelVerb[panelIdx] = new Set();
   panelSubj[panelIdx] = new Set();
+  panelPred[panelIdx] = new Set();
   panelStep[panelIdx] = 1;
   panelProcessing[panelIdx] = false;
 
@@ -875,157 +995,182 @@ function loadPanelQuestion(panelIdx) {
   const sentenceBox = document.getElementById(`panel${panelIdx + 1}-sentence`);
   sentenceBox.classList.remove('bg-green-100', 'bg-red-100', 'animate-shake');
   document.getElementById(`panel${panelIdx + 1}-pron`).classList.add('hidden');
-  document.querySelector(`.panel-action-btn[data-panel="${panelIdx + 1}"][data-action="omitted"]`).disabled = true;
   updatePanelStepIndicator(panelIdx);
+  renderPanelActions(panelIdx);
 }
 
 function updatePanelStepIndicator(panelIdx) {
   const el = document.getElementById(`panel${panelIdx + 1}-step`);
-  if (panelStep[panelIdx] === 1) {
+  const st = panelStep[panelIdx];
+  if (st === 1) {
     el.textContent = 'Paso 1: marca el verbo';
     el.className = 'bg-purple-100 text-purple-700 text-center py-1 text-xs font-semibold';
-  } else {
+  } else if (st === 2) {
     el.textContent = 'Paso 2: marca el sujeto (o pulsa Omitido)';
     el.className = 'bg-blue-100 text-blue-700 text-center py-1 text-xs font-semibold';
+  } else {
+    el.textContent = 'Paso 3: marca el predicado';
+    el.className = 'bg-red-100 text-red-700 text-center py-1 text-xs font-semibold';
   }
 }
 
 function togglePanelWord(panelIdx, idx, span) {
   if (panelProcessing[panelIdx]) return;
-  if (panelStep[panelIdx] === 1) {
-    if (panelVerb[panelIdx].has(idx)) {
-      panelVerb[panelIdx].delete(idx);
-      span.classList.remove('verb-selected');
-    } else {
-      panelVerb[panelIdx].add(idx);
-      span.classList.add('verb-selected');
-    }
+  const st = panelStep[panelIdx];
+  if (st === 1) {
+    if (panelVerb[panelIdx].has(idx)) { panelVerb[panelIdx].delete(idx); span.classList.remove('verb-pick'); }
+    else { panelVerb[panelIdx].add(idx); span.classList.add('verb-pick'); }
+  } else if (st === 2) {
+    if (panelSubj[panelIdx].has(idx)) { panelSubj[panelIdx].delete(idx); span.classList.remove('subj-pick'); }
+    else { panelSubj[panelIdx].add(idx); span.classList.add('subj-pick'); }
   } else {
-    if (panelSubj[panelIdx].has(idx)) {
-      panelSubj[panelIdx].delete(idx);
-      span.classList.remove('subj-selected');
-    } else {
-      panelSubj[panelIdx].add(idx);
-      span.classList.add('subj-selected');
-    }
+    if (panelPred[panelIdx].has(idx)) { panelPred[panelIdx].delete(idx); span.classList.remove('pred-pick'); }
+    else { panelPred[panelIdx].add(idx); span.classList.add('pred-pick'); }
   }
 }
 
-document.querySelectorAll('.panel-action-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const panelIdx = parseInt(btn.dataset.panel) - 1;
-    if (panelProcessing[panelIdx]) return;
-    const action = btn.dataset.action;
-    if (action === 'omitted') {
-      if (panelStep[panelIdx] !== 2) return;
-      document.getElementById(`panel${panelIdx + 1}-pron`).classList.remove('hidden');
-    } else if (action === 'check') {
-      checkPanel(panelIdx);
-    }
-  });
-});
-
-function checkPanel(panelIdx) {
+function handlePanelAction(panelIdx, action) {
+  if (panelProcessing[panelIdx]) return;
   const q = panelQuestions[panelIdx];
-  const sentenceBox = document.getElementById(`panel${panelIdx + 1}-sentence`);
 
+  if (action === 'omitted') {
+    if (panelStep[panelIdx] !== 2) return;
+    if (!Array.isArray(q.pronombre)) {
+      penaltyPanel(panelIdx);
+      return;
+    }
+    document.getElementById(`panel${panelIdx + 1}-pron`).classList.remove('hidden');
+    return;
+  }
+
+  // action === 'check'
   if (panelStep[panelIdx] === 1) {
-    // Validar verbo
     const sel = [...panelVerb[panelIdx]];
     if (arraysEqual(sel, q.verbo) && sel.length > 0) {
       teamScores[panelIdx] += PTS_VERBO;
       document.getElementById(`duel-team${panelIdx + 1}-score`).textContent = teamScores[panelIdx];
-      sentenceBox.classList.add('bg-green-100');
-      showFloatingText(sentenceBox, '+' + PTS_VERBO, true);
-      setTimeout(() => sentenceBox.classList.remove('bg-green-100'), 500);
-
+      const sb = document.getElementById(`panel${panelIdx + 1}-sentence`);
+      sb.classList.add('bg-green-100');
+      showFloatingText(sb, '+' + PTS_VERBO, true);
+      setTimeout(() => sb.classList.remove('bg-green-100'), 400);
+      const minV = Math.min(...q.verbo);
       const textEl = document.getElementById(`panel${panelIdx + 1}-text`);
       textEl.querySelectorAll('.word').forEach(span => {
         const idx = parseInt(span.dataset.idx);
+        span.classList.remove('verb-pick');
         if (q.verbo.includes(idx)) {
-          span.classList.remove('verb-selected');
           span.classList.add('verbo-correct', 'locked');
-        } else {
-          span.classList.remove('verb-selected');
+          if (idx === minV) span.classList.add('verb-label');
         }
       });
       panelStep[panelIdx] = 2;
-      document.querySelector(`.panel-action-btn[data-panel="${panelIdx + 1}"][data-action="omitted"]`).disabled = false;
       updatePanelStepIndicator(panelIdx);
+      renderPanelActions(panelIdx);
     } else {
       penaltyPanel(panelIdx);
     }
-    return;
-  }
-
-  // step 2 — sujeto
-  const correctPron = q.pronombre;
-  const isOmitted = Array.isArray(correctPron);
-
-  if (isOmitted) {
-    penaltyPanel(panelIdx);
-    return;
-  }
-
-  const sel = [...panelSubj[panelIdx]];
-  if (arraysEqual(sel, q.sujeto) && sel.length > 0) {
-    panelProcessing[panelIdx] = true;
-    teamScores[panelIdx] += PTS_SUJETO;
-    document.getElementById(`duel-team${panelIdx + 1}-score`).textContent = teamScores[panelIdx];
-    sentenceBox.classList.add('bg-green-100');
-    showFloatingText(sentenceBox, '+' + PTS_SUJETO, true);
-    revealPanelSolution(panelIdx);
-    setTimeout(() => { if (timeLeft > 0) loadPanelQuestion(panelIdx); }, 1200);
+  } else if (panelStep[panelIdx] === 2) {
+    if (Array.isArray(q.pronombre)) {
+      penaltyPanel(panelIdx);
+      return;
+    }
+    const sel = [...panelSubj[panelIdx]];
+    if (arraysEqual(sel, q.sujeto) && sel.length > 0) {
+      teamScores[panelIdx] += PTS_SUJETO;
+      document.getElementById(`duel-team${panelIdx + 1}-score`).textContent = teamScores[panelIdx];
+      const sb = document.getElementById(`panel${panelIdx + 1}-sentence`);
+      sb.classList.add('bg-green-100');
+      showFloatingText(sb, '+' + PTS_SUJETO, true);
+      setTimeout(() => sb.classList.remove('bg-green-100'), 400);
+      const textEl = document.getElementById(`panel${panelIdx + 1}-text`);
+      textEl.querySelectorAll('.word').forEach(span => {
+        const idx = parseInt(span.dataset.idx);
+        span.classList.remove('subj-pick');
+        if (q.sujeto.includes(idx)) span.classList.add('sujeto-correct', 'locked');
+      });
+      advancePanelToPredicado(panelIdx);
+    } else {
+      penaltyPanel(panelIdx);
+    }
   } else {
-    penaltyPanel(panelIdx);
+    const exp = expectedPredicado(q);
+    const sel = [...panelPred[panelIdx]];
+    if (arraysEqual(sel, exp) && sel.length > 0) {
+      teamScores[panelIdx] += PTS_PREDICADO;
+      document.getElementById(`duel-team${panelIdx + 1}-score`).textContent = teamScores[panelIdx];
+      const sb = document.getElementById(`panel${panelIdx + 1}-sentence`);
+      sb.classList.add('bg-green-100');
+      showFloatingText(sb, '+' + PTS_PREDICADO, true);
+      finishPanelSentence(panelIdx);
+    } else {
+      penaltyPanel(panelIdx);
+    }
   }
+}
+
+function advancePanelToPredicado(panelIdx) {
+  panelStep[panelIdx] = 3;
+  const exp = expectedPredicado(panelQuestions[panelIdx]);
+  if (exp.length === 0) {
+    finishPanelSentence(panelIdx);
+    return;
+  }
+  updatePanelStepIndicator(panelIdx);
+  renderPanelActions(panelIdx);
+}
+
+function finishPanelSentence(panelIdx) {
+  panelProcessing[panelIdx] = true;
+  revealPanelSolution(panelIdx);
+  setTimeout(() => { if (timeLeft > 0) loadPanelQuestion(panelIdx); }, 1300);
 }
 
 function handlePanelPronClick(panelIdx, pron) {
   if (panelProcessing[panelIdx] || panelStep[panelIdx] !== 2) return;
   const q = panelQuestions[panelIdx];
   const correctPron = q.pronombre;
-  const isOmitted = Array.isArray(correctPron);
-  const sentenceBox = document.getElementById(`panel${panelIdx + 1}-sentence`);
 
-  if (isOmitted && correctPron.includes(pron)) {
-    panelProcessing[panelIdx] = true;
+  if (Array.isArray(correctPron) && correctPron.includes(pron)) {
     teamScores[panelIdx] += PTS_OMITIDO;
     document.getElementById(`duel-team${panelIdx + 1}-score`).textContent = teamScores[panelIdx];
-    sentenceBox.classList.add('bg-green-100');
-    showFloatingText(sentenceBox, '+' + PTS_OMITIDO, true);
-    revealPanelSolution(panelIdx);
-    setTimeout(() => { if (timeLeft > 0) loadPanelQuestion(panelIdx); }, 1200);
+    const sb = document.getElementById(`panel${panelIdx + 1}-sentence`);
+    sb.classList.add('bg-green-100');
+    showFloatingText(sb, '+' + PTS_OMITIDO, true);
+    setTimeout(() => sb.classList.remove('bg-green-100'), 400);
+    document.getElementById(`panel${panelIdx + 1}-pron`).classList.add('hidden');
+    advancePanelToPredicado(panelIdx);
   } else {
     penaltyPanel(panelIdx);
-    document.getElementById(`panel${panelIdx + 1}-pron`).classList.add('hidden');
+    // Selector se mantiene abierto para que reintente
   }
 }
 
 function penaltyPanel(panelIdx) {
   teamScores[panelIdx] = Math.max(0, teamScores[panelIdx] - PTS_FALLO);
   document.getElementById(`duel-team${panelIdx + 1}-score`).textContent = teamScores[panelIdx];
-  const sentenceBox = document.getElementById(`panel${panelIdx + 1}-sentence`);
-  sentenceBox.classList.add('bg-red-100', 'animate-shake');
-  showFloatingText(sentenceBox, '-' + PTS_FALLO, false);
-  setTimeout(() => sentenceBox.classList.remove('bg-red-100', 'animate-shake'), 600);
+  const sb = document.getElementById(`panel${panelIdx + 1}-sentence`);
+  sb.classList.add('bg-red-100', 'animate-shake');
+  showFloatingText(sb, '-' + PTS_FALLO, false);
+  setTimeout(() => sb.classList.remove('bg-red-100', 'animate-shake'), 600);
 }
 
 function revealPanelSolution(panelIdx) {
   const q = panelQuestions[panelIdx];
   const text = document.getElementById(`panel${panelIdx + 1}-text`);
-  const expected = q.sujeto || [];
+  const sujeto = q.sujeto || [];
   const verbo = q.verbo || [];
   const isOmitted = Array.isArray(q.pronombre);
+  const minV = verbo.length ? Math.min(...verbo) : -1;
 
   text.querySelectorAll('.word').forEach(span => {
     const idx = parseInt(span.dataset.idx);
-    span.classList.remove('subj-selected', 'verb-selected');
+    span.classList.remove('subj-pick', 'verb-pick', 'pred-pick');
     span.classList.add('locked');
-    if (expected.includes(idx)) {
+    if (sujeto.includes(idx)) {
       span.classList.add('sujeto-correct');
     } else if (verbo.includes(idx)) {
       span.classList.add('verbo-correct');
+      if (idx === minV) span.classList.add('verb-label');
     } else {
       span.classList.add('predicado-correct');
     }
@@ -1122,13 +1267,13 @@ function endGame() {
       document.getElementById('end-title').textContent = '¡Fin del juego!';
     }
 
-    if (score >= 150) {
+    if (score >= 180) {
       setEndIcon('i-crown', 'text-yellow-500');
       document.getElementById('end-message').textContent = '¡Increíble! Detective experto en oraciones.';
-    } else if (score >= 90) {
+    } else if (score >= 100) {
       setEndIcon('i-trophy', 'text-yellow-500');
       document.getElementById('end-message').textContent = '¡Muy bien! Tienes un gran dominio.';
-    } else if (score >= 40) {
+    } else if (score >= 50) {
       setEndIcon('i-star', 'text-blue-500');
       document.getElementById('end-message').textContent = '¡Bien hecho! Sigue practicando.';
     } else {
@@ -1144,22 +1289,19 @@ function endGame() {
 //
 //        📚 BANCO DE ORACIONES — AMPLIABLE FÁCILMENTE 📚
 //
-//  Formato de cada oración:
-//
 //   { text: "Oración palabra a palabra.", verbo: [2], sujeto: [0,1], pronombre: null }
 //
-//  CAMPOS:
-//  - text: La oración completa. División por espacios. Los signos de
-//          puntuación van pegados a la palabra. La primera palabra es índice 0.
-//  - verbo: Array de ÍNDICES de las palabras que forman el verbo.
-//           · Verbo simple → 1 índice. Ej.: "Marta canta." → verbo: [1].
-//           · Verbo compuesto / perífrasis → varios índices CONSECUTIVOS.
-//             Ej.: "Han ganado el partido." → verbo: [0, 1].
-//             Ej.: "El bebé está durmiendo." → verbo: [2, 3].
-//             Ej.: "Vamos a estudiar." → verbo: [0, 1, 2].
+//  - text: la oración, dividida por espacios. La primera palabra es índice 0.
+//          Los signos de puntuación van pegados a la palabra.
+//  - verbo: ÍNDICES del verbo. Para verbos compuestos / perífrasis, varios
+//           índices: "Han ganado" → [0, 1]; "está durmiendo" → [2, 3];
+//           "vamos a estudiar" → [0, 1, 2].
 //  - sujeto: ÍNDICES del sujeto, o [] si está omitido.
 //  - pronombre: null si sujeto explícito; array con los pronombres válidos
 //               si está omitido (p. ej. ["él","ella"]).
+//
+//  El PREDICADO se calcula automáticamente como "todas las palabras que no
+//  son ni sujeto ni verbo". No hay que especificarlo.
 //
 // ==========================================================================
 // ==========================================================================
@@ -1215,41 +1357,17 @@ const ORACIONES = [
 
   // --- SUJETO OMITIDO, VERBO SIMPLE ---
   { text: "Estudio todas las tardes en mi cuarto.", verbo: [0], sujeto: [], pronombre: ["yo"] },
-  { text: "Tengo mucha hambre.", verbo: [0], sujeto: [], pronombre: ["yo"] },
   { text: "Voy al cine esta tarde.", verbo: [0], sujeto: [], pronombre: ["yo"] },
-  { text: "Como fruta después de cenar.", verbo: [0], sujeto: [], pronombre: ["yo"] },
   { text: "Cantas muy bien las canciones.", verbo: [0], sujeto: [], pronombre: ["tú"] },
   { text: "Tienes los ojos azules.", verbo: [0], sujeto: [], pronombre: ["tú"] },
-  { text: "Llegas tarde otra vez.", verbo: [0], sujeto: [], pronombre: ["tú"] },
   { text: "Corre todos los días por el parque.", verbo: [0], sujeto: [], pronombre: ["él", "ella"] },
   { text: "Vive en una casa enorme.", verbo: [0], sujeto: [], pronombre: ["él", "ella"] },
-  { text: "Pinta cuadros muy bonitos.", verbo: [0], sujeto: [], pronombre: ["él", "ella"] },
-  { text: "Sabe la respuesta correcta.", verbo: [0], sujeto: [], pronombre: ["él", "ella"] },
   { text: "Vamos a la piscina esta tarde.", verbo: [0], sujeto: [], pronombre: ["nosotros", "nosotras"] },
   { text: "Jugamos al baloncesto en el recreo.", verbo: [0], sujeto: [], pronombre: ["nosotros", "nosotras"] },
-  { text: "Hicimos los deberes ayer juntos.", verbo: [0], sujeto: [], pronombre: ["nosotros", "nosotras"] },
-  { text: "Cantamos en el coro del colegio.", verbo: [0], sujeto: [], pronombre: ["nosotros", "nosotras"] },
   { text: "Coméis demasiados dulces antes de cenar.", verbo: [0], sujeto: [], pronombre: ["vosotros", "vosotras"] },
   { text: "Vivís en el mismo barrio.", verbo: [0], sujeto: [], pronombre: ["vosotros", "vosotras"] },
-  { text: "Sois muy buenos amigos.", verbo: [0], sujeto: [], pronombre: ["vosotros", "vosotras"] },
   { text: "Estudian inglés todos los lunes.", verbo: [0], sujeto: [], pronombre: ["ellos", "ellas"] },
   { text: "Trabajan en la misma oficina.", verbo: [0], sujeto: [], pronombre: ["ellos", "ellas"] },
-  { text: "Vienen mañana en el primer tren.", verbo: [0], sujeto: [], pronombre: ["ellos", "ellas"] },
-  { text: "Iré a tu casa después del colegio.", verbo: [0], sujeto: [], pronombre: ["yo"] },
-  { text: "Hablas demasiado en clase.", verbo: [0], sujeto: [], pronombre: ["tú"] },
-  { text: "Compraste un regalo precioso.", verbo: [0], sujeto: [], pronombre: ["tú"] },
-  { text: "Limpia su habitación los sábados.", verbo: [0], sujeto: [], pronombre: ["él", "ella"] },
-  { text: "Dibujó un paisaje increíble.", verbo: [0], sujeto: [], pronombre: ["él", "ella"] },
-  { text: "Subimos a la montaña el domingo.", verbo: [0], sujeto: [], pronombre: ["nosotros", "nosotras"] },
-  { text: "Vemos una película de aventuras.", verbo: [0], sujeto: [], pronombre: ["nosotros", "nosotras"] },
-  { text: "Tenéis mucha suerte con el tiempo.", verbo: [0], sujeto: [], pronombre: ["vosotros", "vosotras"] },
-  { text: "Construyen una casa nueva en el pueblo.", verbo: [0], sujeto: [], pronombre: ["ellos", "ellas"] },
-  { text: "Cantaron en el festival de fin de curso.", verbo: [0], sujeto: [], pronombre: ["ellos", "ellas"] },
-  { text: "Estoy muy cansado después del partido.", verbo: [0], sujeto: [], pronombre: ["yo"] },
-  { text: "Llegó pronto a la reunión.", verbo: [0], sujeto: [], pronombre: ["él", "ella"] },
-  { text: "Salimos del cine muy contentos.", verbo: [0], sujeto: [], pronombre: ["nosotros", "nosotras"] },
-  { text: "Olvidasteis las llaves en la mesa.", verbo: [0], sujeto: [], pronombre: ["vosotros", "vosotras"] },
-  { text: "Volverán pronto de las vacaciones.", verbo: [0], sujeto: [], pronombre: ["ellos", "ellas"] },
 
   // --- SUJETO OMITIDO, VERBO COMPUESTO / PERÍFRASIS ---
   { text: "He terminado los deberes de matemáticas.", verbo: [0, 1], sujeto: [], pronombre: ["yo"] },
@@ -1259,11 +1377,9 @@ const ORACIONES = [
   { text: "Habéis dejado los abrigos en la silla.", verbo: [0, 1], sujeto: [], pronombre: ["vosotros", "vosotras"] },
   { text: "Han ganado el campeonato regional.", verbo: [0, 1], sujeto: [], pronombre: ["ellos", "ellas"] },
   { text: "Estoy leyendo un libro interesante.", verbo: [0, 1], sujeto: [], pronombre: ["yo"] },
-  { text: "Estás haciendo mucho ruido.", verbo: [0, 1], sujeto: [], pronombre: ["tú"] },
   { text: "Está cantando en el escenario.", verbo: [0, 1], sujeto: [], pronombre: ["él", "ella"] },
   { text: "Vamos a comer al restaurante.", verbo: [0, 1, 2], sujeto: [], pronombre: ["nosotros", "nosotras"] },
   { text: "Voy a estudiar para el examen.", verbo: [0, 1, 2], sujeto: [], pronombre: ["yo"] },
-  { text: "Vais a llegar tarde al colegio.", verbo: [0, 1, 2], sujeto: [], pronombre: ["vosotros", "vosotras"] },
 
 ];
 </script>
