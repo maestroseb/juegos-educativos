@@ -45,62 +45,41 @@
 
   .word {
     display: inline-block;
-    padding: 0.1rem 0.4rem 0.25rem 0.4rem;
-    margin: 0.8rem 0.1rem 0.55rem 0.1rem;
+    padding: 0.1rem 0.35rem;
+    margin: 0.95rem 0.05rem 0.7rem 0.05rem;
     border-radius: 0.4rem;
     cursor: pointer;
-    transition: background-color 0.15s, transform 0.15s, color 0.15s, border-color 0.15s;
-    border-bottom: 5px solid transparent;
+    transition: background-color 0.15s, transform 0.15s, color 0.15s;
   }
   .word:hover { background-color: #e0e7ff; }
 
-  /* Selecciones EN CURSO: subrayado de color (estilo cuaderno) */
-  .word.verb-pick {
-    color: #7e22ce;
-    border-bottom-color: #a855f7;
-    background-color: #f3e8ff;
-  }
-  .word.subj-pick {
-    color: #1d4ed8;
-    border-bottom-color: #3b82f6;
-    background-color: #dbeafe;
-  }
-  .word.pred-pick {
-    color: #b91c1c;
-    border-bottom-color: #ef4444;
-    background-color: #fee2e2;
-  }
+  /* Selecciones EN CURSO: relleno suave de color */
+  .word.verb-pick { color: #7e22ce; background-color: #f3e8ff; }
+  .word.subj-pick { color: #1d4ed8; background-color: #dbeafe; }
+  .word.pred-pick { color: #b91c1c; background-color: #fee2e2; }
 
-  /* Estados FINALES tras acierto: subrayado limpio, sin relleno.
-     El verbo lleva relleno violeta (es el núcleo) pero comparte el
-     subrayado rojo del predicado, para que se vea que está DENTRO de él. */
-  /* Verbo ya confirmado durante el juego (aún sin revelar el predicado) */
+  /* Verbo confirmado: bloque violeta (es el núcleo del predicado).
+     El subrayado rojo continuo del predicado pasará por debajo. */
   .word.verbo-locked {
     background-color: #a855f7;
     color: white;
-    border-bottom-color: #7e22ce;
     animation: popIn 0.3s ease;
   }
-  /* Verbo en la solución final: comparte el subrayado rojo del predicado */
-  .word.verbo-correct {
-    background-color: #a855f7;
-    color: white;
-    border-bottom-color: #dc2626;
-    animation: popIn 0.3s ease;
-  }
-  .word.sujeto-correct {
-    color: #1d4ed8;
-    border-bottom-color: #3b82f6;
-    animation: popIn 0.3s ease;
-  }
-  .word.predicado-correct {
-    color: #b91c1c;
-    border-bottom-color: #dc2626;
-    animation: popIn 0.3s ease;
+  /* Sujeto / predicado confirmados: solo color de texto; el subrayado
+     continuo lo dibuja una barra independiente (.underline-bar). */
+  .word.sujeto-correct { color: #1d4ed8; font-weight: 600; }
+  .word.predicado-correct { color: #b91c1c; font-weight: 600; }
+
+  /* Barra de subrayado CONTINUA bajo un grupo de palabras */
+  .underline-bar {
+    position: absolute;
+    height: 5px;
+    border-radius: 9999px;
+    pointer-events: none;
+    z-index: 1;
   }
 
-  /* Etiqueta "verbo" flotante, centrada sobre el grupo verbal (se coloca
-     por JS con posición absoluta dentro del contenedor de la oración). */
+  /* Etiqueta "verbo" flotante, centrada sobre el grupo verbal */
   .verb-tag {
     position: absolute;
     transform: translate(-50%, -100%);
@@ -141,10 +120,10 @@
     display: inline-block;
     color: #1d4ed8;
     border-bottom: 5px solid #3b82f6;
-    padding: 0.1rem 0.4rem 0.25rem 0.4rem;
+    padding: 0.1rem 0.35rem 0.15rem 0.35rem;
     font-size: 0.9em;
     font-weight: 600;
-    margin-right: 0.2rem;
+    margin: 0 0.15rem 0.7rem 0;
     animation: popIn 0.3s ease;
     vertical-align: middle;
   }
@@ -336,9 +315,9 @@
         </button>
       </div>
 
-      <div class="mb-3">
-        <button id="omitted-btn" class="action-btn w-full bg-sky-400 hover:bg-sky-500 text-white font-bold py-3 px-3 rounded-xl shadow-lg shadow-sky-200 transition-transform hover:scale-[1.01] active:scale-95 flex items-center justify-center gap-2">
-          <svg class="h-5 w-5"><use href="#i-eye-off"/></svg>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+        <button id="omitted-btn" class="action-btn sm:col-start-2 bg-sky-400 hover:bg-sky-500 text-white font-semibold py-2.5 px-3 rounded-xl shadow-md shadow-sky-200 transition-transform hover:scale-[1.01] active:scale-95 flex items-center justify-center gap-2 text-sm">
+          <svg class="h-4 w-4"><use href="#i-eye-off"/></svg>
           El sujeto está omitido
         </button>
       </div>
@@ -832,7 +811,7 @@ document.getElementById('check-verb-btn').addEventListener('click', () => {
         span.classList.add('verbo-locked', 'locked');
       }
     });
-    placeVerbLabel(document.getElementById('sentence-container'), textEl, currentQuestion.verbo);
+    drawVerbLabel(document.getElementById('sentence-container'), textEl, currentQuestion.verbo);
     step = 2;
     updateSoloUI();
   } else {
@@ -857,14 +836,16 @@ document.getElementById('check-subj-btn').addEventListener('click', () => {
     container.classList.add('bg-green-100');
     showFloatingText(container, '+' + PTS_SUJETO, true);
     setTimeout(() => container.classList.remove('bg-green-100'), 500);
-    // Bloquear el sujeto
-    document.getElementById('sentence-text').querySelectorAll('.word').forEach(span => {
+    // Bloquear el sujeto y subrayarlo de azul (continuo)
+    const textEl = document.getElementById('sentence-text');
+    textEl.querySelectorAll('.word').forEach(span => {
       const idx = parseInt(span.dataset.idx);
       span.classList.remove('subj-pick');
       if (currentQuestion.sujeto.includes(idx)) {
         span.classList.add('sujeto-correct', 'locked');
       }
     });
+    drawUnderline(document.getElementById('sentence-container'), textEl, currentQuestion.sujeto, '#3b82f6');
     advanceSoloToPredicado();
   } else {
     penaltySolo();
@@ -905,12 +886,12 @@ function revealSoloSolution() {
 
   text.querySelectorAll('.word').forEach(span => {
     const idx = parseInt(span.dataset.idx);
-    span.classList.remove('subj-pick', 'verb-pick', 'pred-pick', 'verbo-locked');
+    span.classList.remove('subj-pick', 'verb-pick', 'pred-pick');
     span.classList.add('locked');
     if (sujeto.includes(idx)) {
       span.classList.add('sujeto-correct');
     } else if (verbo.includes(idx)) {
-      span.classList.add('verbo-correct');
+      span.classList.add('verbo-locked');
     } else {
       span.classList.add('predicado-correct');
     }
@@ -923,8 +904,13 @@ function revealSoloSolution() {
     text.insertBefore(bubble, text.firstChild);
   }
 
-  // Recolocar la etiqueta "verbo" (los offsets cambian al añadir la burbuja)
-  placeVerbLabel(document.getElementById('sentence-container'), text, verbo);
+  // Redibujar subrayados continuos (los offsets cambian al añadir la burbuja):
+  // azul bajo el sujeto y rojo bajo TODO el predicado (verbo incluido).
+  const box = document.getElementById('sentence-container');
+  clearMarks(box);
+  drawUnderline(box, text, sujeto, '#3b82f6');
+  drawUnderline(box, text, predicadoCompleto(currentQuestion), '#dc2626');
+  drawVerbLabel(box, text, verbo);
 }
 
 function showHint(msg) {
@@ -981,8 +967,13 @@ function renderPanelActions(panelIdx) {
   row.appendChild(make('2. Sujeto', 'i-user', 'bg-blue-600 hover:bg-blue-700', 'check-subj', st === 2));
   row.appendChild(make('3. Predic.', 'i-underline', 'bg-red-600 hover:bg-red-700', 'check-pred', st === 3));
   wrap.appendChild(row);
-  // Botón de sujeto omitido (solo activo en el paso 2)
-  wrap.appendChild(make('El sujeto está omitido', 'i-eye-off', 'bg-sky-400 hover:bg-sky-500', 'omitted', st === 2, 'w-full'));
+  // Botón de sujeto omitido: solo bajo la columna del sujeto (centro), activo en paso 2
+  const row2 = document.createElement('div');
+  row2.className = 'grid grid-cols-3 gap-1';
+  row2.appendChild(document.createElement('span'));
+  row2.appendChild(make('Omitido', 'i-eye-off', 'bg-sky-400 hover:bg-sky-500', 'omitted', st === 2));
+  row2.appendChild(document.createElement('span'));
+  wrap.appendChild(row2);
 }
 
 function loadPanelQuestion(panelIdx) {
@@ -1067,7 +1058,7 @@ function handlePanelAction(panelIdx, action) {
           span.classList.add('verbo-locked', 'locked');
         }
       });
-      placeVerbLabel(sb, textEl, q.verbo);
+      drawVerbLabel(sb, textEl, q.verbo);
       panelStep[panelIdx] = 2;
       updatePanelStepIndicator(panelIdx);
       renderPanelActions(panelIdx);
@@ -1093,6 +1084,7 @@ function handlePanelAction(panelIdx, action) {
         span.classList.remove('subj-pick');
         if (q.sujeto.includes(idx)) span.classList.add('sujeto-correct', 'locked');
       });
+      drawUnderline(sb, textEl, q.sujeto, '#3b82f6');
       advancePanelToPredicado(panelIdx);
     } else {
       penaltyPanel(panelIdx);
@@ -1169,12 +1161,12 @@ function revealPanelSolution(panelIdx) {
 
   text.querySelectorAll('.word').forEach(span => {
     const idx = parseInt(span.dataset.idx);
-    span.classList.remove('subj-pick', 'verb-pick', 'pred-pick', 'verbo-locked');
+    span.classList.remove('subj-pick', 'verb-pick', 'pred-pick');
     span.classList.add('locked');
     if (sujeto.includes(idx)) {
       span.classList.add('sujeto-correct');
     } else if (verbo.includes(idx)) {
-      span.classList.add('verbo-correct');
+      span.classList.add('verbo-locked');
     } else {
       span.classList.add('predicado-correct');
     }
@@ -1187,38 +1179,87 @@ function revealPanelSolution(panelIdx) {
     text.insertBefore(bubble, text.firstChild);
   }
 
-  placeVerbLabel(sb, text, verbo);
+  clearMarks(sb);
+  drawUnderline(sb, text, sujeto, '#3b82f6');
+  drawUnderline(sb, text, predicadoCompleto(q), '#dc2626');
+  drawVerbLabel(sb, text, verbo);
 }
 
 // ========================================================================
 // HELPERS
 // ========================================================================
+// Divide una lista de índices en tramos de palabras consecutivas.
+function contiguousRuns(indices) {
+  const sorted = [...indices].sort((a, b) => a - b);
+  const runs = [];
+  let run = [];
+  sorted.forEach(n => {
+    if (run.length && n === run[run.length - 1] + 1) run.push(n);
+    else { if (run.length) runs.push(run); run = [n]; }
+  });
+  if (run.length) runs.push(run);
+  return runs;
+}
+
+// Quita barras de subrayado y etiqueta de verbo del contenedor.
+function clearMarks(boxEl) {
+  boxEl.querySelectorAll('.underline-bar, .verb-tag').forEach(e => e.remove());
+}
+
+// Dibuja un subrayado CONTINUO bajo cada tramo de palabras del rol indicado.
+function drawUnderline(boxEl, textEl, indices, color) {
+  if (!indices || !indices.length) return;
+  const boxRect = boxEl.getBoundingClientRect();
+  contiguousRuns(indices).forEach(run => {
+    const first = textEl.querySelector(`.word[data-idx="${run[0]}"]`);
+    const last = textEl.querySelector(`.word[data-idx="${run[run.length - 1]}"]`);
+    if (!first || !last) return;
+    const fr = first.getBoundingClientRect();
+    const lr = last.getBoundingClientRect();
+    const bar = document.createElement('div');
+    bar.className = 'underline-bar';
+    bar.style.background = color;
+    bar.style.left = (fr.left - boxRect.left) + 'px';
+    bar.style.width = (lr.right - fr.left) + 'px';
+    bar.style.top = (lr.bottom - boxRect.top + 2) + 'px';
+    boxEl.appendChild(bar);
+  });
+}
+
 // Coloca la etiqueta "verbo" centrada sobre el grupo verbal.
-// boxEl debe ser el contenedor con position:relative (offsetParent de las palabras).
-function placeVerbLabel(boxEl, textEl, verbo) {
-  const old = boxEl.querySelector('.verb-tag');
-  if (old) old.remove();
+function drawVerbLabel(boxEl, textEl, verbo) {
   if (!verbo || !verbo.length) return;
-  const spans = [...textEl.querySelectorAll('.word')].filter(s => verbo.includes(parseInt(s.dataset.idx)));
+  const spans = verbo
+    .map(i => textEl.querySelector(`.word[data-idx="${i}"]`))
+    .filter(Boolean);
   if (!spans.length) return;
-  const first = spans[0];
-  const last = spans[spans.length - 1];
-  const centerX = (first.offsetLeft + last.offsetLeft + last.offsetWidth) / 2;
-  const top = first.offsetTop;
+  const boxRect = boxEl.getBoundingClientRect();
+  const fr = spans[0].getBoundingClientRect();
+  const lr = spans[spans.length - 1].getBoundingClientRect();
+  const centerX = (fr.left + lr.right) / 2 - boxRect.left;
+  const topY = fr.top - boxRect.top + 1;
   const tag = document.createElement('span');
   tag.className = 'verb-tag';
   tag.textContent = 'verbo';
   tag.style.left = centerX + 'px';
-  tag.style.top = (top + 2) + 'px';
+  tag.style.top = topY + 'px';
   boxEl.appendChild(tag);
+}
+
+// Lista de todos los índices de palabra de una oración.
+function allWordIndices(q) {
+  return q.text.split(/\s+/).map((_, i) => i);
+}
+
+// El predicado = todo lo que no es sujeto (incluye el verbo).
+function predicadoCompleto(q) {
+  const sujeto = q.sujeto || [];
+  return allWordIndices(q).filter(i => !sujeto.includes(i));
 }
 
 function renderSentence(container, question, onWordClick) {
   container.innerHTML = '';
-  if (container.parentElement) {
-    const old = container.parentElement.querySelector('.verb-tag');
-    if (old) old.remove();
-  }
+  if (container.parentElement) clearMarks(container.parentElement);
   const words = question.text.split(/\s+/);
   words.forEach((part, idx) => {
     const span = document.createElement('span');
