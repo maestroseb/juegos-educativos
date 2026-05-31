@@ -284,23 +284,23 @@
 
   <!-- =========== PANTALLA DE JUEGO (CLÁSICO / CONTRARRELOJ) =========== -->
   <div id="game-screen" class="hidden flex-col">
-    <div class="bg-slate-800 text-white px-4 py-3 flex justify-between items-center gap-2">
-      <div class="flex items-center gap-3">
+    <div class="bg-slate-800 text-white px-4 py-3 grid grid-cols-3 items-center gap-2">
+      <div class="flex items-center gap-2 justify-self-start">
         <button id="menu-btn" title="Volver al menú" class="bg-slate-700 hover:bg-slate-600 text-slate-100 p-2 rounded-lg transition-colors flex items-center justify-center">
           <svg class="h-5 w-5"><use href="#i-home"/></svg>
         </button>
         <button id="skip-btn" title="Saltar oración" class="bg-slate-700 hover:bg-slate-600 text-slate-100 p-2 rounded-lg transition-colors flex items-center justify-center">
           <svg class="h-5 w-5"><use href="#i-skip"/></svg>
         </button>
-        <div class="flex items-center gap-1 ml-2">
+        <div class="flex items-center gap-1 ml-1">
           <svg class="h-5 w-5 text-yellow-400"><use href="#i-clock"/></svg>
           <span id="timer" class="text-xl font-bold font-mono">120</span>
         </div>
       </div>
-      <div class="text-center font-bold text-base text-slate-300">
+      <div class="text-center font-bold text-base text-slate-300 justify-self-center">
         <span id="round-label">Pregunta</span> <span id="question-counter" class="text-white">1</span><span id="question-total" class="text-slate-400"></span>
       </div>
-      <div class="flex items-center gap-1">
+      <div class="flex items-center gap-1 justify-self-end">
         <svg class="h-5 w-5 text-green-400"><use href="#i-star"/></svg>
         <span id="score" class="text-xl font-bold font-mono">0</span>
       </div>
@@ -494,6 +494,9 @@ let selectedSubj = new Set();
 let selectedPred = new Set();
 let step = 1; // 1 = verbo, 2 = sujeto, 3 = predicado
 let isProcessing = false;
+// Estado de las marcas dibujadas sobre la oración del modo solo. Sirve para
+// poder REDIBUJARLAS cuando cambia el layout (resize, rotación de móvil, etc.).
+let soloMarks = { verbo: null, sujeto: null, sujetoBubble: false, fullReveal: false };
 
 // ========================================================================
 // ESTADO DUELO
@@ -501,6 +504,10 @@ let isProcessing = false;
 let teamNames = ['Equipo 1', 'Equipo 2'];
 let teamScores = [0, 0];
 let panelQuestions = [null, null];
+let panelMarks = [
+  { verbo: null, sujeto: null, sujetoBubble: false, fullReveal: false },
+  { verbo: null, sujeto: null, sujetoBubble: false, fullReveal: false }
+];
 let panelVerb = [new Set(), new Set()];
 let panelSubj = [new Set(), new Set()];
 let panelPred = [new Set(), new Set()];
@@ -681,6 +688,7 @@ function loadNextQuestion() {
   selectedPred = new Set();
   step = 1;
   isProcessing = false;
+  soloMarks = { verbo: null, sujeto: null, sujetoBubble: false, fullReveal: false };
 
   renderSentence(document.getElementById('sentence-text'), currentQuestion);
   document.getElementById('pron-selector').classList.add('hidden');
@@ -786,7 +794,16 @@ function handleSoloPronClick(pron) {
     showFloatingText(container, '+' + PTS_OMITIDO, true);
     setTimeout(() => container.classList.remove('bg-green-100'), 500);
     document.getElementById('pron-selector').classList.add('hidden');
-    // Las palabras ya no pertenecen al sujeto (no hay), todas son predicado o verbo.
+    // Insertar la burbuja "(yo)" y subrayarla en azul ya, antes del paso 3.
+    const text = document.getElementById('sentence-text');
+    if (!text.querySelector('.so-bubble')) {
+      const bubble = document.createElement('span');
+      bubble.className = 'so-bubble';
+      bubble.textContent = `(${currentQuestion.pronombre[0]})`;
+      text.insertBefore(bubble, text.firstChild);
+    }
+    soloMarks.sujetoBubble = true;
+    redrawSoloMarks();
     advanceSoloToPredicado();
   } else {
     // Pronombre incorrecto: penaliza pero MANTIENE el selector abierto.
@@ -821,6 +838,10 @@ function showNextBtn() {
   ['check-verb-btn','check-subj-btn','check-pred-btn','omitted-btn'].forEach(id => {
     document.getElementById(id).disabled = true;
   });
+  // Cambia el indicador a un mensaje verde de éxito
+  const ind = document.getElementById('step-indicator');
+  ind.innerHTML = '<svg class="h-4 w-4"><use href="#i-check"/></svg><span><strong>¡Análisis completo!</strong> Revísalo y pulsa Siguiente oración.</span>';
+  ind.className = 'bg-green-50 border-b-2 border-green-100 px-4 py-2 text-center text-sm font-semibold text-green-700 flex items-center justify-center gap-2';
 }
 
 function hideNextBtn() {
@@ -846,7 +867,8 @@ document.getElementById('check-verb-btn').addEventListener('click', () => {
         span.classList.add('verbo-locked', 'locked');
       }
     });
-    drawVerbLabel(document.getElementById('sentence-container'), textEl, currentQuestion.verbo);
+    soloMarks.verbo = currentQuestion.verbo;
+    redrawSoloMarks();
     step = 2;
     updateSoloUI();
   } else {
@@ -880,7 +902,8 @@ document.getElementById('check-subj-btn').addEventListener('click', () => {
         span.classList.add('sujeto-correct', 'locked');
       }
     });
-    drawUnderline(document.getElementById('sentence-container'), textEl, currentQuestion.sujeto, '#3b82f6');
+    soloMarks.sujeto = currentQuestion.sujeto;
+    redrawSoloMarks();
     advanceSoloToPredicado();
   } else {
     penaltySolo();
@@ -923,29 +946,27 @@ function revealSoloSolution() {
     const idx = parseInt(span.dataset.idx);
     span.classList.remove('subj-pick', 'verb-pick', 'pred-pick');
     span.classList.add('locked');
-    if (sujeto.includes(idx)) {
-      span.classList.add('sujeto-correct');
-    } else if (verbo.includes(idx)) {
-      span.classList.add('verbo-locked');
-    } else {
-      span.classList.add('predicado-correct');
-    }
+    if (sujeto.includes(idx)) span.classList.add('sujeto-correct');
+    else if (verbo.includes(idx)) span.classList.add('verbo-locked');
+    else span.classList.add('predicado-correct');
   });
 
-  if (isOmitted) {
+  if (isOmitted && !text.querySelector('.so-bubble')) {
     const bubble = document.createElement('span');
     bubble.className = 'so-bubble';
     bubble.textContent = `(${currentQuestion.pronombre[0]})`;
     text.insertBefore(bubble, text.firstChild);
   }
 
-  // Redibujar subrayados continuos (los offsets cambian al añadir la burbuja):
-  // azul bajo el sujeto y rojo bajo TODO el predicado (verbo incluido).
-  const box = document.getElementById('sentence-container');
-  clearMarks(box);
-  drawUnderline(box, text, sujeto, '#3b82f6', isOmitted);
-  drawUnderline(box, text, predicadoCompleto(currentQuestion), '#dc2626');
-  drawVerbLabel(box, text, verbo);
+  // Marcar que ya hay solución completa y redibujar (también tras un frame,
+  // porque los cambios de fuente/negrita pueden re-fluir el texto y queremos
+  // calcular las barras sobre el layout DEFINITIVO).
+  soloMarks.fullReveal = true;
+  soloMarks.verbo = verbo;
+  soloMarks.sujeto = sujeto;
+  soloMarks.sujetoBubble = isOmitted;
+  redrawSoloMarks();
+  requestAnimationFrame(redrawSoloMarks);
 }
 
 function showHint(msg) {
@@ -1024,6 +1045,7 @@ function loadPanelQuestion(panelIdx) {
   panelPred[panelIdx] = new Set();
   panelStep[panelIdx] = 1;
   panelProcessing[panelIdx] = false;
+  panelMarks[panelIdx] = { verbo: null, sujeto: null, sujetoBubble: false, fullReveal: false };
 
   const textEl = document.getElementById(`panel${panelIdx + 1}-text`);
   renderSentence(textEl, panelQuestions[panelIdx]);
@@ -1099,7 +1121,8 @@ function handlePanelAction(panelIdx, action) {
           span.classList.add('verbo-locked', 'locked');
         }
       });
-      drawVerbLabel(sb, textEl, q.verbo);
+      panelMarks[panelIdx].verbo = q.verbo;
+      redrawPanelMarks(panelIdx);
       panelStep[panelIdx] = 2;
       updatePanelStepIndicator(panelIdx);
       renderPanelActions(panelIdx);
@@ -1125,7 +1148,8 @@ function handlePanelAction(panelIdx, action) {
         span.classList.remove('subj-pick');
         if (q.sujeto.includes(idx)) span.classList.add('sujeto-correct', 'locked');
       });
-      drawUnderline(sb, textEl, q.sujeto, '#3b82f6');
+      panelMarks[panelIdx].sujeto = q.sujeto;
+      redrawPanelMarks(panelIdx);
       advancePanelToPredicado(panelIdx);
     } else {
       penaltyPanel(panelIdx);
@@ -1177,6 +1201,16 @@ function handlePanelPronClick(panelIdx, pron) {
     showFloatingText(sb, '+' + PTS_OMITIDO, true);
     setTimeout(() => sb.classList.remove('bg-green-100'), 400);
     document.getElementById(`panel${panelIdx + 1}-pron`).classList.add('hidden');
+    // Insertar burbuja "(yo)" y subrayarla en azul
+    const text = document.getElementById(`panel${panelIdx + 1}-text`);
+    if (!text.querySelector('.so-bubble')) {
+      const bubble = document.createElement('span');
+      bubble.className = 'so-bubble';
+      bubble.textContent = `(${q.pronombre[0]})`;
+      text.insertBefore(bubble, text.firstChild);
+    }
+    panelMarks[panelIdx].sujetoBubble = true;
+    redrawPanelMarks(panelIdx);
     advancePanelToPredicado(panelIdx);
   } else {
     penaltyPanel(panelIdx);
@@ -1196,7 +1230,6 @@ function penaltyPanel(panelIdx) {
 function revealPanelSolution(panelIdx) {
   const q = panelQuestions[panelIdx];
   const text = document.getElementById(`panel${panelIdx + 1}-text`);
-  const sb = document.getElementById(`panel${panelIdx + 1}-sentence`);
   const sujeto = q.sujeto || [];
   const verbo = q.verbo || [];
   const isOmitted = Array.isArray(q.pronombre);
@@ -1205,26 +1238,24 @@ function revealPanelSolution(panelIdx) {
     const idx = parseInt(span.dataset.idx);
     span.classList.remove('subj-pick', 'verb-pick', 'pred-pick');
     span.classList.add('locked');
-    if (sujeto.includes(idx)) {
-      span.classList.add('sujeto-correct');
-    } else if (verbo.includes(idx)) {
-      span.classList.add('verbo-locked');
-    } else {
-      span.classList.add('predicado-correct');
-    }
+    if (sujeto.includes(idx)) span.classList.add('sujeto-correct');
+    else if (verbo.includes(idx)) span.classList.add('verbo-locked');
+    else span.classList.add('predicado-correct');
   });
 
-  if (isOmitted) {
+  if (isOmitted && !text.querySelector('.so-bubble')) {
     const bubble = document.createElement('span');
     bubble.className = 'so-bubble';
     bubble.textContent = `(${q.pronombre[0]})`;
     text.insertBefore(bubble, text.firstChild);
   }
 
-  clearMarks(sb);
-  drawUnderline(sb, text, sujeto, '#3b82f6', isOmitted);
-  drawUnderline(sb, text, predicadoCompleto(q), '#dc2626');
-  drawVerbLabel(sb, text, verbo);
+  panelMarks[panelIdx].fullReveal = true;
+  panelMarks[panelIdx].verbo = verbo;
+  panelMarks[panelIdx].sujeto = sujeto;
+  panelMarks[panelIdx].sujetoBubble = isOmitted;
+  redrawPanelMarks(panelIdx);
+  requestAnimationFrame(() => redrawPanelMarks(panelIdx));
 }
 
 // ========================================================================
@@ -1248,48 +1279,73 @@ function clearMarks(boxEl) {
   boxEl.querySelectorAll('.underline-bar, .verb-tag').forEach(e => e.remove());
 }
 
-// Línea base común para todos los subrayados de la oración (el punto más
-// bajo de cualquier palabra/burbuja), para que azul y rojo queden alineados.
-function sentenceBaseline(boxEl, textEl) {
+// Detecta las líneas en las que se reparten las palabras y devuelve un mapa
+// { topKey -> { top, bottom } } donde top/bottom son relativos al contenedor.
+function sentenceLines(boxEl, textEl) {
   const boxRect = boxEl.getBoundingClientRect();
-  let maxBottom = 0;
+  const lines = new Map();
   textEl.querySelectorAll('.word, .so-bubble').forEach(el => {
-    const b = el.getBoundingClientRect().bottom - boxRect.top;
-    if (b > maxBottom) maxBottom = b;
+    const r = el.getBoundingClientRect();
+    const top = Math.round(r.top - boxRect.top);
+    const bottom = r.bottom - boxRect.top;
+    let key = null;
+    for (const k of lines.keys()) if (Math.abs(k - top) < 10) { key = k; break; }
+    if (key === null) key = top;
+    const cur = lines.get(key) || { top: key, bottom: 0 };
+    if (bottom > cur.bottom) cur.bottom = bottom;
+    lines.set(key, cur);
   });
-  return maxBottom + 3;
+  return lines;
 }
 
-// Dibuja una barra continua bajo cada tramo de elementos, a la altura baseY.
-function drawBars(boxEl, groups, color, baseY) {
-  const boxRect = boxEl.getBoundingClientRect();
-  groups.forEach(els => {
-    if (!els.length) return;
-    const fr = els[0].getBoundingClientRect();
-    const lr = els[els.length - 1].getBoundingClientRect();
-    const bar = document.createElement('div');
-    bar.className = 'underline-bar';
-    bar.style.background = color;
-    bar.style.left = (fr.left - boxRect.left) + 'px';
-    bar.style.width = (lr.right - fr.left) + 'px';
-    bar.style.top = baseY + 'px';
-    boxEl.appendChild(bar);
-  });
-}
-
-// Subraya un rol (por índices de palabra) de forma CONTINUA por tramos.
-// includeBubble: añade la burbuja del sujeto omitido como su propio tramo.
+// Subraya un rol con barras CONTINUAS: una por cada tramo consecutivo del rol
+// que además esté en la MISMA línea (si la oración se parte, cada tramo va
+// anclado a la línea base de su propia línea, no a la última).
 function drawUnderline(boxEl, textEl, indices, color, includeBubble) {
-  const baseY = sentenceBaseline(boxEl, textEl);
-  const groups = contiguousRuns(indices || []).map(run =>
+  const baseRuns = contiguousRuns(indices || []).map(run =>
     run.map(i => textEl.querySelector(`.word[data-idx="${i}"]`)).filter(Boolean)
   );
   if (includeBubble) {
     const bubble = textEl.querySelector('.so-bubble');
-    if (bubble) groups.push([bubble]);
+    if (bubble) baseRuns.unshift([bubble]);
   }
-  if (!groups.length) return;
-  drawBars(boxEl, groups, color, baseY);
+  if (!baseRuns.length) return;
+
+  const boxRect = boxEl.getBoundingClientRect();
+  const lines = sentenceLines(boxEl, textEl);
+  const lineBottomFor = (top) => {
+    for (const [k, v] of lines) if (Math.abs(k - top) < 10) return v.bottom;
+    return top;
+  };
+
+  baseRuns.forEach(run => {
+    // Partir el tramo cuando cambia de línea (envolvente).
+    let cur = [];
+    let curTop = null;
+    const segments = [];
+    run.forEach(el => {
+      const top = Math.round(el.getBoundingClientRect().top - boxRect.top);
+      if (curTop !== null && Math.abs(curTop - top) > 10) {
+        segments.push({ els: cur, top: curTop });
+        cur = [];
+      }
+      cur.push(el);
+      curTop = top;
+    });
+    if (cur.length) segments.push({ els: cur, top: curTop });
+
+    segments.forEach(seg => {
+      const fr = seg.els[0].getBoundingClientRect();
+      const lr = seg.els[seg.els.length - 1].getBoundingClientRect();
+      const bar = document.createElement('div');
+      bar.className = 'underline-bar';
+      bar.style.background = color;
+      bar.style.left = (fr.left - boxRect.left) + 'px';
+      bar.style.width = (lr.right - fr.left) + 'px';
+      bar.style.top = (lineBottomFor(seg.top) + 3) + 'px';
+      boxEl.appendChild(bar);
+    });
+  });
 }
 
 // Coloca la etiqueta "verbo" centrada sobre el grupo verbal.
@@ -1322,6 +1378,57 @@ function predicadoCompleto(q) {
   const sujeto = q.sujeto || [];
   return allWordIndices(q).filter(i => !sujeto.includes(i));
 }
+
+// Aplica el estado de marcas (verbo/sujeto/predicado/burbuja) a la oración
+// indicada. Se llama tanto al confirmar cada paso como al redimensionar la
+// ventana, para que las barras se recalculen con el layout actual.
+function applyMarks(box, text, q, marks) {
+  if (!q || !box || !text) return;
+  clearMarks(box);
+  if (marks.fullReveal) {
+    drawUnderline(box, text, q.sujeto || [], '#3b82f6', Array.isArray(q.pronombre));
+    drawUnderline(box, text, predicadoCompleto(q), '#dc2626');
+  } else {
+    if (marks.sujeto || marks.sujetoBubble) {
+      drawUnderline(box, text, marks.sujeto || [], '#3b82f6', !!marks.sujetoBubble);
+    }
+  }
+  if (marks.verbo) drawVerbLabel(box, text, marks.verbo);
+}
+
+function redrawSoloMarks() {
+  applyMarks(
+    document.getElementById('sentence-container'),
+    document.getElementById('sentence-text'),
+    currentQuestion,
+    soloMarks
+  );
+}
+
+function redrawPanelMarks(panelIdx) {
+  applyMarks(
+    document.getElementById(`panel${panelIdx + 1}-sentence`),
+    document.getElementById(`panel${panelIdx + 1}-text`),
+    panelQuestions[panelIdx],
+    panelMarks[panelIdx]
+  );
+}
+
+// Recalcular todos los subrayados al cambiar el tamaño de la ventana o girar
+// el móvil. requestAnimationFrame asegura que el layout esté ya recalculado.
+let _redrawScheduled = false;
+function scheduleRedrawAll() {
+  if (_redrawScheduled) return;
+  _redrawScheduled = true;
+  requestAnimationFrame(() => {
+    _redrawScheduled = false;
+    redrawSoloMarks();
+    redrawPanelMarks(0);
+    redrawPanelMarks(1);
+  });
+}
+window.addEventListener('resize', scheduleRedrawAll);
+window.addEventListener('orientationchange', scheduleRedrawAll);
 
 function renderSentence(container, question) {
   container.innerHTML = '';
