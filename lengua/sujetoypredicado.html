@@ -1248,48 +1248,73 @@ function clearMarks(boxEl) {
   boxEl.querySelectorAll('.underline-bar, .verb-tag').forEach(e => e.remove());
 }
 
-// Línea base común para todos los subrayados de la oración (el punto más
-// bajo de cualquier palabra/burbuja), para que azul y rojo queden alineados.
-function sentenceBaseline(boxEl, textEl) {
+// Detecta las líneas en las que se reparten las palabras y devuelve un mapa
+// { topKey -> { top, bottom } } donde top/bottom son relativos al contenedor.
+function sentenceLines(boxEl, textEl) {
   const boxRect = boxEl.getBoundingClientRect();
-  let maxBottom = 0;
+  const lines = new Map();
   textEl.querySelectorAll('.word, .so-bubble').forEach(el => {
-    const b = el.getBoundingClientRect().bottom - boxRect.top;
-    if (b > maxBottom) maxBottom = b;
+    const r = el.getBoundingClientRect();
+    const top = Math.round(r.top - boxRect.top);
+    const bottom = r.bottom - boxRect.top;
+    let key = null;
+    for (const k of lines.keys()) if (Math.abs(k - top) < 10) { key = k; break; }
+    if (key === null) key = top;
+    const cur = lines.get(key) || { top: key, bottom: 0 };
+    if (bottom > cur.bottom) cur.bottom = bottom;
+    lines.set(key, cur);
   });
-  return maxBottom + 3;
+  return lines;
 }
 
-// Dibuja una barra continua bajo cada tramo de elementos, a la altura baseY.
-function drawBars(boxEl, groups, color, baseY) {
-  const boxRect = boxEl.getBoundingClientRect();
-  groups.forEach(els => {
-    if (!els.length) return;
-    const fr = els[0].getBoundingClientRect();
-    const lr = els[els.length - 1].getBoundingClientRect();
-    const bar = document.createElement('div');
-    bar.className = 'underline-bar';
-    bar.style.background = color;
-    bar.style.left = (fr.left - boxRect.left) + 'px';
-    bar.style.width = (lr.right - fr.left) + 'px';
-    bar.style.top = baseY + 'px';
-    boxEl.appendChild(bar);
-  });
-}
-
-// Subraya un rol (por índices de palabra) de forma CONTINUA por tramos.
-// includeBubble: añade la burbuja del sujeto omitido como su propio tramo.
+// Subraya un rol con barras CONTINUAS: una por cada tramo consecutivo del rol
+// que además esté en la MISMA línea (si la oración se parte, cada tramo va
+// anclado a la línea base de su propia línea, no a la última).
 function drawUnderline(boxEl, textEl, indices, color, includeBubble) {
-  const baseY = sentenceBaseline(boxEl, textEl);
-  const groups = contiguousRuns(indices || []).map(run =>
+  const baseRuns = contiguousRuns(indices || []).map(run =>
     run.map(i => textEl.querySelector(`.word[data-idx="${i}"]`)).filter(Boolean)
   );
   if (includeBubble) {
     const bubble = textEl.querySelector('.so-bubble');
-    if (bubble) groups.push([bubble]);
+    if (bubble) baseRuns.unshift([bubble]);
   }
-  if (!groups.length) return;
-  drawBars(boxEl, groups, color, baseY);
+  if (!baseRuns.length) return;
+
+  const boxRect = boxEl.getBoundingClientRect();
+  const lines = sentenceLines(boxEl, textEl);
+  const lineBottomFor = (top) => {
+    for (const [k, v] of lines) if (Math.abs(k - top) < 10) return v.bottom;
+    return top;
+  };
+
+  baseRuns.forEach(run => {
+    // Partir el tramo cuando cambia de línea (envolvente).
+    let cur = [];
+    let curTop = null;
+    const segments = [];
+    run.forEach(el => {
+      const top = Math.round(el.getBoundingClientRect().top - boxRect.top);
+      if (curTop !== null && Math.abs(curTop - top) > 10) {
+        segments.push({ els: cur, top: curTop });
+        cur = [];
+      }
+      cur.push(el);
+      curTop = top;
+    });
+    if (cur.length) segments.push({ els: cur, top: curTop });
+
+    segments.forEach(seg => {
+      const fr = seg.els[0].getBoundingClientRect();
+      const lr = seg.els[seg.els.length - 1].getBoundingClientRect();
+      const bar = document.createElement('div');
+      bar.className = 'underline-bar';
+      bar.style.background = color;
+      bar.style.left = (fr.left - boxRect.left) + 'px';
+      bar.style.width = (lr.right - fr.left) + 'px';
+      bar.style.top = (lineBottomFor(seg.top) + 3) + 'px';
+      boxEl.appendChild(bar);
+    });
+  });
 }
 
 // Coloca la etiqueta "verbo" centrada sobre el grupo verbal.
