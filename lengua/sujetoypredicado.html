@@ -50,6 +50,7 @@
     border-radius: 0.4rem;
     cursor: pointer;
     transition: background-color 0.15s, transform 0.15s, color 0.15s;
+    touch-action: none;
   }
   .word:hover { background-color: #e0e7ff; }
 
@@ -126,17 +127,16 @@
   .so-bubble {
     display: inline-block;
     color: #1d4ed8;
-    border-bottom: 5px solid #3b82f6;
-    padding: 0.1rem 0.35rem 0.15rem 0.35rem;
-    font-size: 0.9em;
-    font-weight: 600;
-    margin: 0 0.15rem 0.7rem 0;
+    padding: 0.1rem 0.35rem;
+    font-size: 1em;
+    font-weight: 700;
+    margin: 0.95rem 0.05rem 0.7rem 0.05rem;
     animation: popIn 0.3s ease;
-    vertical-align: middle;
+    vertical-align: baseline;
   }
 </style>
 </head>
-<body class="min-h-screen flex flex-col items-center justify-center p-2 md:p-4 text-slate-800">
+<body class="min-h-screen flex flex-col items-center justify-start pt-3 md:pt-6 p-2 md:p-4 text-slate-800">
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
@@ -682,7 +682,7 @@ function loadNextQuestion() {
   step = 1;
   isProcessing = false;
 
-  renderSentence(document.getElementById('sentence-text'), currentQuestion, (idx, span) => toggleSoloWord(idx, span));
+  renderSentence(document.getElementById('sentence-text'), currentQuestion);
   document.getElementById('pron-selector').classList.add('hidden');
   document.getElementById('sentence-container').classList.remove('bg-green-100', 'bg-red-100');
   hideNextBtn();
@@ -716,28 +716,35 @@ function updateSoloUI() {
   document.getElementById('omitted-btn').disabled = step !== 2;
 }
 
-function toggleSoloWord(idx, span) {
-  if (isProcessing) return;
-  if (step === 1) {
-    if (selectedVerb.has(idx)) {
-      selectedVerb.delete(idx); span.classList.remove('verb-pick');
-    } else {
-      selectedVerb.add(idx); span.classList.add('verb-pick');
-    }
-  } else if (step === 2) {
-    if (selectedSubj.has(idx)) {
-      selectedSubj.delete(idx); span.classList.remove('subj-pick');
-    } else {
-      selectedSubj.add(idx); span.classList.add('subj-pick');
-    }
-  } else {
-    if (selectedPred.has(idx)) {
-      selectedPred.delete(idx); span.classList.remove('pred-pick');
-    } else {
-      selectedPred.add(idx); span.classList.add('pred-pick');
-    }
-  }
+function currentStepSet() {
+  return step === 1 ? selectedVerb : step === 2 ? selectedSubj : selectedPred;
 }
+function currentStepClass() {
+  return step === 1 ? 'verb-pick' : step === 2 ? 'subj-pick' : 'pred-pick';
+}
+
+function setSoloWord(idx, span, selected) {
+  if (isProcessing) return;
+  const set = currentStepSet();
+  const cls = currentStepClass();
+  if (selected) { set.add(idx); span.classList.add(cls); }
+  else { set.delete(idx); span.classList.remove(cls); }
+}
+
+// Enganche del arrastre (una sola vez) sobre la oración del modo solo...
+setupDragSelect(document.getElementById('sentence-text'), {
+  blocked: () => isProcessing,
+  isSelected: (idx) => currentStepSet().has(idx),
+  setSel: (idx, span, sel) => setSoloWord(idx, span, sel)
+});
+// ...y sobre cada panel del modo duelo.
+[0, 1].forEach(panelIdx => {
+  setupDragSelect(document.getElementById(`panel${panelIdx + 1}-text`), {
+    blocked: () => panelProcessing[panelIdx],
+    isSelected: (idx) => panelStepSet(panelIdx).has(idx),
+    setSel: (idx, span, sel) => setPanelWord(panelIdx, idx, span, sel)
+  });
+});
 
 function buildSoloPronGrid() {
   const grid = document.getElementById('pron-grid');
@@ -936,7 +943,7 @@ function revealSoloSolution() {
   // azul bajo el sujeto y rojo bajo TODO el predicado (verbo incluido).
   const box = document.getElementById('sentence-container');
   clearMarks(box);
-  drawUnderline(box, text, sujeto, '#3b82f6');
+  drawUnderline(box, text, sujeto, '#3b82f6', isOmitted);
   drawUnderline(box, text, predicadoCompleto(currentQuestion), '#dc2626');
   drawVerbLabel(box, text, verbo);
 }
@@ -1019,7 +1026,7 @@ function loadPanelQuestion(panelIdx) {
   panelProcessing[panelIdx] = false;
 
   const textEl = document.getElementById(`panel${panelIdx + 1}-text`);
-  renderSentence(textEl, panelQuestions[panelIdx], (idx, span) => togglePanelWord(panelIdx, idx, span));
+  renderSentence(textEl, panelQuestions[panelIdx]);
 
   const sentenceBox = document.getElementById(`panel${panelIdx + 1}-sentence`);
   sentenceBox.classList.remove('bg-green-100', 'bg-red-100', 'animate-shake');
@@ -1043,19 +1050,20 @@ function updatePanelStepIndicator(panelIdx) {
   }
 }
 
-function togglePanelWord(panelIdx, idx, span) {
-  if (panelProcessing[panelIdx]) return;
+function panelStepSet(panelIdx) {
   const st = panelStep[panelIdx];
-  if (st === 1) {
-    if (panelVerb[panelIdx].has(idx)) { panelVerb[panelIdx].delete(idx); span.classList.remove('verb-pick'); }
-    else { panelVerb[panelIdx].add(idx); span.classList.add('verb-pick'); }
-  } else if (st === 2) {
-    if (panelSubj[panelIdx].has(idx)) { panelSubj[panelIdx].delete(idx); span.classList.remove('subj-pick'); }
-    else { panelSubj[panelIdx].add(idx); span.classList.add('subj-pick'); }
-  } else {
-    if (panelPred[panelIdx].has(idx)) { panelPred[panelIdx].delete(idx); span.classList.remove('pred-pick'); }
-    else { panelPred[panelIdx].add(idx); span.classList.add('pred-pick'); }
-  }
+  return st === 1 ? panelVerb[panelIdx] : st === 2 ? panelSubj[panelIdx] : panelPred[panelIdx];
+}
+function panelStepClass(panelIdx) {
+  const st = panelStep[panelIdx];
+  return st === 1 ? 'verb-pick' : st === 2 ? 'subj-pick' : 'pred-pick';
+}
+function setPanelWord(panelIdx, idx, span, selected) {
+  if (panelProcessing[panelIdx]) return;
+  const set = panelStepSet(panelIdx);
+  const cls = panelStepClass(panelIdx);
+  if (selected) { set.add(idx); span.classList.add(cls); }
+  else { set.delete(idx); span.classList.remove(cls); }
 }
 
 function handlePanelAction(panelIdx, action) {
@@ -1214,7 +1222,7 @@ function revealPanelSolution(panelIdx) {
   }
 
   clearMarks(sb);
-  drawUnderline(sb, text, sujeto, '#3b82f6');
+  drawUnderline(sb, text, sujeto, '#3b82f6', isOmitted);
   drawUnderline(sb, text, predicadoCompleto(q), '#dc2626');
   drawVerbLabel(sb, text, verbo);
 }
@@ -1240,24 +1248,48 @@ function clearMarks(boxEl) {
   boxEl.querySelectorAll('.underline-bar, .verb-tag').forEach(e => e.remove());
 }
 
-// Dibuja un subrayado CONTINUO bajo cada tramo de palabras del rol indicado.
-function drawUnderline(boxEl, textEl, indices, color) {
-  if (!indices || !indices.length) return;
+// Línea base común para todos los subrayados de la oración (el punto más
+// bajo de cualquier palabra/burbuja), para que azul y rojo queden alineados.
+function sentenceBaseline(boxEl, textEl) {
   const boxRect = boxEl.getBoundingClientRect();
-  contiguousRuns(indices).forEach(run => {
-    const first = textEl.querySelector(`.word[data-idx="${run[0]}"]`);
-    const last = textEl.querySelector(`.word[data-idx="${run[run.length - 1]}"]`);
-    if (!first || !last) return;
-    const fr = first.getBoundingClientRect();
-    const lr = last.getBoundingClientRect();
+  let maxBottom = 0;
+  textEl.querySelectorAll('.word, .so-bubble').forEach(el => {
+    const b = el.getBoundingClientRect().bottom - boxRect.top;
+    if (b > maxBottom) maxBottom = b;
+  });
+  return maxBottom + 3;
+}
+
+// Dibuja una barra continua bajo cada tramo de elementos, a la altura baseY.
+function drawBars(boxEl, groups, color, baseY) {
+  const boxRect = boxEl.getBoundingClientRect();
+  groups.forEach(els => {
+    if (!els.length) return;
+    const fr = els[0].getBoundingClientRect();
+    const lr = els[els.length - 1].getBoundingClientRect();
     const bar = document.createElement('div');
     bar.className = 'underline-bar';
     bar.style.background = color;
     bar.style.left = (fr.left - boxRect.left) + 'px';
     bar.style.width = (lr.right - fr.left) + 'px';
-    bar.style.top = (lr.bottom - boxRect.top + 2) + 'px';
+    bar.style.top = baseY + 'px';
     boxEl.appendChild(bar);
   });
+}
+
+// Subraya un rol (por índices de palabra) de forma CONTINUA por tramos.
+// includeBubble: añade la burbuja del sujeto omitido como su propio tramo.
+function drawUnderline(boxEl, textEl, indices, color, includeBubble) {
+  const baseY = sentenceBaseline(boxEl, textEl);
+  const groups = contiguousRuns(indices || []).map(run =>
+    run.map(i => textEl.querySelector(`.word[data-idx="${i}"]`)).filter(Boolean)
+  );
+  if (includeBubble) {
+    const bubble = textEl.querySelector('.so-bubble');
+    if (bubble) groups.push([bubble]);
+  }
+  if (!groups.length) return;
+  drawBars(boxEl, groups, color, baseY);
 }
 
 // Coloca la etiqueta "verbo" centrada sobre el grupo verbal.
@@ -1291,7 +1323,7 @@ function predicadoCompleto(q) {
   return allWordIndices(q).filter(i => !sujeto.includes(i));
 }
 
-function renderSentence(container, question, onWordClick) {
+function renderSentence(container, question) {
   container.innerHTML = '';
   if (container.parentElement) clearMarks(container.parentElement);
   const words = question.text.split(/\s+/);
@@ -1300,13 +1332,51 @@ function renderSentence(container, question, onWordClick) {
     span.className = 'word';
     span.textContent = part;
     span.dataset.idx = idx;
-    span.addEventListener('click', () => onWordClick(idx, span));
     container.appendChild(span);
     container.appendChild(document.createTextNode(' '));
   });
   container.classList.remove('animate-pop');
   void container.offsetWidth;
   container.classList.add('animate-pop');
+}
+
+// Selección por toque/clic y ARRASTRE (pulsar y deslizar el dedo/ratón sobre
+// varias palabras). Se engancha una vez a cada contenedor de oración.
+function setupDragSelect(textEl, handlers) {
+  let active = false;
+  let action = 'add';
+  const seen = new Set();
+
+  function applyAt(span) {
+    if (!span || span.classList.contains('locked')) return;
+    const idx = parseInt(span.dataset.idx);
+    if (seen.has(idx)) return;
+    seen.add(idx);
+    handlers.setSel(idx, span, action === 'add');
+  }
+
+  textEl.addEventListener('pointerdown', e => {
+    if (handlers.blocked()) return;
+    const span = e.target.closest('.word');
+    if (!span || span.classList.contains('locked')) return;
+    active = true;
+    seen.clear();
+    const idx = parseInt(span.dataset.idx);
+    action = handlers.isSelected(idx) ? 'remove' : 'add';
+    applyAt(span);
+    e.preventDefault();
+  });
+
+  textEl.addEventListener('pointermove', e => {
+    if (!active) return;
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const span = el && el.closest ? el.closest('.word') : null;
+    if (span && textEl.contains(span)) applyAt(span);
+  });
+
+  const end = () => { active = false; };
+  window.addEventListener('pointerup', end);
+  window.addEventListener('pointercancel', end);
 }
 
 function showFloatingText(container, text, positive) {
