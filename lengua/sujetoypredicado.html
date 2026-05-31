@@ -215,6 +215,20 @@
 
     <p class="text-slate-500 font-semibold mb-4 text-sm uppercase tracking-wider">Elige un modo de juego</p>
 
+    <!-- Opciones generales del juego -->
+    <div class="w-full max-w-lg mb-5">
+      <label class="flex items-center justify-between gap-3 bg-slate-50 hover:bg-slate-100 border-2 border-slate-200 rounded-xl px-4 py-3 cursor-pointer transition-colors">
+        <span class="flex items-center gap-2 text-sm text-slate-700 text-left">
+          <svg class="h-5 w-5 text-sky-500 shrink-0"><use href="#i-eye-off"/></svg>
+          <span>
+            <strong>Incluir sujetos omitidos</strong>
+            <span class="block text-xs text-slate-500">Añade oraciones con sujeto tácito (yo, tú, él…)</span>
+          </span>
+        </span>
+        <input id="opt-omitted" type="checkbox" class="h-5 w-5 accent-sky-500 shrink-0">
+      </label>
+    </div>
+
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 w-full max-w-3xl mb-6">
       <button onclick="chooseMode('classic')" class="bg-white hover:bg-blue-50 border-4 border-blue-200 hover:border-blue-500 rounded-2xl p-5 transition-all transform hover:-translate-y-1 text-left shadow-sm group">
         <svg class="h-10 w-10 text-blue-500 mb-2"><use href="#i-book"/></svg>
@@ -323,7 +337,7 @@
           <span>1. Verbo</span>
         </button>
 
-        <div class="flex rounded-xl overflow-hidden shadow-lg shadow-blue-200">
+        <div id="subj-group" class="flex rounded-xl overflow-hidden shadow-lg shadow-blue-200">
           <button id="check-subj-btn" class="action-btn flex-1 min-w-0 bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-2 transition-transform active:scale-95 flex items-center justify-center gap-2 text-base">
             <svg class="h-5 w-5 shrink-0"><use href="#i-user"/></svg>
             <span>2. Sujeto</span>
@@ -486,6 +500,7 @@ const PTS_FALLO = 3;
 // ESTADO SOLO
 // ========================================================================
 let mode = 'classic';
+let includeOmitted = false;
 let score = 0;
 let timeLeft = DURACION_TIMER;
 let timerInterval = null;
@@ -580,6 +595,18 @@ function expectedPredicado(q) {
 // ========================================================================
 // INICIAR JUEGO
 // ========================================================================
+// Muestra u oculta el segmento "omitido" del botón Sujeto y los iconos
+// correspondientes de los paneles del duelo según la opción.
+function applyOmittedVisibility() {
+  const om = document.getElementById('omitted-btn');
+  if (om) om.classList.toggle('hidden', !includeOmitted);
+  // En los paneles del duelo, el segmento se vuelve a generar en
+  // renderPanelActions(), que ya consulta includeOmitted.
+  document.querySelectorAll('.panel-omitted-btn').forEach(el => {
+    el.classList.toggle('hidden', !includeOmitted);
+  });
+}
+
 function startGame(m) {
   mode = m;
   score = 0;
@@ -587,7 +614,14 @@ function startGame(m) {
   teamScores = [0, 0];
   isProcessing = false;
   panelProcessing = [false, false];
-  questions = shuffle(ORACIONES);
+  // Filtrar el banco según la opción "Incluir sujetos omitidos".
+  includeOmitted = !!document.getElementById('opt-omitted').checked;
+  const pool = includeOmitted
+    ? ORACIONES
+    : ORACIONES.filter(q => !Array.isArray(q.pronombre));
+  questions = shuffle(pool);
+  // Mostrar/ocultar el segmento "omitido" del botón Sujeto según la opción.
+  applyOmittedVisibility();
 
   Object.values(screens).forEach(s => { s.classList.add('hidden'); s.classList.remove('flex'); });
 
@@ -1028,19 +1062,23 @@ function renderPanelActions(panelIdx) {
   };
   // Verbo
   wrap.appendChild(make('Verbo', 'i-bolt', 'bg-purple-600 hover:bg-purple-700', 'check-verb', st === 1, 'rounded-lg'));
-  // Sujeto + segmento "omitido" fusionado
-  const subjGroup = document.createElement('div');
-  subjGroup.className = 'flex rounded-lg overflow-hidden';
-  const subjBtn = make('Sujeto', 'i-user', 'bg-blue-600 hover:bg-blue-700', 'check-subj', st === 2, 'flex-1 min-w-0');
-  const omBtn = document.createElement('button');
-  omBtn.className = 'panel-action-btn shrink-0 basis-[30%] bg-sky-400 hover:bg-sky-500 text-white border-l border-sky-700/40 flex items-center justify-center';
-  omBtn.title = 'El sujeto está omitido';
-  omBtn.innerHTML = '<svg class="h-3.5 w-3.5"><use href="#i-eye-off"/></svg>';
-  omBtn.disabled = st !== 2;
-  omBtn.addEventListener('click', () => handlePanelAction(panelIdx, 'omitted'));
-  subjGroup.appendChild(subjBtn);
-  subjGroup.appendChild(omBtn);
-  wrap.appendChild(subjGroup);
+  // Sujeto (+ segmento "omitido" fusionado, solo si la opción está activa)
+  if (includeOmitted) {
+    const subjGroup = document.createElement('div');
+    subjGroup.className = 'flex rounded-lg overflow-hidden';
+    const subjBtn = make('Sujeto', 'i-user', 'bg-blue-600 hover:bg-blue-700', 'check-subj', st === 2, 'flex-1 min-w-0');
+    const omBtn = document.createElement('button');
+    omBtn.className = 'panel-action-btn panel-omitted-btn shrink-0 basis-[30%] bg-sky-400 hover:bg-sky-500 text-white border-l border-sky-700/40 flex items-center justify-center';
+    omBtn.title = 'El sujeto está omitido';
+    omBtn.innerHTML = '<svg class="h-3.5 w-3.5"><use href="#i-eye-off"/></svg>';
+    omBtn.disabled = st !== 2;
+    omBtn.addEventListener('click', () => handlePanelAction(panelIdx, 'omitted'));
+    subjGroup.appendChild(subjBtn);
+    subjGroup.appendChild(omBtn);
+    wrap.appendChild(subjGroup);
+  } else {
+    wrap.appendChild(make('Sujeto', 'i-user', 'bg-blue-600 hover:bg-blue-700', 'check-subj', st === 2, 'rounded-lg'));
+  }
   // Predicado
   wrap.appendChild(make('Predic.', 'i-underline', 'bg-red-600 hover:bg-red-700', 'check-pred', st === 3, 'rounded-lg'));
 }
