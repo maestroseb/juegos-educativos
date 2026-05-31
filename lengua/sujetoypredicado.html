@@ -284,25 +284,25 @@
 
   <!-- =========== PANTALLA DE JUEGO (CLÁSICO / CONTRARRELOJ) =========== -->
   <div id="game-screen" class="hidden flex-col">
-    <div class="bg-slate-800 text-white px-4 py-3 grid grid-cols-3 items-center gap-2">
-      <div class="flex items-center gap-2 justify-self-start">
-        <button id="menu-btn" title="Volver al menú" class="bg-slate-700 hover:bg-slate-600 text-slate-100 p-2 rounded-lg transition-colors flex items-center justify-center">
+    <div class="bg-slate-800 text-white px-3 md:px-4 py-3 grid grid-cols-[auto_1fr_auto] items-center gap-2">
+      <div class="flex items-center gap-1.5 min-w-0">
+        <button id="menu-btn" title="Volver al menú" class="bg-slate-700 hover:bg-slate-600 text-slate-100 p-2 rounded-lg transition-colors flex items-center justify-center shrink-0">
           <svg class="h-5 w-5"><use href="#i-home"/></svg>
         </button>
-        <button id="skip-btn" title="Saltar oración" class="bg-slate-700 hover:bg-slate-600 text-slate-100 p-2 rounded-lg transition-colors flex items-center justify-center">
+        <button id="skip-btn" title="Saltar oración" class="bg-slate-700 hover:bg-slate-600 text-slate-100 p-2 rounded-lg transition-colors flex items-center justify-center shrink-0">
           <svg class="h-5 w-5"><use href="#i-skip"/></svg>
         </button>
-        <div class="flex items-center gap-1 ml-1">
+        <div id="timer-wrap" class="flex items-center gap-1 ml-0.5 shrink-0">
           <svg class="h-5 w-5 text-yellow-400"><use href="#i-clock"/></svg>
-          <span id="timer" class="text-xl font-bold font-mono">120</span>
+          <span id="timer" class="text-lg font-bold font-mono">120</span>
         </div>
       </div>
-      <div class="text-center font-bold text-base text-slate-300 justify-self-center">
+      <div class="text-center font-bold text-sm md:text-base text-slate-300 whitespace-nowrap overflow-hidden text-ellipsis px-1">
         <span id="round-label">Pregunta</span> <span id="question-counter" class="text-white">1</span><span id="question-total" class="text-slate-400"></span>
       </div>
-      <div class="flex items-center gap-1 justify-self-end">
+      <div class="flex items-center gap-1 shrink-0">
         <svg class="h-5 w-5 text-green-400"><use href="#i-star"/></svg>
-        <span id="score" class="text-xl font-bold font-mono">0</span>
+        <span id="score" class="text-lg font-bold font-mono">0</span>
       </div>
     </div>
 
@@ -314,26 +314,29 @@
 
     <div class="p-4 md:p-6 bg-white border-t border-slate-100">
 
-      <!-- Los 3 pasos siempre visibles; se habilitan por turnos -->
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
-        <button id="check-verb-btn" class="action-btn bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 px-3 rounded-xl shadow-lg shadow-purple-200 transition-transform hover:scale-[1.01] active:scale-95 flex items-center justify-center gap-2 text-base">
-          <svg class="h-5 w-5"><use href="#i-bolt"/></svg>
-          1. Verbo
+      <!-- Los 3 pasos siempre visibles; se habilitan por turnos.
+           El botón "Sujeto" lleva un segmento secundario a la derecha (el
+           ojo tachado) para indicar que el sujeto está OMITIDO. -->
+      <div class="grid grid-cols-3 gap-2 md:gap-3 mb-3">
+        <button id="check-verb-btn" class="action-btn bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 px-1 md:px-3 rounded-xl shadow-lg shadow-purple-200 transition-transform hover:scale-[1.01] active:scale-95 flex items-center justify-center gap-1 md:gap-2 text-sm md:text-base">
+          <svg class="h-5 w-5 shrink-0"><use href="#i-bolt"/></svg>
+          <span>1. Verbo</span>
         </button>
-        <button id="check-subj-btn" class="action-btn bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-3 rounded-xl shadow-lg shadow-blue-200 transition-transform hover:scale-[1.01] active:scale-95 flex items-center justify-center gap-2 text-base">
-          <svg class="h-5 w-5"><use href="#i-user"/></svg>
-          2. Sujeto
-        </button>
-        <button id="check-pred-btn" class="action-btn bg-red-600 hover:bg-red-700 text-white font-bold py-4 px-3 rounded-xl shadow-lg shadow-red-200 transition-transform hover:scale-[1.01] active:scale-95 flex items-center justify-center gap-2 text-base">
-          <svg class="h-5 w-5"><use href="#i-underline"/></svg>
-          3. Predicado
-        </button>
-      </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
-        <button id="omitted-btn" class="action-btn sm:col-start-2 bg-sky-400 hover:bg-sky-500 text-white font-semibold py-2.5 px-3 rounded-xl shadow-md shadow-sky-200 transition-transform hover:scale-[1.01] active:scale-95 flex items-center justify-center gap-2 text-sm">
-          <svg class="h-4 w-4"><use href="#i-eye-off"/></svg>
-          El sujeto está omitido
+        <div class="flex rounded-xl overflow-hidden shadow-lg shadow-blue-200">
+          <button id="check-subj-btn" class="action-btn flex-1 min-w-0 bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-1 md:px-2 transition-transform active:scale-95 flex items-center justify-center gap-1 md:gap-2 text-sm md:text-base">
+            <svg class="h-5 w-5 shrink-0"><use href="#i-user"/></svg>
+            <span>2. Sujeto</span>
+          </button>
+          <button id="omitted-btn" title="El sujeto está omitido" aria-label="El sujeto está omitido" class="action-btn shrink-0 basis-[26%] bg-sky-400 hover:bg-sky-500 text-white border-l-2 border-sky-600/40 flex flex-col items-center justify-center gap-0.5 transition-transform active:scale-95">
+            <svg class="h-5 w-5"><use href="#i-eye-off"/></svg>
+            <span class="text-[0.6rem] font-bold leading-none">omitido</span>
+          </button>
+        </div>
+
+        <button id="check-pred-btn" class="action-btn bg-red-600 hover:bg-red-700 text-white font-bold py-4 px-1 md:px-3 rounded-xl shadow-lg shadow-red-200 transition-transform hover:scale-[1.01] active:scale-95 flex items-center justify-center gap-1 md:gap-2 text-sm md:text-base">
+          <svg class="h-5 w-5 shrink-0"><use href="#i-underline"/></svg>
+          <span>3. Predicado</span>
         </button>
       </div>
 
@@ -620,15 +623,17 @@ function startGame(m) {
 
     if (mode === 'timer') {
       timeLeft = DURACION_TIMER;
+      document.getElementById('timer-wrap').classList.remove('hidden');
       document.getElementById('timer').textContent = timeLeft;
       document.getElementById('timer').classList.remove('text-red-500', 'animate-pulse');
       document.getElementById('round-label').textContent = 'Pregunta';
       document.getElementById('question-total').textContent = '';
       startSoloTimer();
     } else {
+      // Modo Clásico: sin tiempo. Ocultamos el cronómetro para liberar espacio
+      // en la cabecera (evita el solapamiento con "Pregunta x/10" en móviles).
       timeLeft = -1;
-      document.getElementById('timer').textContent = '∞';
-      document.getElementById('timer').classList.remove('text-red-500', 'animate-pulse');
+      document.getElementById('timer-wrap').classList.add('hidden');
       document.getElementById('round-label').textContent = 'Pregunta';
       document.getElementById('question-total').textContent = '/10';
     }
@@ -1011,30 +1016,33 @@ function buildPanelPronGrid(panelIdx) {
 function renderPanelActions(panelIdx) {
   const wrap = document.getElementById(`panel${panelIdx + 1}-actions`);
   wrap.innerHTML = '';
-  wrap.className = 'mb-2';
+  wrap.className = 'mb-2 grid grid-cols-3 gap-1';
   const st = panelStep[panelIdx];
-  const make = (label, iconId, bg, action, enabled, extraCls) => {
+  const make = (label, iconId, bg, action, enabled, cls) => {
     const btn = document.createElement('button');
-    btn.className = `panel-action-btn ${bg} ${extraCls || ''} text-white font-bold py-2 px-1 rounded-lg text-xs flex items-center justify-center gap-1`;
-    btn.innerHTML = `<svg class="h-4 w-4"><use href="#${iconId}"/></svg> ${label}`;
+    btn.className = `panel-action-btn ${bg} ${cls || ''} text-white font-bold py-2 px-0.5 text-white text-[0.7rem] flex items-center justify-center gap-0.5`;
+    btn.innerHTML = `<svg class="h-3.5 w-3.5 shrink-0"><use href="#${iconId}"/></svg> ${label}`;
     btn.disabled = !enabled;
     btn.addEventListener('click', () => handlePanelAction(panelIdx, action));
     return btn;
   };
-  // Fila con los 3 pasos
-  const row = document.createElement('div');
-  row.className = 'grid grid-cols-3 gap-1 mb-1';
-  row.appendChild(make('1. Verbo', 'i-bolt', 'bg-purple-600 hover:bg-purple-700', 'check-verb', st === 1));
-  row.appendChild(make('2. Sujeto', 'i-user', 'bg-blue-600 hover:bg-blue-700', 'check-subj', st === 2));
-  row.appendChild(make('3. Predic.', 'i-underline', 'bg-red-600 hover:bg-red-700', 'check-pred', st === 3));
-  wrap.appendChild(row);
-  // Botón de sujeto omitido: solo bajo la columna del sujeto (centro), activo en paso 2
-  const row2 = document.createElement('div');
-  row2.className = 'grid grid-cols-3 gap-1';
-  row2.appendChild(document.createElement('span'));
-  row2.appendChild(make('Omitido', 'i-eye-off', 'bg-sky-400 hover:bg-sky-500', 'omitted', st === 2));
-  row2.appendChild(document.createElement('span'));
-  wrap.appendChild(row2);
+  // Verbo
+  wrap.appendChild(make('Verbo', 'i-bolt', 'bg-purple-600 hover:bg-purple-700', 'check-verb', st === 1, 'rounded-lg'));
+  // Sujeto + segmento "omitido" fusionado
+  const subjGroup = document.createElement('div');
+  subjGroup.className = 'flex rounded-lg overflow-hidden';
+  const subjBtn = make('Sujeto', 'i-user', 'bg-blue-600 hover:bg-blue-700', 'check-subj', st === 2, 'flex-1 min-w-0');
+  const omBtn = document.createElement('button');
+  omBtn.className = 'panel-action-btn shrink-0 basis-[30%] bg-sky-400 hover:bg-sky-500 text-white border-l border-sky-700/40 flex items-center justify-center';
+  omBtn.title = 'El sujeto está omitido';
+  omBtn.innerHTML = '<svg class="h-3.5 w-3.5"><use href="#i-eye-off"/></svg>';
+  omBtn.disabled = st !== 2;
+  omBtn.addEventListener('click', () => handlePanelAction(panelIdx, 'omitted'));
+  subjGroup.appendChild(subjBtn);
+  subjGroup.appendChild(omBtn);
+  wrap.appendChild(subjGroup);
+  // Predicado
+  wrap.appendChild(make('Predic.', 'i-underline', 'bg-red-600 hover:bg-red-700', 'check-pred', st === 3, 'rounded-lg'));
 }
 
 function loadPanelQuestion(panelIdx) {
