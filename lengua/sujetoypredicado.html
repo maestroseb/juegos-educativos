@@ -57,6 +57,13 @@
   .word.verb-pick { color: #7e22ce; background-color: #f3e8ff; }
   .word.subj-pick { color: #1d4ed8; background-color: #dbeafe; }
   .word.pred-pick { color: #b91c1c; background-color: #fee2e2; }
+  /* Verbo (paso 1 ya confirmado) que se marca como parte del predicado:
+     mantiene el bloque violeta y añade marca roja inferior. */
+  .word.verbo-locked.pred-pick {
+    background-color: #a855f7;
+    color: white;
+    box-shadow: inset 0 -4px 0 #dc2626;
+  }
 
   /* Verbo confirmado: bloque violeta (es el núcleo del predicado).
      El subrayado rojo continuo del predicado pasará por debajo. */
@@ -277,17 +284,25 @@
 
   <!-- =========== PANTALLA DE JUEGO (CLÁSICO / CONTRARRELOJ) =========== -->
   <div id="game-screen" class="hidden flex-col">
-    <div class="bg-slate-800 text-white p-4 flex justify-between items-center">
-      <div class="flex items-center gap-2">
-        <svg class="h-6 w-6 text-yellow-400"><use href="#i-clock"/></svg>
-        <span id="timer" class="text-2xl font-bold font-mono">120</span>
+    <div class="bg-slate-800 text-white px-4 py-3 flex justify-between items-center gap-2">
+      <div class="flex items-center gap-3">
+        <button id="menu-btn" title="Volver al menú" class="bg-slate-700 hover:bg-slate-600 text-slate-100 p-2 rounded-lg transition-colors flex items-center justify-center">
+          <svg class="h-5 w-5"><use href="#i-home"/></svg>
+        </button>
+        <button id="skip-btn" title="Saltar oración" class="bg-slate-700 hover:bg-slate-600 text-slate-100 p-2 rounded-lg transition-colors flex items-center justify-center">
+          <svg class="h-5 w-5"><use href="#i-skip"/></svg>
+        </button>
+        <div class="flex items-center gap-1 ml-2">
+          <svg class="h-5 w-5 text-yellow-400"><use href="#i-clock"/></svg>
+          <span id="timer" class="text-xl font-bold font-mono">120</span>
+        </div>
       </div>
-      <div class="text-center font-bold text-lg text-slate-300">
+      <div class="text-center font-bold text-base text-slate-300">
         <span id="round-label">Pregunta</span> <span id="question-counter" class="text-white">1</span><span id="question-total" class="text-slate-400"></span>
       </div>
-      <div class="flex items-center gap-2">
-        <svg class="h-6 w-6 text-green-400"><use href="#i-star"/></svg>
-        <span id="score" class="text-2xl font-bold font-mono">0</span>
+      <div class="flex items-center gap-1">
+        <svg class="h-5 w-5 text-green-400"><use href="#i-star"/></svg>
+        <span id="score" class="text-xl font-bold font-mono">0</span>
       </div>
     </div>
 
@@ -333,16 +348,13 @@
         </div>
       </div>
 
-      <div class="flex justify-center gap-2 mt-1">
-        <button id="skip-btn" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold py-2 px-5 rounded-lg text-sm transition-colors flex items-center gap-2">
-          <svg class="h-4 w-4"><use href="#i-skip"/></svg>
-          Saltar
-        </button>
-        <button id="menu-btn" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold py-2 px-5 rounded-lg text-sm transition-colors flex items-center gap-2">
-          <svg class="h-4 w-4"><use href="#i-home"/></svg>
-          Menú
+      <div id="next-btn-wrap" class="hidden mt-2">
+        <button id="next-btn" class="action-btn w-full bg-green-500 hover:bg-green-600 text-white text-lg font-bold py-3 px-6 rounded-xl shadow-lg shadow-green-200 transition-transform hover:scale-[1.01] active:scale-95 flex items-center justify-center gap-2 animate-pop">
+          Siguiente oración
+          <svg class="h-5 w-5"><use href="#i-skip"/></svg>
         </button>
       </div>
+
     </div>
   </div>
 
@@ -545,13 +557,12 @@ function arraysEqual(a, b) {
 }
 
 function expectedPredicado(q) {
-  // Predicado = todas las palabras NO sujeto y NO verbo
+  // Predicado = todas las palabras NO sujeto (incluye el verbo, su núcleo)
   const total = q.text.split(/\s+/).length;
   const sujeto = q.sujeto || [];
-  const verbo = q.verbo || [];
   const out = [];
   for (let i = 0; i < total; i++) {
-    if (!sujeto.includes(i) && !verbo.includes(i)) out.push(i);
+    if (!sujeto.includes(i)) out.push(i);
   }
   return out;
 }
@@ -674,6 +685,7 @@ function loadNextQuestion() {
   renderSentence(document.getElementById('sentence-text'), currentQuestion, (idx, span) => toggleSoloWord(idx, span));
   document.getElementById('pron-selector').classList.add('hidden');
   document.getElementById('sentence-container').classList.remove('bg-green-100', 'bg-red-100');
+  hideNextBtn();
 
   updateSoloUI();
 
@@ -692,7 +704,7 @@ function updateSoloUI() {
     ind.innerHTML = '<svg class="h-4 w-4"><use href="#i-user"/></svg><span><strong>Paso 2:</strong> Marca el <span class="text-blue-800">sujeto</span>. Si está omitido, pulsa el botón azul claro.</span>';
     ind.className = 'bg-blue-50 border-b-2 border-blue-100 px-4 py-2 text-center text-sm font-semibold text-blue-700 flex items-center justify-center gap-2';
   } else {
-    ind.innerHTML = '<svg class="h-4 w-4"><use href="#i-underline"/></svg><span><strong>Paso 3:</strong> Marca el <span class="text-red-700">predicado</span> (lo que falta por subrayar).</span>';
+    ind.innerHTML = '<svg class="h-4 w-4"><use href="#i-underline"/></svg><span><strong>Paso 3:</strong> Marca todo el <span class="text-red-700">predicado</span> (¡el verbo también forma parte!).</span>';
     ind.className = 'bg-red-50 border-b-2 border-red-100 px-4 py-2 text-center text-sm font-semibold text-red-700 flex items-center justify-center gap-2';
   }
   // Botoneras: siempre visibles, se habilita solo el paso activo
@@ -777,19 +789,35 @@ function handleSoloPronClick(pron) {
 
 function advanceSoloToPredicado() {
   step = 3;
-  // Si no hay palabras de predicado restantes (toda la oración es verbo), auto-validar.
-  const exp = expectedPredicado(currentQuestion);
-  if (exp.length === 0) {
-    finishSoloSentence();
-    return;
-  }
+  // Desbloquear las palabras del verbo para que puedan marcarse también como
+  // parte del predicado (el verbo es el núcleo del predicado).
+  document.getElementById('sentence-text').querySelectorAll('.word').forEach(span => {
+    const idx = parseInt(span.dataset.idx);
+    if (currentQuestion.verbo.includes(idx)) span.classList.remove('locked');
+  });
   updateSoloUI();
 }
 
 function finishSoloSentence() {
   isProcessing = true;
   revealSoloSolution();
-  setTimeout(() => loadNextQuestion(), 1500);
+  if (mode === 'classic') {
+    showNextBtn();
+  } else {
+    setTimeout(() => loadNextQuestion(), 1500);
+  }
+}
+
+function showNextBtn() {
+  document.getElementById('next-btn-wrap').classList.remove('hidden');
+  // Atenúa los botones de acción mientras se muestra "siguiente"
+  ['check-verb-btn','check-subj-btn','check-pred-btn','omitted-btn'].forEach(id => {
+    document.getElementById(id).disabled = true;
+  });
+}
+
+function hideNextBtn() {
+  document.getElementById('next-btn-wrap').classList.add('hidden');
 }
 
 document.getElementById('check-verb-btn').addEventListener('click', () => {
@@ -926,11 +954,16 @@ function showHint(msg) {
 }
 
 document.getElementById('skip-btn').addEventListener('click', () => {
-  if (isProcessing) return;
+  // Saltar siempre va a la siguiente, incluso durante el reveal
+  hideNextBtn();
   loadNextQuestion();
 });
 document.getElementById('menu-btn').addEventListener('click', goToMenu);
 document.getElementById('duel-menu-btn').addEventListener('click', goToMenu);
+document.getElementById('next-btn').addEventListener('click', () => {
+  hideNextBtn();
+  loadNextQuestion();
+});
 
 // ========================================================================
 // MODO DUELO
@@ -1005,7 +1038,7 @@ function updatePanelStepIndicator(panelIdx) {
     el.textContent = 'Paso 2: marca el sujeto (o pulsa Omitido)';
     el.className = 'bg-blue-100 text-blue-700 text-center py-1 text-xs font-semibold';
   } else {
-    el.textContent = 'Paso 3: marca el predicado';
+    el.textContent = 'Paso 3: marca el predicado (verbo incluido)';
     el.className = 'bg-red-100 text-red-700 text-center py-1 text-xs font-semibold';
   }
 }
@@ -1107,11 +1140,12 @@ function handlePanelAction(panelIdx, action) {
 
 function advancePanelToPredicado(panelIdx) {
   panelStep[panelIdx] = 3;
-  const exp = expectedPredicado(panelQuestions[panelIdx]);
-  if (exp.length === 0) {
-    finishPanelSentence(panelIdx);
-    return;
-  }
+  // Desbloquear el verbo para que pueda incluirse en la selección del predicado
+  const q = panelQuestions[panelIdx];
+  document.getElementById(`panel${panelIdx + 1}-text`).querySelectorAll('.word').forEach(span => {
+    const idx = parseInt(span.dataset.idx);
+    if (q.verbo.includes(idx)) span.classList.remove('locked');
+  });
   updatePanelStepIndicator(panelIdx);
   renderPanelActions(panelIdx);
 }
@@ -1354,29 +1388,33 @@ function endGame() {
   }
 }
 
+</script>
 
-// ==========================================================================
-// ==========================================================================
-//
-//        📚 BANCO DE ORACIONES — AMPLIABLE FÁCILMENTE 📚
-//
-//   { text: "Oración palabra a palabra.", verbo: [2], sujeto: [0,1], pronombre: null }
-//
-//  - text: la oración, dividida por espacios. La primera palabra es índice 0.
-//          Los signos de puntuación van pegados a la palabra.
-//  - verbo: ÍNDICES del verbo. Para verbos compuestos / perífrasis, varios
-//           índices: "Han ganado" → [0, 1]; "está durmiendo" → [2, 3];
-//           "vamos a estudiar" → [0, 1, 2].
-//  - sujeto: ÍNDICES del sujeto, o [] si está omitido.
-//  - pronombre: null si sujeto explícito; array con los pronombres válidos
-//               si está omitido (p. ej. ["él","ella"]).
-//
-//  El PREDICADO se calcula automáticamente como "todas las palabras que no
-//  son ni sujeto ni verbo". No hay que especificarlo.
-//
-// ==========================================================================
-// ==========================================================================
+<!-- ==========================================================================
+     📚 BANCO DE ORACIONES — AMPLIABLE FÁCILMENTE 📚
 
+     Formato de cada oración:
+
+       { text: "Oración palabra a palabra.", verbo: [2], sujeto: [0,1], pronombre: null }
+
+     - text: la oración completa. Las palabras se separan por espacios y se
+             numeran desde 0. Los signos de puntuación van pegados a la palabra.
+     - verbo: ÍNDICES del verbo (uno o varios para perífrasis):
+              "Han ganado" → [0, 1]; "está durmiendo" → [2, 3];
+              "vamos a estudiar" → [0, 1, 2].
+     - sujeto: ÍNDICES del sujeto, o [] si está omitido.
+     - pronombre:
+        · null              → sujeto explícito.
+        · ["yo"]            → sujeto omitido (pronombre tácito).
+        · ["él","ella"]     → sujeto omitido con varios pronombres válidos.
+
+     El PREDICADO se calcula solo: todas las palabras que NO son sujeto
+     (e incluye el verbo, su núcleo).
+
+     Para añadir más oraciones, basta con escribir nuevas líneas al final
+     del array, respetando el formato.
+     ========================================================================== -->
+<script>
 const ORACIONES = [
 
   // --- SUJETO EXPLÍCITO, VERBO SIMPLE ---
