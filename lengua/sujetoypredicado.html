@@ -54,10 +54,14 @@
   }
   .word:hover { background-color: #e0e7ff; }
 
-  /* Selecciones EN CURSO: relleno suave de color */
+  /* Selecciones EN CURSO:
+     - Verbo: relleno suave (no hay subrayado en este paso).
+     - Sujeto / Predicado: SIN relleno, solo destaca el texto en color.
+       La pista visual durante el arrastre la da la barra continua
+       (azul/roja) que se dibuja en vivo bajo las palabras. */
   .word.verb-pick { color: #7e22ce; background-color: #f3e8ff; }
-  .word.subj-pick { color: #1d4ed8; background-color: #dbeafe; }
-  .word.pred-pick { color: #b91c1c; background-color: #fee2e2; }
+  .word.subj-pick { color: #1d4ed8; }
+  .word.pred-pick { color: #b91c1c; }
   /* Verbo (paso 1 ya confirmado) que se marca como parte del predicado:
      mantiene el bloque violeta y añade marca roja inferior. */
   .word.verbo-locked.pred-pick {
@@ -75,8 +79,16 @@
   }
   /* Sujeto / predicado confirmados: solo color de texto; el subrayado
      continuo lo dibuja una barra independiente (.underline-bar). */
-  .word.sujeto-correct { color: #1d4ed8; font-weight: 600; }
-  .word.predicado-correct { color: #b91c1c; font-weight: 600; }
+  .word.sujeto-correct {
+    color: #1d4ed8;
+    background-color: #dbeafe;
+    font-weight: 600;
+  }
+  .word.predicado-correct {
+    color: #b91c1c;
+    background-color: #fee2e2;
+    font-weight: 600;
+  }
 
   /* Barra de subrayado CONTINUA bajo un grupo de palabras */
   .underline-bar {
@@ -127,7 +139,9 @@
   .so-bubble {
     display: inline-block;
     color: #1d4ed8;
+    background-color: #dbeafe;
     padding: 0.1rem 0.35rem;
+    border-radius: 0.4rem;
     font-size: 1em;
     font-weight: 700;
     margin: 0.95rem 0.05rem 0.7rem 0.05rem;
