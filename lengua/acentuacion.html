@@ -3,50 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aventura de Acentos: Separa y Acierta</title>
+    <title>Detective de Acentos</title>
     <script src="https://maestroseb.github.io/recursos/tailwind.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Fredoka', sans-serif;
             background-color: #f0f9ff;
+            background-image: radial-gradient(#bae6fd 2px, transparent 2px);
+            background-size: 30px 30px;
             touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
         }
-        .card-shadow {
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-            border-bottom: 6px solid rgba(0,0,0,0.1);
-        }
-        .btn-press:active {
-            transform: translateY(4px);
-            border-bottom-width: 0px;
-        }
-        .animate-pop {
-            animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
+
         @keyframes pop {
             0% { transform: scale(0.5); opacity: 0; }
             100% { transform: scale(1); opacity: 1; }
         }
-        .syllable-box {
-            transition: all 0.2s;
-        }
-        .syllable-box:hover {
-            transform: translateY(-2px);
-        }
-        .shake {
-            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
-        }
+        .animate-pop { animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+
         @keyframes shake {
             10%, 90% { transform: translate3d(-1px, 0, 0); }
             20%, 80% { transform: translate3d(2px, 0, 0); }
             30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
             40%, 60% { transform: translate3d(4px, 0, 0); }
         }
+        .shake { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
 
-        /* Estilos Fase Corte */
+        /* Tarjetas de sílaba interactivas */
+        .syllable-box { transition: all 0.2s; }
+        .syllable-box:hover { transform: translateY(-2px); }
+
+        /* Fase de corte: zonas entre letras */
         .separator-zone {
-            width: 20px;
-            height: 50px;
+            width: 22px;
+            height: 56px;
             cursor: pointer;
             display: flex;
             align-items: center;
@@ -54,9 +47,7 @@
             border-radius: 4px;
             transition: background-color 0.2s;
         }
-        .separator-zone:hover {
-            background-color: #e0f2fe;
-        }
+        .separator-zone:hover { background-color: #fed7aa; }
         .separator-line {
             width: 4px;
             height: 70%;
@@ -70,231 +61,255 @@
             height: 100%;
             width: 6px;
         }
-        
         @media (min-width: 640px) {
-            .separator-zone {
-                width: 24px;
-                height: 60px;
-            }
-            .separator-line {
-                height: 80%;
-            }
-            .separator-zone.active .separator-line {
-                height: 110%;
-            }
+            .separator-zone { width: 26px; height: 64px; }
+            .separator-line { height: 80%; }
+            .separator-zone.active .separator-line { height: 110%; }
         }
 
-        /* Estilos del temporizador */
-        .timer-pulse {
-            animation: pulse 1s ease-in-out infinite;
-        }
+        /* Cronómetro: estados */
         @keyframes pulse {
             0%, 100% { transform: scale(1); }
             50% { transform: scale(1.05); }
         }
-        .timer-warning {
-            animation: warning-pulse 0.5s ease-in-out infinite;
-        }
+        .timer-pulse { animation: pulse 1s ease-in-out infinite; }
         @keyframes warning-pulse {
-            0%, 100% { 
-                background-color: #ef4444;
-                transform: scale(1);
-            }
-            50% { 
-                background-color: #dc2626;
-                transform: scale(1.1);
-            }
+            0%, 100% { background-color: #ef4444; transform: scale(1); }
+            50% { background-color: #dc2626; transform: scale(1.1); }
         }
+        .timer-warning { animation: warning-pulse 0.5s ease-in-out infinite; }
+
+        /* Para evitar tooltips/hover pegajosos al cliquear botones deshabilitados */
+        button:disabled { pointer-events: none; }
     </style>
 </head>
-<body class="bg-sky-100 min-h-screen flex flex-col items-center justify-center p-4">
+<body class="min-h-screen flex flex-col items-center justify-start pt-3 md:pt-6 p-2 md:p-4 text-slate-800">
 
-    <!-- Toast Notification (Error Message) -->
-    <div class="fixed top-8 left-0 w-full flex justify-center z-50 pointer-events-none">
-        <div id="toast" class="hidden bg-red-500 text-white px-6 py-3 rounded-full shadow-2xl font-bold transition-all duration-300 flex items-center gap-2 border-2 border-white pointer-events-auto">
-            <span class="text-2xl">⚠️</span>
-            <span id="toastMsg">Mensaje de error</span>
+<!-- ICONOS SVG reutilizables -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-star" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+    </symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+    </symbol>
+    <symbol id="i-heart" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z"/>
+    </symbol>
+    <symbol id="i-trophy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
+    </symbol>
+    <symbol id="i-bar-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+    </symbol>
+    <symbol id="i-scissors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="6" cy="6" r="3"/><path d="M8.12 8.12 12 12"/><path d="M20 4 8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/>
+    </symbol>
+    <symbol id="i-arrow-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+    </symbol>
+    <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="20 6 9 17 4 12"/>
+    </symbol>
+    <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+    </symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+    </symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/>
+    </symbol>
+  </defs>
+</svg>
+
+<!-- Toast de error -->
+<div class="fixed top-6 left-0 w-full flex justify-center z-50 pointer-events-none px-4">
+    <div id="toast" class="hidden bg-red-500 text-white px-5 py-3 rounded-2xl shadow-xl font-semibold transition-all duration-300 flex items-center gap-2 border-2 border-white pointer-events-auto max-w-md">
+        <svg class="h-5 w-5 shrink-0"><use href="#i-alert"/></svg>
+        <span id="toastMsg" class="text-sm">Mensaje de error</span>
+    </div>
+</div>
+
+<!-- CONTENEDOR PRINCIPAL -->
+<div class="card-shadow w-full max-w-2xl bg-white rounded-3xl shadow-xl border-4 border-slate-100 overflow-hidden relative flex flex-col">
+
+    <!-- Cabecera oscura -->
+    <div class="bg-slate-800 text-white px-3 md:px-4 py-3 grid grid-cols-[auto_1fr_auto] items-center gap-2">
+        <div class="flex items-center gap-3 min-w-0">
+            <div class="flex items-center gap-1 shrink-0">
+                <svg class="h-5 w-5 text-yellow-400"><use href="#i-star"/></svg>
+                <span id="scoreDisplay" class="text-xl font-bold font-mono">0</span>
+            </div>
+            <div id="timerDisplay" class="flex items-center gap-1 bg-sky-600 px-2.5 py-1 rounded-full shrink-0">
+                <svg class="h-4 w-4 text-white"><use href="#i-clock"/></svg>
+                <span id="timeText" class="text-base font-bold font-mono text-white">3:00</span>
+            </div>
+        </div>
+        <div id="livesContainer" class="flex items-center justify-center gap-1"></div>
+        <button onclick="showRanking()" title="Ver ranking"
+                class="bg-slate-700 hover:bg-slate-600 text-yellow-300 p-2 rounded-lg transition-colors flex items-center justify-center shrink-0">
+            <svg class="h-5 w-5"><use href="#i-bar-chart"/></svg>
+        </button>
+    </div>
+
+    <!-- Barra de progreso -->
+    <div class="px-4 md:px-6 pt-3 pb-2 bg-slate-50 border-b border-slate-100">
+        <div class="flex justify-between text-xs text-slate-500 mb-1 font-semibold uppercase tracking-wider">
+            <span>Palabras completadas</span>
+            <span id="wordsCompleted" class="text-sky-600">0</span>
+        </div>
+        <div class="w-full bg-slate-200 rounded-full h-2">
+            <div id="progressBar" class="bg-gradient-to-r from-sky-500 to-blue-500 h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
         </div>
     </div>
 
-    <!-- Game Container -->
-    <div class="w-full max-w-md bg-white rounded-3xl p-6 card-shadow relative overflow-hidden min-h-[600px] flex flex-col">
-        
-        <!-- Header: Score, Lives & Timer -->
-        <div class="flex justify-between items-center mb-6">
-            <div class="flex items-center space-x-2">
-                <div class="bg-yellow-400 p-2 rounded-full text-white">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                    </svg>
-                </div>
-                <span id="scoreDisplay" class="text-2xl font-bold text-gray-700">0</span>
-            </div>
-            
-            <!-- Timer Display -->
-            <div id="timerDisplay" class="flex items-center space-x-2 bg-sky-500 px-4 py-2 rounded-full">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span id="timeText" class="text-xl font-bold text-white">3:00</span>
-            </div>
+    <!-- Área de juego -->
+    <div id="gameScreen" class="flex-grow flex flex-col items-center w-full p-5 md:p-8">
 
-            <div class="flex space-x-2 items-center">
-                <div class="flex space-x-1" id="livesContainer">
-                    <!-- Hearts injected by JS -->
-                </div>
-                <button onclick="showRanking()" class="bg-yellow-400 p-2 rounded-full text-white hover:bg-yellow-300 transition" title="Ver ranking">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                    </svg>
+        <p id="instructionText" class="text-slate-500 font-bold uppercase tracking-widest text-xs md:text-sm mb-4">INSTRUCCIÓN</p>
+
+        <div id="wordContainer" class="mb-6 w-full min-h-[80px] flex items-center justify-center">
+            <h1 id="mainWord" class="text-4xl sm:text-5xl font-bold text-slate-800 transition-all text-center break-words">PALABRA</h1>
+        </div>
+
+        <div id="interactionArea" class="w-full flex-grow flex flex-col justify-start space-y-4">
+
+            <!-- Fase 1: Separación -->
+            <div id="separationPhase" class="hidden w-full flex flex-col items-center">
+                <p class="text-xs sm:text-sm text-slate-500 mb-3">Pulsa entre las letras para colocar las tijeras</p>
+                <div id="segmentContainer" class="flex items-center justify-center flex-wrap mb-6 bg-orange-50 p-3 sm:p-4 rounded-2xl border-2 border-dashed border-orange-200 select-none w-full min-h-[100px]"></div>
+                <button onclick="checkSegmentation()"
+                        class="w-full py-4 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-lg shadow-lg shadow-orange-200 transition-transform hover:scale-[1.01] active:scale-95 flex items-center justify-center gap-2">
+                    <svg class="h-5 w-5"><use href="#i-scissors"/></svg>
+                    Cortar sílabas
                 </button>
             </div>
-        </div>
 
-        <!-- Progress Bar - Ahora muestra palabras completadas -->
-        <div class="w-full mb-4">
-            <div class="flex justify-between text-sm text-gray-500 mb-1">
-                <span>Palabras completadas</span>
-                <span id="wordsCompleted" class="font-bold text-sky-600">0</span>
-            </div>
-            <div class="w-full bg-gray-200 rounded-full h-2.5">
-                <div id="progressBar" class="bg-gradient-to-r from-sky-500 to-blue-500 h-2.5 rounded-full transition-all duration-500" style="width: 0%"></div>
-            </div>
-        </div>
-
-        <!-- Main Game Area -->
-        <div id="gameScreen" class="flex-grow flex flex-col items-center w-full">
-            
-            <!-- Instructions Header -->
-            <p id="instructionText" class="text-gray-500 font-bold uppercase tracking-widest text-sm mb-4">INSTRUCCIÓN</p>
-
-            <!-- Word Container -->
-            <div id="wordContainer" class="mb-8 w-full min-h-[80px] flex items-center justify-center">
-                <h1 id="mainWord" class="text-4xl sm:text-5xl font-bold text-gray-800 transition-all text-center break-words">PALABRA</h1>
+            <!-- Fase 2: Identificación de la sílaba tónica -->
+            <div id="identificationPhase" class="hidden w-full text-center">
+                <p class="text-sky-700 mb-4 font-semibold">Pulsa la sílaba que suena más fuerte</p>
+                <div id="syllablesInteractive" class="flex justify-center flex-wrap gap-3 sm:gap-4"></div>
             </div>
 
-            <!-- INTERACTION AREA -->
-            <div id="interactionArea" class="w-full flex-grow flex flex-col justify-start space-y-4">
-                
-                <!-- Phase 1: Segmentation -->
-                <div id="separationPhase" class="hidden w-full flex flex-col items-center">
-                    <p class="text-sm text-gray-400 mb-4">Haz clic entre las letras para cortar</p>
-                    <div id="segmentContainer" class="flex items-center justify-center flex-wrap mb-8 bg-sky-50 p-3 sm:p-4 rounded-2xl border-2 border-dashed border-sky-200 select-none w-full min-h-[100px]">
-                    </div>
-                    <button onclick="checkSegmentation()" class="w-full py-4 rounded-xl bg-orange-500 text-white font-bold text-xl card-shadow border-orange-700 hover:bg-orange-400 btn-press transition-colors">
-                        ¡CORTAR! ✂️
-                    </button>
+            <!-- Fase 3: Clasificación -->
+            <div id="classificationPhase" class="hidden w-full grid grid-cols-1 gap-3 animate-pop">
+                <div class="text-center mb-3 text-slate-700">
+                    <p class="text-base sm:text-lg">La fuerza está en la <span id="classTonicPos" class="font-bold text-sky-600"></span> sílaba.</p>
+                    <p class="font-semibold">¿Qué tipo de palabra es?</p>
                 </div>
-
-                <!-- Phase 2: Identification (Tonic) -->
-                <div id="identificationPhase" class="hidden w-full text-center">
-                    <p class="text-sky-600 mb-4 animate-pulse">👇 Pulsa la sílaba que suena más fuerte 👇</p>
-                    <div id="syllablesInteractive" class="flex justify-center flex-wrap gap-4"></div>
-                </div>
-
-                <!-- Phase 3: Classification -->
-                <div id="classificationPhase" class="hidden w-full grid grid-cols-1 gap-3 animate-pop">
-                    <div class="text-center mb-4 text-gray-700">
-                        <p class="text-lg">La fuerza está en la <span id="classTonicPos" class="font-bold text-sky-600"></span> sílaba.</p>
-                        <p>¿Qué tipo de palabra es?</p>
-                    </div>
-                    <button onclick="handleClassification('aguda')" class="btn-press w-full py-4 rounded-xl bg-blue-500 text-white font-bold text-xl card-shadow border-blue-700 hover:bg-blue-400">
-                        AGUDA
-                        <span class="block text-xs font-normal opacity-90 mt-1">Última sílaba (1)</span>
-                    </button>
-                    <button onclick="handleClassification('llana')" class="btn-press w-full py-4 rounded-xl bg-emerald-500 text-white font-bold text-xl card-shadow border-emerald-700 hover:bg-emerald-400">
-                        LLANA
-                        <span class="block text-xs font-normal opacity-90 mt-1">Penúltima sílaba (2)</span>
-                    </button>
-                    <button onclick="handleClassification('esdrujula')" class="btn-press w-full py-4 rounded-xl bg-purple-500 text-white font-bold text-xl card-shadow border-purple-700 hover:bg-purple-400">
-                        ESDRÚJULA
-                        <span class="block text-xs font-normal opacity-90 mt-1">Antepenúltima sílaba (3)</span>
-                    </button>
-                </div>
-
-                <!-- Phase 4: Tilde Decision -->
-                <div id="tildePhase" class="hidden w-full grid grid-cols-2 gap-4 animate-pop">
-                    <div class="col-span-2 text-center mb-2">
-                        <p class="text-lg text-gray-700">Es una palabra <span class="font-bold text-sky-600 uppercase" id="finalTypeDisplay"></span>.</p>
-                        <p class="text-xl font-bold text-gray-800 mt-2">¿Lleva tilde?</p>
-                    </div>
-                    <button onclick="handleTilde(true)" class="btn-press py-6 rounded-2xl bg-green-500 text-white font-bold text-2xl card-shadow border-green-700 hover:bg-green-400">
-                        SÍ
-                    </button>
-                    <button onclick="handleTilde(false)" class="btn-press py-6 rounded-2xl bg-red-500 text-white font-bold text-2xl card-shadow border-red-700 hover:bg-red-400">
-                        NO
-                    </button>
-                </div>
-
-                <!-- Feedback Area -->
-                <div id="feedbackArea" class="hidden w-full p-6 rounded-2xl bg-gray-100 border-2 border-gray-200 animate-pop text-center shadow-lg">
-                    <p id="feedbackTitle" class="font-bold text-2xl mb-2">¡Correcto!</p>
-                    <p id="feedbackText" class="text-gray-600 text-lg mb-4">Explicación aquí.</p>
-                    <button onclick="nextWord()" class="px-8 py-3 bg-sky-600 text-white rounded-xl font-bold text-lg shadow-md hover:bg-sky-500 transition transform hover:scale-105">Siguiente Palabra ➡</button>
-                </div>
-
-            </div>
-        </div>
-
-        <!-- Game Over Screen -->
-        <div id="gameOverScreen" class="hidden absolute inset-0 bg-white z-20 flex flex-col items-center justify-center p-8 text-center">
-            <h2 class="text-4xl font-bold text-gray-800 mb-4">¡Tiempo Terminado!</h2>
-            <div class="text-6xl mb-6">🏆</div>
-            <div class="mb-6">
-                <p class="text-lg text-gray-600">Puntuación Final</p>
-                <p id="finalScore" class="text-6xl font-bold text-sky-600 mb-2">0</p>
-                <p class="text-xl text-gray-500">
-                    <span id="finalWordsCompleted" class="font-bold text-purple-600">0</span> palabras completadas
-                </p>
-            </div>
-            <button onclick="startGame()" class="px-8 py-4 bg-green-500 text-white rounded-xl font-bold text-xl shadow-lg border-b-4 border-green-700 active:border-b-0 active:translate-y-1 hover:bg-green-400 transition w-full max-w-xs">
-                Jugar Otra Vez
-            </button>
-        </div>
-
-    </div>
-
-    <!-- Start Modal -->
-    <div id="startModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
-        <div class="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl border-4 border-sky-100">
-            <h1 class="text-3xl font-bold text-sky-600 mb-2">Separa y Acierta</h1>
-            <p class="text-gray-500 mb-6">Conviértete en detective de palabras</p>
-            
-            <!-- Destacar el tiempo -->
-            <div class="bg-gradient-to-r from-sky-500 to-blue-500 text-white p-4 rounded-2xl mb-4">
-                <div class="flex items-center justify-center gap-2 mb-1">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span class="text-4xl font-bold">3:00</span>
-                </div>
-                <p class="text-sm opacity-90">¡Consigue el máximo de puntos!</p>
+                <button onclick="handleClassification('aguda')"
+                        class="w-full py-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg shadow-lg shadow-blue-200 transition-transform hover:scale-[1.01] active:scale-95">
+                    AGUDA
+                    <span class="block text-xs font-normal opacity-90 mt-0.5">Última sílaba (1)</span>
+                </button>
+                <button onclick="handleClassification('llana')"
+                        class="w-full py-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-lg shadow-lg shadow-emerald-200 transition-transform hover:scale-[1.01] active:scale-95">
+                    LLANA
+                    <span class="block text-xs font-normal opacity-90 mt-0.5">Penúltima sílaba (2)</span>
+                </button>
+                <button onclick="handleClassification('esdrujula')"
+                        class="w-full py-4 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-lg shadow-lg shadow-purple-200 transition-transform hover:scale-[1.01] active:scale-95">
+                    ESDRÚJULA
+                    <span class="block text-xs font-normal opacity-90 mt-0.5">Antepenúltima sílaba (3)</span>
+                </button>
             </div>
 
-            <div class="space-y-3 text-left text-sm text-gray-700 bg-sky-50 p-4 rounded-xl mb-6 border border-sky-100">
-                <div class="flex items-start">
-                    <span class="flex-shrink-0 w-6 h-6 bg-orange-500 text-white rounded-full flex items-center justify-center font-bold text-xs mr-3 mt-0.5">1</span>
-                    <p>Usa las tijeras para separar las sílabas.</p>
+            <!-- Fase 4: Tilde -->
+            <div id="tildePhase" class="hidden w-full grid grid-cols-2 gap-4 animate-pop">
+                <div class="col-span-2 text-center mb-1">
+                    <p class="text-base sm:text-lg text-slate-700">Es una palabra <span class="font-bold text-sky-600 uppercase" id="finalTypeDisplay"></span>.</p>
+                    <p class="text-lg sm:text-xl font-bold text-slate-800 mt-1">¿Lleva tilde?</p>
                 </div>
-                <div class="flex items-start">
-                    <span class="flex-shrink-0 w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center font-bold text-xs mr-3 mt-0.5">2</span>
-                    <p>Encuentra la sílaba tónica (la fuerte).</p>
-                </div>
-                <div class="flex items-start">
-                    <span class="flex-shrink-0 w-6 h-6 bg-purple-500 text-white rounded-full flex items-center justify-center font-bold text-xs mr-3 mt-0.5">3</span>
-                    <p>Indica si es Aguda, Llana o Esdrújula.</p>
-                </div>
-                <div class="flex items-start">
-                    <span class="flex-shrink-0 w-6 h-6 bg-rose-500 text-white rounded-full flex items-center justify-center font-bold text-xs mr-3 mt-0.5">4</span>
-                    <p>Decide si lleva tilde.</p>
-                </div>
+                <button onclick="handleTilde(true)"
+                        class="py-5 rounded-2xl bg-green-600 hover:bg-green-700 text-white font-bold text-xl shadow-lg shadow-green-200 transition-transform hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2">
+                    <svg class="h-5 w-5"><use href="#i-check"/></svg> SÍ
+                </button>
+                <button onclick="handleTilde(false)"
+                        class="py-5 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-bold text-xl shadow-lg shadow-red-200 transition-transform hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2">
+                    <svg class="h-5 w-5"><use href="#i-x"/></svg> NO
+                </button>
             </div>
 
-            <button onclick="document.getElementById('startModal').classList.add('hidden'); startGame();" class="w-full py-4 bg-sky-500 text-white rounded-xl font-bold text-xl shadow-lg border-b-4 border-sky-700 active:border-b-0 active:translate-y-1 hover:bg-sky-400 transition">
-                ¡EMPEZAR!
-            </button>
+            <!-- Feedback de acierto -->
+            <div id="feedbackArea" class="hidden w-full p-6 rounded-2xl bg-green-50 border-2 border-green-200 animate-pop text-center shadow-lg">
+                <p id="feedbackTitle" class="font-bold text-2xl mb-2 text-green-700">¡Correcto!</p>
+                <p id="feedbackText" class="text-slate-700 text-base mb-4">Explicación aquí.</p>
+                <button onclick="nextWord()"
+                        class="px-8 py-3 bg-sky-600 hover:bg-sky-700 text-white rounded-xl font-bold text-lg shadow-lg shadow-sky-200 transition-transform hover:scale-[1.02] active:scale-95 inline-flex items-center gap-2">
+                    Siguiente palabra
+                    <svg class="h-5 w-5"><use href="#i-arrow-right"/></svg>
+                </button>
+            </div>
+
         </div>
     </div>
+
+    <!-- Pantalla final -->
+    <div id="gameOverScreen" class="hidden absolute inset-0 bg-white z-20 flex flex-col items-center justify-center p-6 md:p-10 text-center overflow-y-auto">
+        <div class="bg-yellow-100 p-4 rounded-full mb-4">
+            <svg class="h-14 w-14 text-yellow-500"><use href="#i-trophy"/></svg>
+        </div>
+        <h2 class="text-3xl md:text-4xl font-bold text-slate-800 mb-3">¡Tiempo Terminado!</h2>
+        <div class="mb-6">
+            <p class="text-sm text-slate-500 font-bold uppercase tracking-wider">Puntuación final</p>
+            <p id="finalScore" class="text-6xl font-black text-sky-600 mb-2">0</p>
+            <p class="text-base text-slate-600">
+                <span id="finalWordsCompleted" class="font-bold text-purple-600">0</span> palabras completadas
+            </p>
+        </div>
+        <button onclick="startGame()"
+                class="px-8 py-4 bg-green-600 hover:bg-green-700 text-white rounded-full font-bold text-lg shadow-lg shadow-green-200 transition-transform hover:scale-105 active:scale-95 w-full max-w-xs flex items-center justify-center gap-2">
+            <svg class="h-5 w-5"><use href="#i-refresh"/></svg>
+            Jugar otra vez
+        </button>
+    </div>
+
+</div>
+
+<!-- PANTALLA DE INICIO (modal) -->
+<div id="startModal" class="fixed inset-0 bg-slate-900/70 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+    <div class="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full text-center shadow-2xl border-4 border-slate-100 animate-pop">
+        <div class="bg-sky-100 p-3 rounded-full inline-block mb-3">
+            <svg class="h-12 w-12 text-sky-600"><use href="#i-scissors"/></svg>
+        </div>
+        <h1 class="text-3xl md:text-4xl font-bold text-slate-800 mb-1">Detective de Acentos</h1>
+        <p class="text-slate-500 mb-5 text-sm">Separa, identifica, clasifica y decide la tilde.</p>
+
+        <div class="bg-gradient-to-r from-sky-500 to-blue-600 text-white p-4 rounded-2xl mb-5 shadow-lg shadow-sky-200">
+            <div class="flex items-center justify-center gap-2">
+                <svg class="h-7 w-7"><use href="#i-clock"/></svg>
+                <span class="text-3xl font-bold font-mono">3:00</span>
+            </div>
+            <p class="text-xs opacity-90 mt-1">Consigue el máximo de puntos antes del tiempo</p>
+        </div>
+
+        <div class="space-y-2.5 text-left text-sm text-slate-700 bg-slate-50 p-4 rounded-2xl mb-5 border border-slate-200">
+            <div class="flex items-center gap-3">
+                <span class="shrink-0 w-7 h-7 bg-orange-500 text-white rounded-full flex items-center justify-center font-bold text-sm">1</span>
+                <p><strong>Separa</strong> las sílabas con las tijeras.</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <span class="shrink-0 w-7 h-7 bg-sky-500 text-white rounded-full flex items-center justify-center font-bold text-sm">2</span>
+                <p>Encuentra la <strong>sílaba tónica</strong>.</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <span class="shrink-0 w-7 h-7 bg-purple-500 text-white rounded-full flex items-center justify-center font-bold text-sm">3</span>
+                <p>Clasifica: aguda, llana o esdrújula.</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <span class="shrink-0 w-7 h-7 bg-rose-500 text-white rounded-full flex items-center justify-center font-bold text-sm">4</span>
+                <p>Decide si <strong>lleva tilde</strong>.</p>
+            </div>
+        </div>
+
+        <button onclick="document.getElementById('startModal').classList.add('hidden'); startGame();"
+                class="w-full py-4 bg-sky-600 hover:bg-sky-700 text-white rounded-xl font-bold text-lg shadow-lg shadow-sky-200 transition-transform hover:scale-[1.02] active:scale-95">
+            ¡EMPEZAR!
+        </button>
+    </div>
+</div>
 
     <script>
         // ==================== CONFIGURACIÓN DEL JUEGO ====================
@@ -376,9 +391,9 @@
         function updateLives() {
             livesContainer.innerHTML = '';
             for(let i=0; i<3; i++) {
-                livesContainer.innerHTML += (i < lives) 
-                    ? `<span class="text-red-500 text-2xl animate-pulse">❤️</span>` 
-                    : `<span class="text-gray-300 text-2xl">🖤</span>`;
+                const cls = i < lives ? 'text-rose-500' : 'text-slate-600';
+                livesContainer.innerHTML +=
+                    `<svg class="h-5 w-5 ${cls}"><use href="#i-heart"/></svg>`;
             }
         }
 
@@ -598,12 +613,12 @@
                 container.onclick = () => handleTonicSelection(index, positionNum);
 
                 const box = document.createElement('div');
-                box.className = "syllable-box w-16 h-16 sm:w-20 sm:h-20 bg-white border-4 border-sky-200 rounded-2xl flex items-center justify-center text-xl sm:text-2xl font-bold text-gray-700 shadow-md group-hover:border-sky-400 group-hover:bg-sky-50 transition-colors";
+                box.className = "syllable-box w-16 h-16 sm:w-20 sm:h-20 bg-white border-2 border-sky-200 rounded-2xl flex items-center justify-center text-xl sm:text-2xl font-bold text-slate-700 shadow-md shadow-sky-100 group-hover:border-sky-500 group-hover:bg-sky-50 transition-colors";
                 box.textContent = syll.toUpperCase();
                 box.id = `syll-${index}`;
 
                 const badge = document.createElement('div');
-                badge.className = "mt-2 w-8 h-8 rounded-full bg-gray-200 text-gray-600 font-bold flex items-center justify-center text-sm group-hover:bg-sky-200 transition-colors";
+                badge.className = "mt-2 w-7 h-7 rounded-full bg-slate-200 text-slate-600 font-bold flex items-center justify-center text-sm group-hover:bg-sky-200 group-hover:text-sky-700 transition-colors";
                 badge.textContent = positionNum;
 
                 container.appendChild(box);
@@ -617,17 +632,17 @@
 
             const boxes = syllablesInteractive.querySelectorAll('.syllable-box');
             boxes.forEach(b => {
-                b.className = "syllable-box w-16 h-16 sm:w-20 sm:h-20 bg-white border-4 border-sky-200 rounded-2xl flex items-center justify-center text-xl sm:text-2xl font-bold text-gray-700 shadow-md group-hover:border-sky-400 group-hover:bg-sky-50 transition-colors";
+                b.className = "syllable-box w-16 h-16 sm:w-20 sm:h-20 bg-white border-2 border-sky-200 rounded-2xl flex items-center justify-center text-xl sm:text-2xl font-bold text-slate-700 shadow-md shadow-sky-100 group-hover:border-sky-500 group-hover:bg-sky-50 transition-colors";
             });
             
             const selectedBox = document.getElementById(`syll-${index}`);
 
             if (index === currentTonicIndex) {
-                selectedBox.className = "syllable-box w-16 h-16 sm:w-20 sm:h-20 bg-sky-500 text-white border-4 border-sky-600 rounded-2xl flex items-center justify-center text-xl sm:text-2xl font-bold shadow-md transform scale-110";
+                selectedBox.className = "syllable-box w-16 h-16 sm:w-20 sm:h-20 bg-sky-500 text-white border-2 border-sky-600 rounded-2xl flex items-center justify-center text-xl sm:text-2xl font-bold shadow-lg shadow-sky-300 transform scale-110";
                 playSound('correct');
                 setTimeout(() => transitionToClassification(positionNum), 500);
             } else {
-                selectedBox.className = "syllable-box w-16 h-16 sm:w-20 sm:h-20 bg-red-500 text-white border-4 border-red-600 rounded-2xl flex items-center justify-center text-xl sm:text-2xl font-bold shadow-md shake";
+                selectedBox.className = "syllable-box w-16 h-16 sm:w-20 sm:h-20 bg-red-500 text-white border-2 border-red-600 rounded-2xl flex items-center justify-center text-xl sm:text-2xl font-bold shadow-lg shadow-red-200 shake";
                 handleError("¡Esa no es la sílaba más fuerte! Escucha bien.");
                 
                 setTimeout(() => {
@@ -722,14 +737,14 @@
             classificationPhase.classList.add('hidden');
             
             feedbackArea.classList.remove('hidden');
-            feedbackArea.className = "w-full p-6 rounded-2xl bg-green-100 border-2 border-green-300 animate-pop text-center shadow-lg";
+            feedbackArea.className = "w-full p-6 rounded-2xl bg-green-50 border-2 border-green-200 animate-pop text-center shadow-lg";
 
             feedbackTitle.textContent = "¡Excelente!";
             feedbackTitle.className = "font-bold text-2xl mb-2 text-green-700";
 
             feedbackText.innerHTML = `
-                <span class="block text-4xl mb-4 text-green-800 font-bold">${currentWordData.word.toUpperCase()}</span>
-                Es ${currentType.toUpperCase()}. ${currentWordData.rule}
+                <span class="block text-4xl mb-3 text-green-700 font-bold tracking-tight">${currentWordData.word.toUpperCase()}</span>
+                <span class="text-slate-700">Es <strong class="uppercase">${currentType}</strong>. ${currentWordData.rule}</span>
             `;
         }
 
@@ -748,12 +763,13 @@
             
             // Cambiar título según la razón
             const title = document.querySelector('#gameOverScreen h2');
+            title.classList.remove('text-red-600', 'text-slate-800', 'text-gray-800');
             if (reason === 'lives') {
-                title.textContent = '¡Sin Vidas!';
+                title.textContent = '¡Sin vidas!';
                 title.classList.add('text-red-600');
-                title.classList.remove('text-gray-800');
             } else {
-                title.textContent = '¡Tiempo Terminado!';
+                title.textContent = '¡Tiempo terminado!';
+                title.classList.add('text-slate-800');
             }
             
             progressBar.style.width = `100%`;
@@ -769,12 +785,12 @@
             if (existingInput) existingInput.remove();
             
             const html = `
-                <div id="nameInputSection" class="w-full max-w-xs mt-4 animate-pop">
+                <div id="nameInputSection" class="w-full max-w-xs mt-2 mb-4 animate-pop">
                     <input type="text" id="playerName" maxlength="20" placeholder="Tu nombre"
-                           class="w-full px-4 py-3 rounded-xl border-2 border-sky-200 text-center font-bold text-lg focus:border-sky-500 focus:outline-none mb-3">
-                    <button onclick="saveAndShowRanking()" 
-                            class="w-full py-3 bg-yellow-500 text-white rounded-xl font-bold shadow-lg border-b-4 border-yellow-700 active:border-b-0 active:translate-y-1 hover:bg-yellow-400 transition">
-                        💾 Guardar Puntuación
+                           class="w-full px-4 py-3 rounded-xl border-2 border-slate-200 text-center font-bold text-lg focus:border-sky-500 focus:outline-none mb-3">
+                    <button onclick="saveAndShowRanking()"
+                            class="w-full py-3 bg-yellow-500 hover:bg-yellow-600 text-white rounded-xl font-bold shadow-lg shadow-yellow-200 transition-transform hover:scale-[1.02] active:scale-95">
+                        Guardar puntuación
                     </button>
                 </div>
             `;
@@ -795,7 +811,7 @@
             
             nameInput.disabled = true;
             const btn = nameInput.nextElementSibling;
-            btn.textContent = '⏳ Guardando...';
+            btn.textContent = 'Guardando…';
             btn.disabled = true;
             
             const success = await submitScore(nombre, score);
@@ -804,7 +820,7 @@
                 document.getElementById('nameInputSection').remove();
                 showRanking();
             } else {
-                btn.textContent = '❌ Error - Reintentar';
+                btn.textContent = 'Error — Reintentar';
                 btn.disabled = false;
                 nameInput.disabled = false;
             }
@@ -855,14 +871,17 @@
                 : '<p class="text-gray-500 text-center py-4">¡Sé el primero en entrar al ranking!</p>';
             
             return `
-                <div id="rankingModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
-                    <div class="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl border-4 border-yellow-100 max-h-[80vh] overflow-hidden flex flex-col">
-                        <h2 class="text-2xl font-bold text-yellow-600 mb-4 text-center">🏆 Ranking Top 20</h2>
-                        <div class="overflow-y-auto flex-grow divide-y divide-gray-100">
+                <div id="rankingModal" class="fixed inset-0 bg-slate-900/70 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+                    <div class="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl border-4 border-slate-100 max-h-[80vh] overflow-hidden flex flex-col animate-pop">
+                        <div class="flex items-center justify-center gap-2 mb-4">
+                            <svg class="h-7 w-7 text-yellow-500"><use href="#i-trophy"/></svg>
+                            <h2 class="text-2xl font-bold text-slate-800">Ranking Top 20</h2>
+                        </div>
+                        <div class="overflow-y-auto flex-grow divide-y divide-slate-100">
                             ${rankingHTML}
                         </div>
-                        <button onclick="document.getElementById('rankingModal').remove()" 
-                                class="mt-4 w-full py-3 bg-gray-200 text-gray-700 rounded-xl font-bold hover:bg-gray-300 transition">
+                        <button onclick="document.getElementById('rankingModal').remove()"
+                                class="mt-4 w-full py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl font-bold transition-colors">
                             Cerrar
                         </button>
                     </div>
@@ -872,10 +891,10 @@
 
         async function showRanking() {
             const loadingModal = `
-                <div id="rankingModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
-                    <div class="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl border-4 border-yellow-100 text-center">
-                        <div class="animate-spin inline-block w-12 h-12 border-4 border-yellow-400 border-t-transparent rounded-full mb-4"></div>
-                        <p class="text-gray-600 font-bold">Cargando ranking...</p>
+                <div id="rankingModal" class="fixed inset-0 bg-slate-900/70 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+                    <div class="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl border-4 border-slate-100 text-center">
+                        <div class="animate-spin inline-block w-12 h-12 border-4 border-sky-500 border-t-transparent rounded-full mb-4"></div>
+                        <p class="text-slate-600 font-bold">Cargando ranking…</p>
                     </div>
                 </div>
             `;
