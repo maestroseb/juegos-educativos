@@ -63,11 +63,11 @@
   .word.subj-pick { color: #1d4ed8; }
   .word.pred-pick { color: #b91c1c; }
   /* Verbo (paso 1 ya confirmado) que se marca como parte del predicado:
-     mantiene el bloque violeta y añade marca roja inferior. */
+     mantiene el bloque violeta. El subrayado rojo continuo se dibuja
+     debajo como barra independiente (.underline-bar). */
   .word.verbo-locked.pred-pick {
     background-color: #a855f7;
     color: white;
-    box-shadow: inset 0 -4px 0 #dc2626;
   }
 
   /* Verbo confirmado: bloque violeta (es el núcleo del predicado).
