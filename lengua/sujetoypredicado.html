@@ -117,6 +117,24 @@
     pointer-events: none;
     z-index: 5;
   }
+  /* Etiquetas "sujeto" / "predicado" centradas bajo cada subrayado */
+  .role-tag {
+    position: absolute;
+    transform: translateX(-50%);
+    color: white;
+    font-size: 0.6rem;
+    padding: 0.05rem 0.5rem;
+    border-radius: 9999px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    line-height: 1.3;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.25);
+    pointer-events: none;
+    z-index: 5;
+    animation: popIn 0.25s ease;
+  }
 
   .word.wrong {
     background-color: #ef4444;
@@ -336,7 +354,7 @@
 
     <div id="step-indicator" class="bg-purple-50 border-b-2 border-purple-100 px-4 py-2 text-center text-sm font-semibold text-purple-700 flex items-center justify-center gap-2"></div>
 
-    <div id="sentence-container" class="px-6 pt-10 pb-8 md:px-10 md:pt-12 md:pb-10 flex items-center justify-center text-center min-h-[200px] bg-slate-50 transition-colors duration-300 relative">
+    <div id="sentence-container" class="px-6 pt-10 pb-14 md:px-10 md:pt-12 md:pb-16 flex items-center justify-center text-center min-h-[220px] bg-slate-50 transition-colors duration-300 relative">
       <h2 id="sentence-text" class="text-2xl md:text-3xl lg:text-4xl text-slate-700 leading-relaxed"></h2>
     </div>
 
@@ -417,7 +435,7 @@
           <span id="panel1-name">Equipo 1</span>
         </div>
         <div id="panel1-step" class="bg-purple-100 text-purple-700 text-center py-1 text-xs font-semibold"></div>
-        <div id="panel1-sentence" class="px-3 pt-8 pb-5 md:px-6 md:pt-10 md:pb-6 min-h-[120px] flex items-center justify-center text-center bg-white relative">
+        <div id="panel1-sentence" class="px-3 pt-8 pb-10 md:px-6 md:pt-10 md:pb-12 min-h-[140px] flex items-center justify-center text-center bg-white relative">
           <p id="panel1-text" class="text-base md:text-xl lg:text-2xl text-slate-700 leading-relaxed"></p>
         </div>
         <div class="p-2 md:p-3 bg-blue-50">
@@ -436,7 +454,7 @@
           <span id="panel2-name">Equipo 2</span>
         </div>
         <div id="panel2-step" class="bg-purple-100 text-purple-700 text-center py-1 text-xs font-semibold"></div>
-        <div id="panel2-sentence" class="px-3 pt-8 pb-5 md:px-6 md:pt-10 md:pb-6 min-h-[120px] flex items-center justify-center text-center bg-white relative">
+        <div id="panel2-sentence" class="px-3 pt-8 pb-10 md:px-6 md:pt-10 md:pb-12 min-h-[140px] flex items-center justify-center text-center bg-white relative">
           <p id="panel2-text" class="text-base md:text-xl lg:text-2xl text-slate-700 leading-relaxed"></p>
         </div>
         <div class="p-2 md:p-3 bg-pink-50">
@@ -1340,7 +1358,7 @@ function contiguousRuns(indices) {
 
 // Quita barras de subrayado y etiqueta de verbo del contenedor.
 function clearMarks(boxEl) {
-  boxEl.querySelectorAll('.underline-bar, .verb-tag').forEach(e => e.remove());
+  boxEl.querySelectorAll('.underline-bar, .verb-tag, .role-tag').forEach(e => e.remove());
 }
 
 // Detecta las líneas en las que se reparten las palabras y devuelve un mapa
@@ -1365,7 +1383,9 @@ function sentenceLines(boxEl, textEl) {
 // Subraya un rol con barras CONTINUAS: una por cada tramo consecutivo del rol
 // que además esté en la MISMA línea (si la oración se parte, cada tramo va
 // anclado a la línea base de su propia línea, no a la última).
-function drawUnderline(boxEl, textEl, indices, color, includeBubble) {
+// labelText: si se indica, debajo de cada barra se coloca una etiqueta
+// centrada con ese texto (p. ej. "sujeto", "predicado").
+function drawUnderline(boxEl, textEl, indices, color, includeBubble, labelText) {
   const baseRuns = contiguousRuns(indices || []).map(run =>
     run.map(i => textEl.querySelector(`.word[data-idx="${i}"]`)).filter(Boolean)
   );
@@ -1401,13 +1421,23 @@ function drawUnderline(boxEl, textEl, indices, color, includeBubble) {
     segments.forEach(seg => {
       const fr = seg.els[0].getBoundingClientRect();
       const lr = seg.els[seg.els.length - 1].getBoundingClientRect();
+      const barTop = lineBottomFor(seg.top) + 3;
       const bar = document.createElement('div');
       bar.className = 'underline-bar';
       bar.style.background = color;
       bar.style.left = (fr.left - boxRect.left) + 'px';
       bar.style.width = (lr.right - fr.left) + 'px';
-      bar.style.top = (lineBottomFor(seg.top) + 3) + 'px';
+      bar.style.top = barTop + 'px';
       boxEl.appendChild(bar);
+      if (labelText) {
+        const tag = document.createElement('span');
+        tag.className = 'role-tag';
+        tag.textContent = labelText;
+        tag.style.background = color;
+        tag.style.left = ((fr.left + lr.right) / 2 - boxRect.left) + 'px';
+        tag.style.top = (barTop + 7) + 'px';
+        boxEl.appendChild(tag);
+      }
     });
   });
 }
@@ -1452,11 +1482,11 @@ function applyMarks(box, text, q, marks, liveSel) {
   if (!q || !box || !text) return;
   clearMarks(box);
   if (marks.fullReveal) {
-    drawUnderline(box, text, q.sujeto || [], '#3b82f6', Array.isArray(q.pronombre));
-    drawUnderline(box, text, predicadoCompleto(q), '#dc2626');
+    drawUnderline(box, text, q.sujeto || [], '#3b82f6', Array.isArray(q.pronombre), 'sujeto');
+    drawUnderline(box, text, predicadoCompleto(q), '#dc2626', false, 'predicado');
   } else {
     if (marks.sujeto || marks.sujetoBubble) {
-      drawUnderline(box, text, marks.sujeto || [], '#3b82f6', !!marks.sujetoBubble);
+      drawUnderline(box, text, marks.sujeto || [], '#3b82f6', !!marks.sujetoBubble, 'sujeto');
     }
     if (liveSel && liveSel.indices.length) {
       drawUnderline(box, text, liveSel.indices, liveSel.color);
