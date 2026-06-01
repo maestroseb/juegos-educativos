@@ -776,6 +776,8 @@ function setSoloWord(idx, span, selected) {
   const cls = currentStepClass();
   if (selected) { set.add(idx); span.classList.add(cls); }
   else { set.delete(idx); span.classList.remove(cls); }
+  // Pintar el subrayado en vivo (sujeto/predicado) mientras se arrastra.
+  if (step === 2 || step === 3) redrawSoloMarks();
 }
 
 // Enganche del arrastre (una sola vez) sobre la oración del modo solo...
@@ -1132,6 +1134,8 @@ function setPanelWord(panelIdx, idx, span, selected) {
   const cls = panelStepClass(panelIdx);
   if (selected) { set.add(idx); span.classList.add(cls); }
   else { set.delete(idx); span.classList.remove(cls); }
+  const st = panelStep[panelIdx];
+  if (st === 2 || st === 3) redrawPanelMarks(panelIdx);
 }
 
 function handlePanelAction(panelIdx, action) {
@@ -1428,7 +1432,9 @@ function predicadoCompleto(q) {
 // Aplica el estado de marcas (verbo/sujeto/predicado/burbuja) a la oración
 // indicada. Se llama tanto al confirmar cada paso como al redimensionar la
 // ventana, para que las barras se recalculen con el layout actual.
-function applyMarks(box, text, q, marks) {
+// liveSel: selección EN CURSO {indices, color} que se dibuja como subrayado
+// provisional mientras el usuario pinta con el dedo/ratón.
+function applyMarks(box, text, q, marks, liveSel) {
   if (!q || !box || !text) return;
   clearMarks(box);
   if (marks.fullReveal) {
@@ -1438,8 +1444,28 @@ function applyMarks(box, text, q, marks) {
     if (marks.sujeto || marks.sujetoBubble) {
       drawUnderline(box, text, marks.sujeto || [], '#3b82f6', !!marks.sujetoBubble);
     }
+    if (liveSel && liveSel.indices.length) {
+      drawUnderline(box, text, liveSel.indices, liveSel.color);
+    }
   }
   if (marks.verbo) drawVerbLabel(box, text, marks.verbo);
+}
+
+// Selección en curso del modo solo, según el paso activo (no en el paso del
+// verbo, cuyo estado final es un bloque, no un subrayado).
+function soloLiveSel() {
+  if (isProcessing) return null;
+  if (step === 2) return { indices: [...selectedSubj], color: '#3b82f6' };
+  if (step === 3) return { indices: [...selectedPred], color: '#dc2626' };
+  return null;
+}
+
+function panelLiveSel(panelIdx) {
+  if (panelProcessing[panelIdx]) return null;
+  const st = panelStep[panelIdx];
+  if (st === 2) return { indices: [...panelSubj[panelIdx]], color: '#3b82f6' };
+  if (st === 3) return { indices: [...panelPred[panelIdx]], color: '#dc2626' };
+  return null;
 }
 
 function redrawSoloMarks() {
@@ -1447,7 +1473,8 @@ function redrawSoloMarks() {
     document.getElementById('sentence-container'),
     document.getElementById('sentence-text'),
     currentQuestion,
-    soloMarks
+    soloMarks,
+    soloLiveSel()
   );
 }
 
@@ -1456,7 +1483,8 @@ function redrawPanelMarks(panelIdx) {
     document.getElementById(`panel${panelIdx + 1}-sentence`),
     document.getElementById(`panel${panelIdx + 1}-text`),
     panelQuestions[panelIdx],
-    panelMarks[panelIdx]
+    panelMarks[panelIdx],
+    panelLiveSel(panelIdx)
   );
 }
 
