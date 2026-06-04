@@ -225,6 +225,12 @@
     <symbol id="i-underline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M6 4v6a6 6 0 0 0 12 0V4"/><line x1="4" y1="20" x2="20" y2="20"/>
     </symbol>
+    <!-- Portapapeles (modo Examen) -->
+    <symbol id="i-clipboard" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect width="8" height="4" x="8" y="2" rx="1" ry="1"/>
+      <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+      <path d="M9 14l2 2 4-4"/>
+    </symbol>
   </defs>
 </svg>
 
@@ -260,7 +266,7 @@
       </label>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 w-full max-w-3xl mb-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 w-full max-w-5xl mb-6">
       <button onclick="chooseMode('classic')" class="bg-white hover:bg-blue-50 border-4 border-blue-200 hover:border-blue-500 rounded-2xl p-5 transition-all transform hover:-translate-y-1 text-left shadow-sm group">
         <svg class="h-10 w-10 text-blue-500 mb-2"><use href="#i-book"/></svg>
         <div class="font-bold text-lg text-slate-800 mb-1">Clásico</div>
@@ -270,6 +276,11 @@
         <svg class="h-10 w-10 text-orange-500 mb-2"><use href="#i-stopwatch"/></svg>
         <div class="font-bold text-lg text-slate-800 mb-1">Contrarreloj</div>
         <div class="text-sm text-slate-600">120 segundos para acertar todo lo que puedas.</div>
+      </button>
+      <button onclick="chooseMode('exam')" class="bg-white hover:bg-emerald-50 border-4 border-emerald-200 hover:border-emerald-500 rounded-2xl p-5 transition-all transform hover:-translate-y-1 text-left shadow-sm group">
+        <svg class="h-10 w-10 text-emerald-600 mb-2"><use href="#i-clipboard"/></svg>
+        <div class="font-bold text-lg text-slate-800 mb-1">Examen</div>
+        <div class="text-sm text-slate-600">10 oraciones con nota sobre 10. Cada fallo resta.</div>
       </button>
       <button onclick="chooseMode('teams')" class="bg-white hover:bg-pink-50 border-4 border-pink-200 hover:border-pink-500 rounded-2xl p-5 transition-all transform hover:-translate-y-1 text-left shadow-sm group">
         <svg class="h-10 w-10 text-pink-500 mb-2"><use href="#i-swords"/></svg>
@@ -484,8 +495,9 @@
     <p id="end-message" class="text-xl text-slate-600 mb-6">Has hecho un gran trabajo.</p>
 
     <div id="end-solo" class="bg-slate-50 rounded-2xl p-6 w-full max-w-sm mb-8 border border-slate-200">
-      <div class="text-slate-500 text-sm font-bold uppercase mb-1">Puntuación Final</div>
+      <div id="end-solo-label" class="text-slate-500 text-sm font-bold uppercase mb-1">Puntuación Final</div>
       <div id="final-score" class="text-5xl font-black text-blue-500">0</div>
+      <div id="end-solo-suffix" class="hidden text-slate-400 text-sm font-bold uppercase mt-1">sobre 10</div>
     </div>
 
     <div id="end-teams" class="hidden w-full max-w-xl mb-8">
@@ -527,6 +539,13 @@ const PTS_PREDICADO = 5;
 const PTS_OMITIDO = 15;
 const PTS_FALLO = 3;
 
+// Modo Examen: cada oración va de -1 a +1.
+// +1 si la completas sin fallos. Cada fallo suma 0,25 a la penalización
+// (suelo en 1, no resta más en esa oración). Saltar pone la penalización
+// al máximo y la oración cuenta como no completada → resultado -1.
+const EXAM_PENAL_FALLO = 0.25;
+const EXAM_PENAL_MAX = 1;
+
 // ========================================================================
 // ESTADO SOLO
 // ========================================================================
@@ -543,6 +562,10 @@ let selectedSubj = new Set();
 let selectedPred = new Set();
 let step = 1; // 1 = verbo, 2 = sujeto, 3 = predicado
 let isProcessing = false;
+// Modo Examen: penalización acumulada en la oración actual y desglose de
+// resultados para el resumen final.
+let examPenalty = 0;
+let examResults = []; // { score: number, completed: boolean, fails: int }
 // Estado de las marcas dibujadas sobre la oración del modo solo. Sirve para
 // poder REDIBUJARLAS cuando cambia el layout (resize, rotación de móvil, etc.).
 let soloMarks = { verbo: null, sujeto: null, sujetoBubble: false, fullReveal: false };
@@ -683,7 +706,9 @@ function startGame(m) {
     startDuelTimer();
 
   } else {
-    document.getElementById('score').textContent = '0';
+    examResults = [];
+    examPenalty = 0;
+    document.getElementById('score').textContent = mode === 'exam' ? '0,0' : '0';
     buildSoloPronGrid();
 
     if (mode === 'timer') {
@@ -694,6 +719,12 @@ function startGame(m) {
       document.getElementById('round-label').textContent = 'Pregunta';
       document.getElementById('question-total').textContent = '';
       startSoloTimer();
+    } else if (mode === 'exam') {
+      // Modo Examen: sin cronómetro, 10 oraciones, nota sobre 10.
+      timeLeft = -1;
+      document.getElementById('timer-wrap').classList.add('hidden');
+      document.getElementById('round-label').textContent = 'Examen';
+      document.getElementById('question-total').textContent = '/10';
     } else {
       // Modo Clásico: sin tiempo. Ocultamos el cronómetro para liberar espacio
       // en la cabecera (evita el solapamiento con "Pregunta x/10" en móviles).
@@ -759,6 +790,7 @@ function loadNextQuestion() {
   step = 1;
   isProcessing = false;
   soloMarks = { verbo: null, sujeto: null, sujetoBubble: false, fullReveal: false };
+  examPenalty = 0;
 
   renderSentence(document.getElementById('sentence-text'), currentQuestion);
   document.getElementById('pron-selector').classList.add('hidden');
@@ -767,7 +799,7 @@ function loadNextQuestion() {
 
   updateSoloUI();
 
-  if (mode === 'classic' && questionCount > 10) {
+  if ((mode === 'classic' || mode === 'exam') && questionCount > 10) {
     endGame();
   }
 }
@@ -897,11 +929,22 @@ function advanceSoloToPredicado() {
 function finishSoloSentence() {
   isProcessing = true;
   revealSoloSolution();
-  if (mode === 'classic') {
+  if (mode === 'exam') {
+    // Resultado por oración completada = +1 - penalización (rango: [0, +1])
+    const sentenceScore = 1 - examPenalty;
+    examResults.push({ score: sentenceScore, completed: true, fails: Math.round(examPenalty / EXAM_PENAL_FALLO) });
+    updateExamScoreDisplay();
+  }
+  if (mode === 'classic' || mode === 'exam') {
     showNextBtn();
   } else {
     setTimeout(() => loadNextQuestion(), 1500);
   }
+}
+
+function updateExamScoreDisplay() {
+  const total = examResults.reduce((s, r) => s + r.score, 0);
+  document.getElementById('score').textContent = total.toFixed(1).replace('.', ',');
 }
 
 function showNextBtn() {
@@ -1000,10 +1043,24 @@ document.getElementById('check-pred-btn').addEventListener('click', () => {
 
 function penaltySolo(hintMsg) {
   const container = document.getElementById('sentence-container');
-  score = Math.max(0, score - PTS_FALLO);
-  document.getElementById('score').textContent = score;
-  container.classList.add('bg-red-100', 'animate-shake');
-  showFloatingText(container, '-' + PTS_FALLO, false);
+  if (mode === 'exam') {
+    // Cada fallo suma 0,25 a la penalización de la oración (tope: 1).
+    // Si ya hemos llegado al tope, no se resta más (ni se muestra -X).
+    if (examPenalty < EXAM_PENAL_MAX) {
+      const before = examPenalty;
+      examPenalty = Math.min(EXAM_PENAL_MAX, examPenalty + EXAM_PENAL_FALLO);
+      const delta = examPenalty - before;
+      container.classList.add('bg-red-100', 'animate-shake');
+      showFloatingText(container, '-' + delta.toFixed(2).replace('.', ','), false);
+    } else {
+      container.classList.add('bg-red-100', 'animate-shake');
+    }
+  } else {
+    score = Math.max(0, score - PTS_FALLO);
+    document.getElementById('score').textContent = score;
+    container.classList.add('bg-red-100', 'animate-shake');
+    showFloatingText(container, '-' + PTS_FALLO, false);
+  }
   if (hintMsg) showHint(hintMsg);
   setTimeout(() => container.classList.remove('bg-red-100', 'animate-shake'), 600);
 }
@@ -1054,7 +1111,19 @@ function showHint(msg) {
 }
 
 document.getElementById('skip-btn').addEventListener('click', () => {
-  // Saltar siempre va a la siguiente, incluso durante el reveal
+  // En modo Examen: saltar cuenta como -1 en la oración actual (la
+  // penalización ya acumulada se descuenta del tope; el resultado neto
+  // por oración no completada queda en -1, sin restar más allá).
+  if (mode === 'exam' && !isProcessing) {
+    const remaining = EXAM_PENAL_MAX - examPenalty;
+    examPenalty = EXAM_PENAL_MAX;
+    examResults.push({
+      score: -EXAM_PENAL_MAX,
+      completed: false,
+      fails: Math.round((EXAM_PENAL_MAX - remaining) / EXAM_PENAL_FALLO)
+    });
+    updateExamScoreDisplay();
+  }
   hideNextBtn();
   loadNextQuestion();
 });
@@ -1655,10 +1724,16 @@ function endGame() {
       setEndIcon('i-handshake', 'text-slate-500');
       document.getElementById('end-message').textContent = '¡Empate! Muy igualado.';
     }
+  } else if (mode === 'exam') {
+    document.getElementById('end-solo').classList.remove('hidden');
+    document.getElementById('end-teams').classList.add('hidden');
+    showExamReport();
   } else {
     document.getElementById('end-solo').classList.remove('hidden');
     document.getElementById('end-teams').classList.add('hidden');
     document.getElementById('final-score').textContent = score;
+    document.getElementById('end-solo-label').textContent = 'Puntuación Final';
+    document.getElementById('end-solo-suffix').classList.add('hidden');
 
     if (mode === 'timer') {
       document.getElementById('end-title').textContent = '¡Tiempo!';
@@ -1680,6 +1755,35 @@ function endGame() {
       document.getElementById('end-message').textContent = 'Repasa verbo, sujeto y predicado y vuelve a intentarlo.';
     }
   }
+}
+
+// Resumen del modo Examen: nota /10 + leyenda + desglose por oración.
+function showExamReport() {
+  const total = examResults.reduce((s, r) => s + r.score, 0);
+  // Mostramos siempre la nota cruda (entre -10 y +10). Si negativa, se ve igual.
+  const notaTxt = total.toFixed(1).replace('.', ',');
+  document.getElementById('final-score').textContent = notaTxt;
+  document.getElementById('end-solo-label').textContent = 'Nota del examen';
+  document.getElementById('end-solo-suffix').classList.remove('hidden');
+
+  const perfectas = examResults.filter(r => r.completed && r.fails === 0).length;
+  const conFallos = examResults.filter(r => r.completed && r.fails > 0).length;
+  const saltadas = examResults.filter(r => !r.completed).length;
+
+  document.getElementById('end-title').textContent = 'Resultado del examen';
+
+  let label, iconId, color;
+  if (total >= 9)      { label = '¡Sobresaliente!';  iconId = 'i-crown';  color = 'text-yellow-500'; }
+  else if (total >= 7) { label = '¡Notable!';        iconId = 'i-trophy'; color = 'text-yellow-500'; }
+  else if (total >= 5) { label = 'Aprobado';          iconId = 'i-star';   color = 'text-blue-500'; }
+  else                 { label = 'Insuficiente';      iconId = 'i-book';   color = 'text-slate-500'; }
+  setEndIcon(iconId, color);
+
+  document.getElementById('end-message').innerHTML =
+    `<span class="block text-lg font-bold mb-1">${label}</span>` +
+    `<span class="block text-sm text-slate-500">` +
+      `${perfectas} perfectas · ${conFallos} con fallos · ${saltadas} saltadas` +
+    `</span>`;
 }
 
 </script>
