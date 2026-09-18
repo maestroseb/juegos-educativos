@@ -1,0 +1,1068 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Reloj Maestro 5.0 Pro - Aprendizaje Interactivo</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            blue: '#0284c7',
+                            lightBg: '#e0f2fe',
+                            darkBg: '#0f172a',
+                            accent: '#f59e0b',
+                            success: '#22c55e',
+                            danger: '#ef4444'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Fredoka', 'Nunito', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Fredoka', 'Nunito', sans-serif;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* Ambient float animation */
+        @keyframes floatSlow {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-10px) rotate(3deg); }
+        }
+        .animate-float {
+            animation: floatSlow 5s ease-in-out infinite;
+        }
+
+        /* Pulse glow for buttons */
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 15px rgba(2, 132, 199, 0.3); }
+            50% { box-shadow: 0 0 25px rgba(2, 132, 199, 0.6); }
+        }
+        .glow-effect {
+            animation: pulseGlow 3s infinite;
+        }
+
+        /* iOS Picker Scrollbar Hidden */
+        .picker-column::-webkit-scrollbar {
+            display: none;
+        }
+        .picker-column {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        /* Canvas cursor states */
+        .canvas-interactive {
+            cursor: grab;
+        }
+        .canvas-interactive:active {
+            cursor: grabbing;
+        }
+    </style>
+</head>
+<body class="bg-sky-100 text-slate-800 min-h-screen flex flex-col items-center justify-center p-2 sm:p-4 transition-colors duration-700 overflow-x-hidden">
+
+    <div id="ambient-bg-icon" class="fixed top-4 right-4 sm:top-6 sm:right-6 w-16 h-16 sm:w-20 sm:h-20 pointer-events-none z-0 transition-opacity duration-700 opacity-90 animate-float">
+        <!-- SVG injected dynamically (Sun or Moon) -->
+    </div>
+
+    <!-- MAIN CONTAINER CARD -->
+    <main class="relative z-10 w-full max-w-md bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl border border-white/40 p-4 sm:p-6 flex flex-col my-auto transition-all duration-300">
+        
+        <!-- HEADER TOP BAR -->
+        <header class="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+            <div class="flex items-center gap-2">
+                <div class="p-2 bg-sky-500 text-white rounded-2xl shadow-md">
+                    <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-sky-700 leading-none">Reloj Maestro</h1>
+                    <span class="text-xs font-semibold text-slate-400">Edición Pro 5.0</span>
+                </div>
+            </div>
+
+            <!-- Global Action Controls -->
+            <div class="flex items-center gap-2">
+                <button id="audio-toggle-btn" onclick="game.toggleAudio()" class="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl transition-all" title="Activar/Desactivar Sonido">
+                    <svg id="audio-icon" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                        <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/>
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- MENU SCREEN -->
+        <section id="menu-screen" class="flex flex-col gap-4">
+            <!-- Step 1: Mode Selection -->
+            <div>
+                <h2 class="text-xs font-extrabold uppercase tracking-wider text-slate-400 mb-2">1. Elige el modo de juego</h2>
+                <div class="grid grid-cols-3 gap-2">
+                    <!-- QUIZ CARD -->
+                    <button id="card-quiz" onclick="setMode('quiz')" class="mode-card group flex flex-col items-center justify-center p-3 rounded-2xl border-2 border-sky-100 bg-slate-50 hover:bg-sky-50 transition-all text-slate-500 font-bold text-xs sm:text-sm">
+                        <svg class="w-7 h-7 mb-1 text-sky-500 group-hover:scale-110 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9.663 17h4.673M12 3a7 7 0 0 0-7 7c0 1.57.5 3.038 1.57 4.212C7.525 15.28 8 16.084 8 17a4 4 0 1 0 8 0c0-.916.475-1.72 1.43-2.788A7 7 0 0 0 12 3Z"/>
+                        </svg>
+                        <span>Adivinar</span>
+                    </button>
+
+                    <!-- DIGITAL CARD -->
+                    <button id="card-digital" onclick="setMode('digital')" class="mode-card group flex flex-col items-center justify-center p-3 rounded-2xl border-2 border-slate-100 bg-slate-50 hover:bg-sky-50 transition-all text-slate-500 font-bold text-xs sm:text-sm">
+                        <svg class="w-7 h-7 mb-1 text-indigo-500 group-hover:scale-110 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="2" y="4" width="20" height="16" rx="3"/>
+                            <path d="M6 10h2v4H6zM11 10h2v4h-2zM16 10h2v4h-2z"/>
+                        </svg>
+                        <span>Escribir</span>
+                    </button>
+
+                    <!-- SET/MOVER CARD -->
+                    <button id="card-set" onclick="setMode('set')" class="mode-card group flex flex-col items-center justify-center p-3 rounded-2xl border-2 border-slate-100 bg-slate-50 hover:bg-sky-50 transition-all text-slate-500 font-bold text-xs sm:text-sm">
+                        <svg class="w-7 h-7 mb-1 text-amber-500 group-hover:scale-110 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="9"/>
+                            <path d="M12 7v5l3 3"/>
+                            <path d="M18 12a6 6 0 1 1-12 0"/>
+                        </svg>
+                        <span>Mover</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 2: Difficulty Selection -->
+            <div>
+                <h2 class="text-xs font-extrabold uppercase tracking-wider text-slate-400 mb-2">2. Nivel de dificultad</h2>
+                <div class="flex flex-col gap-2">
+                    <button onclick="startGame(1)" class="w-full p-3.5 rounded-2xl text-white font-bold text-left flex items-center justify-between shadow-lg shadow-emerald-500/20 bg-gradient-to-r from-emerald-500 to-green-600 hover:brightness-105 active:scale-[0.99] transition-all">
+                        <div class="flex items-center gap-3">
+                            <span class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center font-extrabold">1</span>
+                            <div>
+                                <div class="text-base leading-tight">Nivel Básico</div>
+                                <div class="text-xs text-emerald-100 font-normal">Horas en punto y medias (:00, :30)</div>
+                            </div>
+                        </div>
+                        <svg class="w-5 h-5 opacity-80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M9 18l6-6-6-6"/></svg>
+                    </button>
+
+                    <button onclick="startGame(2)" class="w-full p-3.5 rounded-2xl text-white font-bold text-left flex items-center justify-between shadow-lg shadow-sky-500/20 bg-gradient-to-r from-sky-500 to-blue-600 hover:brightness-105 active:scale-[0.99] transition-all">
+                        <div class="flex items-center gap-3">
+                            <span class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center font-extrabold">2</span>
+                            <div>
+                                <div class="text-base leading-tight">Nivel Medio</div>
+                                <div class="text-xs text-sky-100 font-normal">Cuartos de hora (:00, :15, :30, :45)</div>
+                            </div>
+                        </div>
+                        <svg class="w-5 h-5 opacity-80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M9 18l6-6-6-6"/></svg>
+                    </button>
+
+                    <button onclick="startGame(3)" class="w-full p-3.5 rounded-2xl text-white font-bold text-left flex items-center justify-between shadow-lg shadow-amber-500/20 bg-gradient-to-r from-amber-500 to-orange-600 hover:brightness-105 active:scale-[0.99] transition-all">
+                        <div class="flex items-center gap-3">
+                            <span class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center font-extrabold">3</span>
+                            <div>
+                                <div class="text-base leading-tight">Nivel Avanzado</div>
+                                <div class="text-xs text-amber-100 font-normal">Intervalos de 5 minutos (:05, :10, etc.)</div>
+                            </div>
+                        </div>
+                        <svg class="w-5 h-5 opacity-80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M9 18l6-6-6-6"/></svg>
+                    </button>
+
+                    <button onclick="startGame(4)" class="w-full p-3.5 rounded-2xl text-white font-bold text-left flex items-center justify-between shadow-lg shadow-purple-500/20 bg-gradient-to-r from-purple-500 to-indigo-600 hover:brightness-105 active:scale-[0.99] transition-all">
+                        <div class="flex items-center gap-3">
+                            <span class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center font-extrabold">4</span>
+                            <div>
+                                <div class="text-base leading-tight">Nivel Experto</div>
+                                <div class="text-xs text-purple-100 font-normal">Precisión exacta minuto a minuto</div>
+                            </div>
+                        </div>
+                        <svg class="w-5 h-5 opacity-80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M9 18l6-6-6-6"/></svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- High score record stats -->
+            <div class="mt-2 p-3 bg-slate-100 rounded-2xl flex items-center justify-between text-xs font-bold text-slate-500">
+                <span class="flex items-center gap-1">
+                    <svg class="w-4 h-4 text-amber-500" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                    Récord Personal:
+                </span>
+                <span id="best-score-display" class="text-sky-600 font-extrabold text-sm">0 aciertos</span>
+            </div>
+        </section>
+
+        <!-- GAME SCREEN -->
+        <section id="game-screen" class="hidden flex flex-col">
+            <!-- Game Subheader / Stats Bar -->
+            <div class="flex items-center justify-between mb-3 bg-slate-100 p-2 sm:p-2.5 rounded-2xl">
+                <button onclick="game.showMenu()" class="p-2 bg-white hover:bg-slate-200 text-slate-600 rounded-xl transition-all shadow-sm flex items-center gap-1 font-bold text-xs" title="Volver al menú">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                    <span>Menú</span>
+                </button>
+
+                <div class="flex items-center gap-3">
+                    <!-- Streak badge -->
+                    <div class="flex items-center gap-1 bg-amber-100 text-amber-700 px-2.5 py-1 rounded-xl text-xs font-black" title="Racha actual">
+                        <span>🔥</span>
+                        <span id="streak-count">0</span>
+                    </div>
+
+                    <!-- Score badge -->
+                    <div class="flex items-center gap-1 bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-xl text-xs font-black">
+                        <span>ACIERTOS:</span>
+                        <span id="score" class="text-sm text-emerald-600">0</span>
+                    </div>
+
+                    <!-- Hint button -->
+                    <button onclick="game.giveHint()" class="p-1.5 bg-amber-400 hover:bg-amber-500 text-slate-900 rounded-xl transition-all shadow-sm" title="Pedir una pista">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2a7 7 0 0 0-7 7c0 2.38 1.19 4.47 3 5.74V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.26c1.81-1.27 3-3.36 3-5.74a7 7 0 0 0-7-7zM9 21h6"/></svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Question Prompt Banner -->
+            <div class="text-center mb-3">
+                <div id="question-label" class="text-xs font-extrabold uppercase tracking-widest text-slate-400 mb-0.5">Pregunta</div>
+                <div id="question-text" class="text-lg sm:text-xl font-extrabold text-sky-700 leading-tight">
+                    ¿Qué hora marca el reloj?
+                </div>
+            </div>
+
+            <!-- Toggle Switch for Digital vs Verbal Format (Digital Mode Only) -->
+            <div id="input-type-toggle" class="hidden flex items-center justify-center gap-3 mb-3 bg-slate-100 p-1.5 rounded-2xl border border-slate-200">
+                <span class="text-xs font-extrabold text-slate-500">Formato Digital</span>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="read-mode-switch" class="sr-only peer" onchange="game.toggleReadMode()">
+                    <div class="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sky-500"></div>
+                </label>
+                <span class="text-xs font-extrabold text-slate-500">Lectura Hablada</span>
+            </div>
+
+            <!-- CLOCK CANVAS CONTAINER -->
+            <div id="canvas-container" class="relative mx-auto my-1 w-[220px] h-[220px] sm:w-[250px] sm:h-[250px] flex items-center justify-center">
+                <canvas id="clockCanvas" width="300" height="300" class="w-full h-full rounded-full shadow-xl bg-white border-4 border-slate-700 touch-none"></canvas>
+            </div>
+
+            <!-- CONTROLS AREA BY MODE -->
+            <div id="controls-area" class="mt-3">
+                
+                <!-- QUIZ MODE OPTIONS -->
+                <div id="quiz-container" class="hidden grid grid-cols-2 gap-2"></div>
+
+                <!-- DIGITAL / IOS PICKER MODE -->
+                <div id="ios-picker" class="hidden flex flex-col gap-3">
+                    <div class="relative flex justify-center gap-2 h-28 bg-slate-50 rounded-2xl p-2 border border-slate-200 shadow-inner overflow-hidden">
+                        <div class="absolute top-1/2 left-2 right-2 h-9 -translate-y-1/2 bg-sky-500/15 border-y-2 border-sky-500/40 rounded-xl pointer-events-none z-10"></div>
+                        <div class="picker-column flex-1 h-full overflow-y-scroll snap-y snap-mandatory relative z-0" id="picker-h"></div>
+                        <div class="flex items-center text-xl font-black text-sky-600 z-10">:</div>
+                        <div class="picker-column flex-1 h-full overflow-y-scroll snap-y snap-mandatory relative z-0" id="picker-m"></div>
+                    </div>
+                    <button onclick="game.check()" class="w-full py-3.5 bg-amber-400 hover:bg-amber-500 active:scale-[0.98] text-slate-900 font-extrabold rounded-2xl shadow-lg shadow-amber-400/30 flex items-center justify-center gap-2 text-base transition-all">
+                        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+                        <span>Comprobar Hora</span>
+                    </button>
+                </div>
+
+                <!-- MOVER MODE CONTROLS -->
+                <div id="mover-controls" class="hidden flex flex-col gap-2">
+                    <!-- Quick adjust buttons -->
+                    <div class="flex items-center justify-between gap-1.5 mb-1">
+                        <button onclick="game.adjustTime(-15)" class="flex-1 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold rounded-xl text-xs transition-all">-15 min</button>
+                        <button onclick="game.adjustTime(-5)" class="flex-1 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold rounded-xl text-xs transition-all">-5 min</button>
+                        <button onclick="game.adjustTime(5)" class="flex-1 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold rounded-xl text-xs transition-all">+5 min</button>
+                        <button onclick="game.adjustTime(15)" class="flex-1 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold rounded-xl text-xs transition-all">+15 min</button>
+                    </div>
+
+                    <button onclick="game.check()" class="w-full py-3.5 bg-sky-500 hover:bg-sky-600 active:scale-[0.98] text-white font-extrabold rounded-2xl shadow-lg shadow-sky-500/30 flex items-center justify-center gap-2 text-base transition-all">
+                        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+                        <span>Confirmar Hora</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Feedback Message Banner -->
+            <div id="feedback-msg" class="min-h-[32px] mt-2 text-center font-extrabold text-sm flex items-center justify-center"></div>
+        </section>
+    </main>
+
+    <script>
+        /* --- WEB AUDIO SYNTHESIZER FOR SOUND EFFECTS --- */
+        class SoundFX {
+            constructor() {
+                this.ctx = null;
+                this.enabled = true;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    if (AudioCtx) this.ctx = new AudioCtx();
+                }
+            }
+
+            playCorrect() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+
+                const now = this.ctx.currentTime;
+                const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+                notes.forEach((freq, idx) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.value = freq;
+                    gain.gain.setValueAtTime(0.15, now + idx * 0.08);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.3);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now + idx * 0.08);
+                    osc.stop(now + idx * 0.08 + 0.3);
+                });
+            }
+
+            playWrong() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(180, now);
+                osc.frequency.linearRampToValueAtTime(110, now + 0.3);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.3);
+            }
+
+            playTick() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(800, now);
+                gain.gain.setValueAtTime(0.05, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.04);
+            }
+        }
+
+        const sound = new SoundFX();
+
+        /* --- STREAMING_CHUNK:Writing SVG vector graphics and constants --- */
+        const SVG_SUN = `<svg class="w-full h-full drop-shadow-md text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5" fill="#f59e0b"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`;
+        const SVG_MOON = `<svg class="w-full h-full drop-shadow-md text-indigo-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="#818cf8"/></svg>`;
+
+        const TEXT_NUMS = ["cero", "una", "dos", "tres", "cuatro", "cinco", "seis", "siete", "ocho", "nueve", "diez", "once", "doce"];
+
+        let selectedMode = 'quiz';
+
+        function setMode(m) {
+            selectedMode = m;
+            document.querySelectorAll('.mode-card').forEach(c => {
+                c.classList.remove('border-sky-500', 'bg-sky-50', 'text-sky-700', 'shadow-md');
+                c.classList.add('border-slate-100', 'bg-slate-50', 'text-slate-500');
+            });
+            const activeCard = document.getElementById('card-' + m);
+            if (activeCard) {
+                activeCard.classList.remove('border-slate-100', 'bg-slate-50', 'text-slate-500');
+                activeCard.classList.add('border-sky-500', 'bg-sky-50', 'text-sky-700', 'shadow-md');
+            }
+            sound.playTick();
+        }
+
+        function startGame(lvl) {
+            game.start(lvl, selectedMode);
+        }
+
+        /* --- STREAMING_CHUNK:Implementing core game state engine --- */
+        const game = {
+            level: 1,
+            mode: 'quiz',
+            isReadMode: false,
+            score: 0,
+            streak: 0,
+            bestScore: 0,
+            targetH: 0, targetM: 0,
+            currentH: 0, currentM: 0,
+            activeHand: null, // 'hour' or 'minute' during drag
+            lastAngle: null,
+            currentTotalMins: 0,
+            hourDragAngle: null,
+            canvas: document.getElementById('clockCanvas'),
+            ctx: document.getElementById('clockCanvas').getContext('2d'),
+
+            start: function(lvl, mode) {
+                this.level = lvl;
+                this.mode = mode;
+                this.score = 0;
+                this.streak = 0;
+                this.isReadMode = false;
+
+                // Load high score
+                const savedBest = localStorage.getItem('reloj_maestro_best');
+                if (savedBest) {
+                    this.bestScore = parseInt(savedBest, 10);
+                    document.getElementById('best-score-display').innerText = `${this.bestScore} aciertos`;
+                }
+
+                document.getElementById('read-mode-switch').checked = false;
+                document.getElementById('score').innerText = '0';
+                document.getElementById('streak-count').innerText = '0';
+
+                document.getElementById('menu-screen').classList.add('hidden');
+                document.getElementById('game-screen').classList.remove('hidden');
+
+                // UI Reset
+                document.getElementById('input-type-toggle').classList.add('hidden');
+                document.getElementById('quiz-container').classList.add('hidden');
+                document.getElementById('ios-picker').classList.add('hidden');
+                document.getElementById('mover-controls').classList.add('hidden');
+
+                if (mode === 'quiz') {
+                    document.getElementById('quiz-container').classList.remove('hidden');
+                    document.getElementById('question-label').innerText = 'ACERTIJO';
+                    document.getElementById('question-text').innerText = '¿Qué hora marca el reloj?';
+                } else if (mode === 'digital') {
+                    document.getElementById('input-type-toggle').classList.remove('hidden');
+                    document.getElementById('ios-picker').classList.remove('hidden');
+                    document.getElementById('question-label').innerText = 'ESCRITURA';
+                    document.getElementById('question-text').innerText = 'Selecciona la hora del reloj';
+                    this.initPicker();
+                } else if (mode === 'set') {
+                    document.getElementById('mover-controls').classList.remove('hidden');
+                    document.getElementById('question-label').innerText = 'INTERACTIVO';
+                    this.canvas.classList.add('canvas-interactive');
+                }
+
+                this.setupCanvasDPI();
+                this.addCanvasListeners();
+                this.nextRound();
+            },
+
+            showMenu: function() {
+                sound.playTick();
+                document.getElementById('game-screen').classList.add('hidden');
+                document.getElementById('menu-screen').classList.remove('hidden');
+                document.body.className = 'bg-sky-100 text-slate-800 min-h-screen flex flex-col items-center justify-center p-2 sm:p-4 transition-colors duration-700 overflow-x-hidden';
+                document.getElementById('ambient-bg-icon').innerHTML = '';
+            },
+
+            toggleAudio: function() {
+                sound.enabled = !sound.enabled;
+                const btn = document.getElementById('audio-toggle-btn');
+                if (sound.enabled) {
+                    btn.classList.remove('opacity-50');
+                    sound.playTick();
+                } else {
+                    btn.classList.add('opacity-50');
+                }
+            },
+
+            nextRound: function() {
+                this.generateTarget();
+                document.getElementById('feedback-msg').innerHTML = "";
+
+                // Dynamic Day/Night atmosphere based on target time
+                const isDay = this.targetH >= 6 && this.targetH < 20;
+                const bgIcon = document.getElementById('ambient-bg-icon');
+
+                if (isDay) {
+                    document.body.className = 'bg-sky-100 text-slate-800 min-h-screen flex flex-col items-center justify-center p-2 sm:p-4 transition-colors duration-700 overflow-x-hidden';
+                    bgIcon.innerHTML = SVG_SUN;
+                } else {
+                    document.body.className = 'bg-slate-900 text-slate-100 min-h-screen flex flex-col items-center justify-center p-2 sm:p-4 transition-colors duration-700 overflow-x-hidden';
+                    bgIcon.innerHTML = SVG_MOON;
+                }
+
+                if (this.mode === 'set') {
+                    // Start at 12:00 for dragging exercise
+                    this.currentH = 12;
+                    this.currentM = 0;
+                    let targetDisplay = this.isReadMode
+                        ? this.getReadText(this.targetH, this.targetM)
+                        : this.formatDigital(this.targetH, this.targetM);
+
+                    document.getElementById('question-text').innerHTML = `Ajusta el reloj a las: <span class="text-amber-500 font-black">${targetDisplay}</span>`;
+                } else {
+                    this.currentH = this.targetH;
+                    this.currentM = this.targetM;
+                    if (this.mode === 'quiz') this.generateQuizOpts();
+                    if (this.mode === 'digital') this.resetPickerPosition();
+                }
+
+                this.drawClock();
+            },
+
+            generateTarget: function() {
+                this.targetH = Math.floor(Math.random() * 12) + 1;
+                let mins = [];
+                if (this.level === 1) mins = [0, 30];
+                else if (this.level === 2) mins = [0, 15, 30, 45];
+                else if (this.level === 3) for (let i = 0; i < 60; i += 5) mins.push(i);
+                else for (let i = 0; i < 60; i++) mins.push(i);
+
+                this.targetM = mins[Math.floor(Math.random() * mins.length)];
+            },
+
+            toggleReadMode: function() {
+                sound.playTick();
+                this.isReadMode = document.getElementById('read-mode-switch').checked;
+                if (this.mode === 'digital') {
+                    this.initPicker();
+                } else if (this.mode === 'set') {
+                    let targetDisplay = this.isReadMode
+                        ? this.getReadText(this.targetH, this.targetM)
+                        : this.formatDigital(this.targetH, this.targetM);
+                    document.getElementById('question-text').innerHTML = `Ajusta el reloj a las: <span class="text-amber-500 font-black">${targetDisplay}</span>`;
+                }
+            },
+
+            formatDigital: function(h, m) {
+                const hh = h < 10 ? '0' + h : h;
+                const mm = m < 10 ? '0' + m : m;
+                return `${hh}:${mm}`;
+            },
+
+            getReadParts: function(h, m) {
+                let displayH = h;
+                let phrase = "";
+
+                if (m <= 30) {
+                    if (m === 0) phrase = "en punto";
+                    else if (m === 15) phrase = "y cuarto";
+                    else if (m === 30) phrase = "y media";
+                    else phrase = "y " + m;
+                } else {
+                    displayH = (h % 12) + 1;
+                    let diff = 60 - m;
+                    if (diff === 15) phrase = "menos cuarto";
+                    else phrase = "menos " + diff;
+                }
+
+                let hText = displayH === 1 ? "La una" : "Las " + TEXT_NUMS[displayH];
+                return { h: hText, m: phrase, rawH: displayH };
+            },
+
+            getReadText: function(h, m) {
+                let parts = this.getReadParts(h, m);
+                return `${parts.h} ${parts.m}`;
+            },
+
+            giveHint: function() {
+                sound.playTick();
+                let hint = "";
+                if (this.mode === 'set') {
+                    hint = `💡 Pista: La aguja corta (roja) va cerca del ${this.targetH} y la larga (azul) señala los ${this.targetM} min.`;
+                } else {
+                    const parts = this.getReadParts(this.targetH, this.targetM);
+                    hint = `💡 Pista: Son ${parts.h}...`;
+                }
+                const fb = document.getElementById('feedback-msg');
+                fb.innerHTML = `<span class="text-amber-600 bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-200">${hint}</span>`;
+            },
+
+            adjustTime: function(deltaMins) {
+                sound.playTick();
+                let totalMins = (this.currentH % 12) * 60 + this.currentM + deltaMins;
+                if (totalMins < 0) totalMins += 12 * 60;
+
+                this.currentM = totalMins % 60;
+                let h = Math.floor(totalMins / 60) % 12;
+                this.currentH = h === 0 ? 12 : h;
+
+                this.drawClock();
+            },
+
+            initPicker: function() {
+                const colH = document.getElementById('picker-h');
+                const colM = document.getElementById('picker-m');
+                colH.innerHTML = '<div class="h-9"></div>';
+                colM.innerHTML = '<div class="h-9"></div>';
+
+                if (!this.isReadMode) {
+                    for (let i = 1; i <= 12; i++) this.addPickerItem(colH, i < 10 ? '0' + i : i, i);
+                } else {
+                    this.addPickerItem(colH, "La una", 1);
+                    for (let i = 2; i <= 12; i++) this.addPickerItem(colH, "Las " + TEXT_NUMS[i], i);
+                }
+
+                let step = this.level === 1 ? 30 : (this.level === 2 ? 15 : (this.level === 3 ? 5 : 1));
+
+                if (!this.isReadMode) {
+                    for (let i = 0; i < 60; i += step) this.addPickerItem(colM, i < 10 ? '0' + i : i, i);
+                } else {
+                    for (let i = 0; i < 60; i += step) {
+                        let text = "";
+                        let diff = 60 - i;
+                        if (i === 0) text = "en punto";
+                        else if (i === 15) text = "y cuarto";
+                        else if (i === 30) text = "y media";
+                        else if (i === 45) text = "menos cuarto";
+                        else if (i <= 30) text = "y " + i;
+                        else text = "menos " + diff;
+                        this.addPickerItem(colM, text, i);
+                    }
+                }
+
+                colH.innerHTML += '<div class="h-9"></div>';
+                colM.innerHTML += '<div class="h-9"></div>';
+
+                this.resetPickerPosition();
+                this.setupScrollHighlight();
+            },
+
+            addPickerItem: function(parent, text, val) {
+                let div = document.createElement('div');
+                div.className = 'picker-item h-9 flex items-center justify-center snap-center font-bold text-sm text-slate-300 transition-all cursor-pointer';
+                div.innerText = text;
+                div.dataset.val = val;
+                parent.appendChild(div);
+            },
+
+            resetPickerPosition: function() {
+                const colH = document.getElementById('picker-h');
+                const colM = document.getElementById('picker-m');
+                if (colH) colH.scrollTop = 0;
+                if (colM) colM.scrollTop = 0;
+                this.highlightItems();
+            },
+
+            setupScrollHighlight: function() {
+                document.querySelectorAll('.picker-column').forEach(col => {
+                    col.onscroll = () => {
+                        this.highlightItems();
+                        sound.playTick();
+                    };
+                });
+            },
+
+            highlightItems: function() {
+                ['picker-h', 'picker-m'].forEach(id => {
+                    const col = document.getElementById(id);
+                    if (!col) return;
+                    const center = col.scrollTop + col.clientHeight / 2;
+                    col.querySelectorAll('.picker-item').forEach(item => {
+                        const itemCenter = item.offsetTop + item.clientHeight / 2;
+                        if (Math.abs(center - itemCenter) < 20) {
+                            item.className = 'picker-item h-9 flex items-center justify-center snap-center font-extrabold text-base text-sky-600 scale-110 transition-all';
+                        } else {
+                            item.className = 'picker-item h-9 flex items-center justify-center snap-center font-bold text-xs text-slate-300 transition-all';
+                        }
+                    });
+                });
+            },
+
+            getPickerValue: function(id) {
+                const col = document.getElementById(id);
+                if (!col) return 0;
+                const center = col.scrollTop + col.clientHeight / 2;
+                let selectedVal = null;
+                let minDiff = 9999;
+                col.querySelectorAll('.picker-item').forEach(item => {
+                    const diff = Math.abs(center - (item.offsetTop + item.clientHeight / 2));
+                    if (diff < minDiff) {
+                        minDiff = diff;
+                        selectedVal = parseInt(item.dataset.val, 10);
+                    }
+                });
+                return selectedVal;
+            },
+
+            check: function() {
+                let isCorrect = false;
+                let userH, userM;
+
+                if (this.mode === 'set') {
+                    // Allow slight minute precision margin based on level
+                    const margin = this.level === 4 ? 2 : 4;
+                    const targetTotal = (this.targetH % 12) * 60 + this.targetM;
+                    const currentTotal = (this.currentH % 12) * 60 + this.currentM;
+                    const diff = Math.abs(targetTotal - currentTotal);
+                    isCorrect = diff <= margin || diff >= (12 * 60 - margin);
+                } else if (this.mode === 'digital') {
+                    userH = this.getPickerValue('picker-h');
+                    userM = this.getPickerValue('picker-m');
+
+                    if (this.isReadMode) {
+                        let targetParts = this.getReadParts(this.targetH, this.targetM);
+                        isCorrect = (userH === targetParts.rawH && userM === this.targetM);
+                    } else {
+                        isCorrect = (userH === this.targetH && userM === this.targetM);
+                    }
+                }
+
+                const fbEl = document.getElementById('feedback-msg');
+
+                if (isCorrect) {
+                    sound.playCorrect();
+                    this.score++;
+                    this.streak++;
+                    if (this.score > this.bestScore) {
+                        this.bestScore = this.score;
+                        localStorage.setItem('reloj_maestro_best', this.bestScore);
+                        document.getElementById('best-score-display').innerText = `${this.bestScore} aciertos`;
+                    }
+
+                    document.getElementById('score').innerText = this.score;
+                    document.getElementById('streak-count').innerText = this.streak;
+
+                    fbEl.innerHTML = `<span class="bg-emerald-100 text-emerald-700 px-4 py-2 rounded-2xl border border-emerald-300 font-black animate-bounce">🎉 ¡Excelente! ¡Correcto!</span>`;
+                    this.triggerConfetti();
+                    setTimeout(() => this.nextRound(), 1400);
+                } else {
+                    sound.playWrong();
+                    this.streak = 0;
+                    document.getElementById('streak-count').innerText = '0';
+
+                    let correctText = this.isReadMode
+                        ? this.getReadText(this.targetH, this.targetM)
+                        : this.formatDigital(this.targetH, this.targetM);
+
+                    fbEl.innerHTML = `<span class="bg-rose-100 text-rose-700 px-4 py-2 rounded-2xl border border-rose-300 font-bold">❌ Era: ${correctText}</span>`;
+                }
+            },
+
+            checkQuiz: function(btn, txt) {
+                let correctTxt = this.getReadText(this.targetH, this.targetM);
+                const fbEl = document.getElementById('feedback-msg');
+
+                if (txt === correctTxt) {
+                    sound.playCorrect();
+                    btn.classList.add('bg-emerald-500', 'text-white', 'border-emerald-600', 'scale-105');
+                    this.score++;
+                    this.streak++;
+                    if (this.score > this.bestScore) {
+                        this.bestScore = this.score;
+                        localStorage.setItem('reloj_maestro_best', this.bestScore);
+                        document.getElementById('best-score-display').innerText = `${this.bestScore} aciertos`;
+                    }
+
+                    document.getElementById('score').innerText = this.score;
+                    document.getElementById('streak-count').innerText = this.streak;
+
+                    fbEl.innerHTML = `<span class="bg-emerald-100 text-emerald-700 px-4 py-2 rounded-2xl border border-emerald-300 font-black animate-bounce">🎉 ¡Muy bien!</span>`;
+                    this.triggerConfetti();
+                    setTimeout(() => this.nextRound(), 1200);
+                } else {
+                    sound.playWrong();
+                    btn.classList.add('bg-rose-500', 'text-white', 'border-rose-600', 'scale-95');
+                    this.streak = 0;
+                    document.getElementById('streak-count').innerText = '0';
+                    fbEl.innerHTML = `<span class="bg-rose-100 text-rose-700 px-4 py-2 rounded-2xl border border-rose-300 font-bold">❌ ¡Casi! La respuesta era: ${correctTxt}</span>`;
+                    setTimeout(() => this.nextRound(), 1800);
+                }
+            },
+
+            generateQuizOpts: function() {
+                const cont = document.getElementById('quiz-container');
+                cont.innerHTML = '';
+                let correct = this.getReadText(this.targetH, this.targetM);
+                let opts = [correct];
+
+                while (opts.length < 4) {
+                    let h = Math.floor(Math.random() * 12) + 1;
+                    let m = Math.floor(Math.random() * 60);
+                    if (this.level === 1) m = m < 30 ? 0 : 30;
+                    else if (this.level === 2) m = [0, 15, 30, 45][Math.floor(Math.random() * 4)];
+
+                    let fake = this.getReadText(h, m);
+                    if (!opts.includes(fake)) opts.push(fake);
+                }
+
+                opts.sort(() => Math.random() - 0.5);
+
+                opts.forEach(o => {
+                    let b = document.createElement('button');
+                    b.className = 'p-3 bg-white hover:bg-sky-50 active:scale-95 border-2 border-slate-200 rounded-2xl font-bold text-xs sm:text-sm text-slate-700 shadow-sm transition-all text-center';
+                    b.innerText = o;
+                    b.onclick = () => this.checkQuiz(b, o);
+                    cont.appendChild(b);
+                });
+            },
+
+            setupCanvasDPI: function() {
+                const dpi = window.devicePixelRatio || 1;
+                this.canvas.width = 300 * dpi;
+                this.canvas.height = 300 * dpi;
+                this.ctx.scale(dpi, dpi);
+            },
+
+            drawClock: function() {
+                const ctx = this.ctx;
+                const r = 135;
+                ctx.save();
+                ctx.setTransform(1, 0, 0, 1, 0, 0);
+                ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                ctx.restore();
+
+                ctx.save();
+                ctx.translate(150, 150);
+
+                // Outer Dial Frame
+                ctx.beginPath();
+                ctx.arc(0, 0, r, 0, 2 * Math.PI);
+                ctx.fillStyle = '#ffffff';
+                ctx.fill();
+                ctx.strokeStyle = '#1e293b';
+                ctx.lineWidth = 8;
+                ctx.stroke();
+
+                // Inner Accent Circle
+                ctx.beginPath();
+                ctx.arc(0, 0, r - 6, 0, 2 * Math.PI);
+                ctx.strokeStyle = '#e2e8f0';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // Minute and Hour Ticks
+                for (let i = 0; i < 60; i++) {
+                    ctx.save();
+                    ctx.rotate((i * Math.PI) / 30);
+                    ctx.beginPath();
+                    ctx.moveTo(0, -r + 10);
+                    if (i % 5 === 0) {
+                        ctx.lineTo(0, -r + 22);
+                        ctx.lineWidth = 3.5;
+                        ctx.strokeStyle = '#0284c7';
+                    } else {
+                        ctx.lineTo(0, -r + 16);
+                        ctx.lineWidth = 1.5;
+                        ctx.strokeStyle = '#94a3b8';
+                    }
+                    ctx.stroke();
+                    ctx.restore();
+                }
+
+                // Number Labels (1-12)
+                ctx.font = 'bold 18px "Fredoka", sans-serif';
+                ctx.textBaseline = 'middle';
+                ctx.textAlign = 'center';
+                ctx.fillStyle = '#1e293b';
+
+                for (let num = 1; num <= 12; num++) {
+                    let ang = (num * Math.PI) / 6;
+                    ctx.rotate(ang);
+                    ctx.translate(0, -r + 36);
+                    ctx.rotate(-ang);
+                    ctx.fillText(num.toString(), 0, 0);
+                    ctx.rotate(ang);
+                    ctx.translate(0, r - 36);
+                    ctx.rotate(-ang);
+                }
+
+                // Calculate Hand Angles
+                // Smooth continuous calculation to prevent flickering during drag
+                let hourAngle;
+                if (this.activeHand === 'hour' && this.hourDragAngle !== null) {
+                    hourAngle = this.hourDragAngle;
+                } else if (this.activeHand === 'minute' && this.currentTotalMins !== undefined) {
+                    hourAngle = (this.currentTotalMins / (12 * 60)) * (2 * Math.PI);
+                } else {
+                    hourAngle = ((this.currentH % 12) + this.currentM / 60) * (Math.PI / 6);
+                }
+
+                const minuteAngle = this.currentM * (Math.PI / 30);
+
+                // Draw Hour Hand (Short & Thick - Red)
+                ctx.save();
+                ctx.rotate(hourAngle);
+                ctx.beginPath();
+                ctx.moveTo(0, 12);
+                ctx.lineTo(0, -r * 0.52);
+                ctx.lineWidth = 8;
+                ctx.strokeStyle = '#ef4444'; // Red for hour hand
+                ctx.lineCap = 'round';
+                ctx.stroke();
+                ctx.restore();
+
+                // Draw Minute Hand (Long & Thinner - Blue)
+                ctx.save();
+                ctx.rotate(minuteAngle);
+                ctx.beginPath();
+                ctx.moveTo(0, 18);
+                ctx.lineTo(0, -r * 0.78);
+                ctx.lineWidth = 5;
+                ctx.strokeStyle = '#0284c7'; // Blue for minute hand
+                ctx.lineCap = 'round';
+                ctx.stroke();
+                ctx.restore();
+
+                // Central Pin Cap
+                ctx.beginPath();
+                ctx.arc(0, 0, 9, 0, 2 * Math.PI);
+                ctx.fillStyle = '#ef4444';
+                ctx.fill();
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+
+                ctx.restore();
+            },
+
+            addCanvasListeners: function() {
+                const getCoords = (e) => {
+                    const rect = this.canvas.getBoundingClientRect();
+                    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                    return {
+                        x: clientX - rect.left - rect.width / 2,
+                        y: clientY - rect.top - rect.height / 2
+                    };
+                };
+
+                const handleStart = (e) => {
+                    if (this.mode !== 'set') return;
+                    const pos = getCoords(e);
+                    const dist = Math.sqrt(pos.x * pos.x + pos.y * pos.y);
+                    if (dist > 135) return;
+
+                    let angle = Math.atan2(pos.y, pos.x) + Math.PI / 2;
+                    if (angle < 0) angle += 2 * Math.PI;
+
+                    // Calculate current angles of minute and hour hands
+                    const minAngle = this.currentM * (Math.PI / 30);
+                    const hourAngle = ((this.currentH % 12) + this.currentM / 60) * (Math.PI / 6);
+
+                    // Helper to get shortest angular difference across 360deg wrap
+                    const getAngDist = (a1, a2) => {
+                        let d = Math.abs(a1 - a2) % (2 * Math.PI);
+                        return d > Math.PI ? 2 * Math.PI - d : d;
+                    };
+
+                    const diffMin = getAngDist(angle, minAngle);
+                    const diffHour = getAngDist(angle, hourAngle);
+
+                    if (Math.abs(diffMin - diffHour) < 0.2) {
+                        this.activeHand = dist > 65 ? 'minute' : 'hour';
+                    } else {
+                        this.activeHand = diffMin <= diffHour ? 'minute' : 'hour';
+                    }
+
+                    this.lastAngle = angle;
+                    this.currentTotalMins = (this.currentH % 12) * 60 + this.currentM;
+
+                    handleMove(e);
+                };
+
+                const handleMove = (e) => {
+                    if (!this.activeHand || this.mode !== 'set') return;
+                    e.preventDefault();
+                    const pos = getCoords(e);
+
+                    let angle = Math.atan2(pos.y, pos.x) + Math.PI / 2;
+                    if (angle < 0) angle += 2 * Math.PI;
+
+                    if (this.activeHand === 'minute') {
+                        let diff = angle - this.lastAngle;
+                        while (diff < -Math.PI) diff += 2 * Math.PI;
+                        while (diff > Math.PI) diff -= 2 * Math.PI;
+                        this.lastAngle = angle;
+
+                        this.currentTotalMins += (diff / (2 * Math.PI)) * 60;
+                        if (this.currentTotalMins < 0) this.currentTotalMins += 12 * 60;
+                        if (this.currentTotalMins >= 12 * 60) this.currentTotalMins -= 12 * 60;
+
+                        let rawHour = Math.floor(this.currentTotalMins / 60);
+                        this.currentH = rawHour === 0 ? 12 : rawHour;
+
+                        let unroundedMins = this.currentTotalMins % 60;
+                        let mins = Math.round(unroundedMins) % 60;
+
+                        if (this.level === 1) mins = Math.round(mins / 30) * 30 % 60;
+                        else if (this.level === 2) mins = Math.round(mins / 15) * 15 % 60;
+                        else if (this.level === 3) mins = Math.round(mins / 5) * 5 % 60;
+
+                        if (mins !== this.currentM) {
+                            sound.playTick();
+                            this.currentM = mins;
+                        }
+                    } else {
+                        let h = Math.floor((angle / (2 * Math.PI)) * 12);
+                        h = h === 0 ? 12 : h;
+                        if (h !== this.currentH) {
+                            sound.playTick();
+                            this.currentH = h;
+                        }
+                        this.hourDragAngle = angle;
+                    }
+
+                    this.drawClock();
+                };
+
+                const handleEnd = () => {
+                    this.activeHand = null;
+                    this.hourDragAngle = null;
+                };
+
+                this.canvas.addEventListener('mousedown', handleStart);
+                window.addEventListener('mousemove', handleMove);
+                window.addEventListener('mouseup', handleEnd);
+
+                this.canvas.addEventListener('touchstart', handleStart, { passive: false });
+                window.addEventListener('touchmove', handleMove, { passive: false });
+                window.addEventListener('touchend', handleEnd);
+            },
+
+            triggerConfetti: function() {
+                const count = 30;
+                const colors = ['#0284c7', '#f59e0b', '#22c55e', '#ec4899', '#8b5cf6'];
+                const container = document.getElementById('game-screen');
+
+                for (let i = 0; i < count; i++) {
+                    const p = document.createElement('div');
+                    p.className = 'fixed w-2.5 h-2.5 rounded-full pointer-events-none z-50';
+                    p.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                    p.style.left = (50 + (Math.random() * 40 - 20)) + '%';
+                    p.style.top = '40%';
+                    document.body.appendChild(p);
+
+                    const vx = (Math.random() - 0.5) * 200;
+                    const vy = -Math.random() * 200 - 100;
+
+                    p.animate([
+                        { transform: 'translate(0, 0) scale(1)', opacity: 1 },
+                        { transform: `translate(${vx}px, ${vy + 400}px) scale(0.2)`, opacity: 0 }
+                    ], {
+                        duration: 1200 + Math.random() * 600,
+                        easing: 'cubic-bezier(0.25, 1, 0.5, 1)'
+                    }).onfinish = () => p.remove();
+                }
+            }
+        };
+
+        window.onload = function() {
+            setMode('quiz');
+        };
+    </script>
+</body>
+</html>
