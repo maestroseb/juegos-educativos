@@ -1,22 +1,26 @@
-# Multiplication Pose Challenge
+# Juegos educativos
+
+Colección de juegos educativos para Primaria. Abre `index.html` para ver todos los juegos ordenados por ciclo.
+
+## Ninja Multiplicator (`matematicas/ninja-multiplicator.html`)
 
 Juego educativo para aprender las tablas de multiplicar usando tu cuerpo. Mueve tus manos frente a la cámara web para seleccionar la respuesta correcta.
 
-## Tecnologías
+### Tecnologías
 
 - **Three.js** — Escena 3D con esferas flotantes, partículas y avatar
 - **MediaPipe Pose** — Tracking corporal via webcam
 - **Web Audio API** — Efectos de sonido generados proceduralmente
 
-## Cómo jugar
+### Cómo jugar
 
-1. Abre `index.html` en un navegador (Chrome/Edge recomendado)
+1. Abre `matematicas/ninja-multiplicator.html` en un navegador (Chrome/Edge recomendado)
 2. Permite acceso a la cámara web
 3. Selecciona dificultad y pulsa "Jugar"
 4. Mueve tus manos para apuntar a la respuesta correcta y mantén la posición para seleccionar
 5. Si no tienes cámara, usa las teclas 1-4 como alternativa
 
-## Características
+### Características
 
 - 12 niveles progresivos (tabla del 2 hasta todas las tablas)
 - 3 dificultades: Fácil, Normal, Difícil
