@@ -85,6 +85,7 @@
     border: 3px solid #6b4220; background: #3f2410; color: var(--text); border-radius: 14px;
     padding: 10px 8px; font: 600 16px 'Fredoka', sans-serif; cursor: pointer; line-height: 1.2;
   }
+  .seg3 { grid-template-columns: repeat(3, 1fr); }
   .opt small { display: block; font-weight: 500; font-size: 12px; color: var(--muted); margin-top: 2px; }
   .opt.on { border-color: #ffb627; background: #7a4414; box-shadow: 0 0 0 2px rgba(255,182,39,.35); }
   #tableGrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
@@ -164,6 +165,13 @@
     <div class="seg" id="timeSeg">
       <button class="opt on" data-time="vidas">❤️ Sin límite<small>Tienes 3 vidas</small></button>
       <button class="opt" data-time="crono">⏱️ Contrarreloj<small>60 segundos</small></button>
+    </div>
+
+    <h2>Velocidad de las frutas</h2>
+    <div class="seg seg3" id="speedSeg">
+      <button class="opt" data-speed="lenta">🐢 Lenta<small>Para empezar</small></button>
+      <button class="opt on" data-speed="normal">🐇 Normal</button>
+      <button class="opt" data-speed="rapida">🚀 Rápida<small>¡Para expertos!</small></button>
     </div>
 
     <button class="big-btn" id="playBtn">¡A jugar!</button>
@@ -568,6 +576,7 @@ const S = {
   t: 0,
   mode: store.get('frutaNinjaMode') || 'niveles',
   timeMode: store.get('frutaNinjaTime') || 'vidas',
+  speed: store.get('frutaNinjaSpeed') || 'normal',
   tables: (() => { try { const v = JSON.parse(store.get('frutaNinjaTables')); if (Array.isArray(v) && v.length) return v; } catch (e) {} return [2, 3, 4, 5]; })(),
 };
 let G = null;              // partida actual
@@ -641,7 +650,8 @@ function newQuestion() {
   G.queue = items.map((it, i) => ({ ...it, at: S.t + 0.2 + i * gap, wave: G.waveId }));
 }
 
-function speedFactor() { return 1 + Math.min(difficulty() * 0.035, 0.4); }
+const SPEEDS = { lenta: 0.6, normal: 0.8, rapida: 1 };  // rápida = velocidad original
+function speedFactor() { return (SPEEDS[S.speed] || 1) * (1 + Math.min(difficulty() * 0.035, 0.4)); }
 
 function launch(item) {
   const bomb = !!item.bomb;
@@ -1043,19 +1053,20 @@ function showScreen(id) {
   for (const s of ['menu', 'pause', 'over']) $(s).hidden = s !== id;
 }
 
-function recordKey() { return `frutaNinjaRecord_${S.mode}_${S.timeMode}`; }
+function recordKey() { return `frutaNinjaRecord_${S.mode}_${S.timeMode}` + (S.speed === 'rapida' ? '' : '_' + S.speed); }
 function getRecord() { return parseInt(store.get(recordKey()) || '0', 10) || 0; }
 
 function refreshMenu() {
   document.querySelectorAll('#modeSeg .opt').forEach(b => b.classList.toggle('on', b.dataset.mode === S.mode));
   document.querySelectorAll('#timeSeg .opt').forEach(b => b.classList.toggle('on', b.dataset.time === S.timeMode));
+  document.querySelectorAll('#speedSeg .opt').forEach(b => b.classList.toggle('on', b.dataset.speed === S.speed));
   document.querySelectorAll('#tableGrid .opt').forEach(b => b.classList.toggle('on', S.tables.includes(+b.dataset.t)));
   $('tablePicker').hidden = S.mode !== 'tablas';
   $('playBtn').disabled = S.mode === 'tablas' && S.tables.length === 0;
   $('playBtn').textContent = $('playBtn').disabled ? 'Elige alguna tabla' : '¡A jugar!';
   const rec = getRecord();
   $('recordText').textContent = rec ? `🏆 Tu récord en este modo: ${rec} puntos` : '';
-  store.set('frutaNinjaMode', S.mode); store.set('frutaNinjaTime', S.timeMode);
+  store.set('frutaNinjaMode', S.mode); store.set('frutaNinjaTime', S.timeMode); store.set('frutaNinjaSpeed', S.speed);
   store.set('frutaNinjaTables', JSON.stringify(S.tables));
 }
 
@@ -1105,6 +1116,7 @@ for (let i = 1; i <= 10; i++) {
 }
 document.querySelectorAll('#modeSeg .opt').forEach(b => b.onclick = () => { S.mode = b.dataset.mode; refreshMenu(); });
 document.querySelectorAll('#timeSeg .opt').forEach(b => b.onclick = () => { S.timeMode = b.dataset.time; refreshMenu(); });
+document.querySelectorAll('#speedSeg .opt').forEach(b => b.onclick = () => { S.speed = b.dataset.speed; refreshMenu(); });
 $('allBtn').onclick = () => { S.tables = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]; refreshMenu(); };
 $('noneBtn').onclick = () => { S.tables = []; refreshMenu(); };
 $('playBtn').onclick = () => { Sound.unlock(); newGame(); };
