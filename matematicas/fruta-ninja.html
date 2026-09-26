@@ -37,17 +37,26 @@
   .hud-right { align-items: flex-end; }
   #score { font-family: 'Bangers', cursive; font-size: clamp(28px, 6vw, 48px); color: #ffd23f; letter-spacing: 1px; line-height: 1; -webkit-text-stroke: 1.5px #5a2d00; text-shadow: 0 3px 0 #5a2d00; }
   #streak { font-weight: 700; font-size: clamp(13px, 2.6vw, 18px); color: #ffe8b0; min-height: 1.2em; }
+  .hud-center { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; }
   #question {
+    white-space: nowrap;
     background: linear-gradient(#fffaf0, #ffe7c2); color: #3b1d05;
     border: 4px solid #a86b32; border-radius: 18px; padding: 4px 18px 6px;
     font-family: 'Bangers', cursive; letter-spacing: 2px;
-    font-size: clamp(30px, 7.5vw, 64px); line-height: 1.05; text-align: center;
+    font-size: clamp(28px, 7.5vw, 64px); line-height: 1.05; text-align: center;
     box-shadow: 0 6px 0 #5a2d00, 0 10px 20px rgba(0,0,0,0.4);
     transition: transform .2s;
   }
   #question.pop { animation: pop .35s ease-out; }
   @keyframes pop { 0% { transform: scale(.6); } 60% { transform: scale(1.12); } 100% { transform: scale(1); } }
-  #levelBadge { position: fixed; top: calc(10px + clamp(46px, 10vw, 86px)); left: 50%; transform: translateX(-50%); font-weight: 700; font-size: clamp(12px, 2.4vw, 16px); background: rgba(0,0,0,.45); padding: 3px 12px; border-radius: 999px; white-space: nowrap; pointer-events: none; z-index: 5; }
+  #levelBadge { max-width: 100%; overflow: hidden; text-overflow: ellipsis; font-weight: 700; font-size: clamp(11px, 2.4vw, 16px); background: rgba(0,0,0,.5); padding: 3px 12px; border-radius: 999px; white-space: nowrap; }
+  @media (max-width: 480px) {
+    #hud { padding: 8px; gap: 6px; }
+    .hud-side { min-width: 64px; }
+    #question { padding: 2px 12px 4px; border-width: 3px; border-radius: 14px; letter-spacing: 1px; }
+    #lives { font-size: 26px; gap: 2px; }
+    .icon-btn { width: 34px; height: 34px; font-size: 15px; border-radius: 10px; }
+  }
   #lives { display: flex; gap: 4px; font-family: 'Bangers', cursive; font-size: clamp(28px, 6vw, 46px); line-height: 1; }
   #lives span { color: transparent; -webkit-text-stroke: 2px #fff; transition: transform .3s; }
   #lives span.lost { color: var(--red); -webkit-text-stroke: 2px #7a0000; transform: scale(1.2); }
@@ -116,7 +125,10 @@
     <div id="score">0</div>
     <div id="streak"></div>
   </div>
-  <div id="question">? × ?</div>
+  <div class="hud-center">
+    <div id="question">? × ?</div>
+    <div id="levelBadge" hidden></div>
+  </div>
   <div class="hud-side hud-right">
     <div id="lives"><span>✕</span><span>✕</span><span>✕</span></div>
     <div id="timer" hidden>60</div>
@@ -126,7 +138,6 @@
     </div>
   </div>
 </div>
-<div id="levelBadge" hidden></div>
 
 <!-- MENÚ -->
 <div class="screen" id="menu">
@@ -203,15 +214,17 @@ const PENALTY_WRONG = 3;     // segundos que resta un fallo en contrarreloj
 const PENALTY_BOMB = 5;      // segundos que resta una bomba en contrarreloj
 
 const FRUITS = [
-  { skin: '#3d9b3a', skin2: '#1b5e20', flesh: '#ff4d5e', rind: '#d7f5c8', juice: '#e8203a', seeds: '#1a1a1a', stripes: true, scale: 1.15 },
-  { skin: '#ffa21a', skin2: '#e65100', flesh: '#ffb74d', rind: '#fff1d6', juice: '#ff8a00', segments: true, scale: 1 },
-  { skin: '#e53935', skin2: '#8e0000', flesh: '#fff3c4', rind: '#fffbe8', juice: '#fff0a8', seeds: '#5d4037', stem: true, scale: 1 },
-  { skin: '#ffe135', skin2: '#e0a800', flesh: '#fff59d', rind: '#fffde7', juice: '#fff176', segments: true, scale: 0.95 },
-  { skin: '#8d6e63', skin2: '#4e342e', flesh: '#8bc34a', rind: '#dcedc8', juice: '#9ccc65', seeds: '#1b1b1b', core: '#f1f8e9', scale: 0.95 },
-  { skin: '#795548', skin2: '#3e2723', flesh: '#fafafa', rind: '#d7ccc8', juice: '#ffffff', dots: true, scale: 1.05 },
-  { skin: '#ffab91', skin2: '#e64a19', flesh: '#ffcc80', rind: '#fff3e0', juice: '#ffb74d', pit: '#8d4a2b', stem: true, scale: 1 },
-  { skin: '#8e3bb5', skin2: '#4a148c', flesh: '#ffd54f', rind: '#fff8e1', juice: '#b34ad6', pit: '#8d4a2b', scale: 0.92 },
+  { name: 'sandia',    shape: 'oval',       skin: '#5cc443', dark: '#2e8b2a', flesh: '#ff4d5e', rind: '#e6ffd6', juice: '#e8203a', seeds: '#2b1407', stripes: true, scale: 1.1 },
+  { name: 'naranja',   shape: 'circle',     skin: '#ffa21a', dark: '#e86a00', flesh: '#ffb74d', rind: '#fff1d6', juice: '#ff8a00', segments: true, dimples: true, nub: true, scale: 1 },
+  { name: 'manzana',   shape: 'apple',      skin: '#f23a3a', dark: '#b81d2a', flesh: '#fff3c4', rind: '#fffbe8', juice: '#fff0a8', seeds: '#5d3a1a', stem: true, scale: 1 },
+  { name: 'limon',     shape: 'lemon',      skin: '#ffe53b', dark: '#f0b400', flesh: '#fff59d', rind: '#fffde7', juice: '#fff176', segments: true, dimples: true, scale: 0.92 },
+  { name: 'kiwi',      shape: 'oval',       skin: '#a47148', dark: '#6d4526', flesh: '#8bc34a', rind: '#dcedc8', juice: '#9ccc65', seeds: '#1b1b1b', core: '#f1f8e9', fuzz: true, scale: 0.92 },
+  { name: 'coco',      shape: 'circle',     skin: '#8d5a3b', dark: '#5b3620', flesh: '#fafafa', rind: '#e8dccf', juice: '#ffffff', dots: true, scale: 1.02 },
+  { name: 'melocoton', shape: 'circle',     skin: '#ffb38a', dark: '#ff7a59', flesh: '#ffcc80', rind: '#fff3e0', juice: '#ffb74d', pit: '#8d4a2b', crease: true, stem: true, scale: 1 },
+  { name: 'fresa',     shape: 'strawberry', skin: '#ff3b5c', dark: '#c2183f', flesh: '#ff8a9e', rind: '#ffd6de', juice: '#ff2d55', berrySeeds: true, calyx: true, scale: 1 },
+  { name: 'ciruela',   shape: 'circle',     skin: '#9b4dca', dark: '#5e2587', flesh: '#ffd54f', rind: '#fff8e1', juice: '#b34ad6', pit: '#8d4a2b', stem: true, scale: 0.92 },
 ];
+const OUTLINE = '#2b1407';
 
 // ======================================================
 //  UTILIDADES
@@ -340,44 +353,151 @@ function shade(hex, amt) {
 // ======================================================
 //  DIBUJO DE FRUTAS
 // ======================================================
+function shapePath(c, f, r) {
+  c.beginPath();
+  switch (f.shape) {
+    case 'oval':
+      c.ellipse(0, 0, r * 1.1, r * 0.88, 0, 0, Math.PI * 2); break;
+    case 'apple':
+      c.moveTo(0, -r * 0.7);
+      c.bezierCurveTo(r * 0.45, -r * 1.05, r * 1.05, -r * 0.75, r * 0.98, -r * 0.05);
+      c.bezierCurveTo(r * 0.92, r * 0.65, r * 0.45, r * 1.0, r * 0.2, r * 0.92);
+      c.quadraticCurveTo(0, r * 0.84, -r * 0.2, r * 0.92);
+      c.bezierCurveTo(-r * 0.45, r * 1.0, -r * 0.92, r * 0.65, -r * 0.98, -r * 0.05);
+      c.bezierCurveTo(-r * 1.05, -r * 0.75, -r * 0.45, -r * 1.05, 0, -r * 0.7);
+      break;
+    case 'lemon':
+      c.moveTo(-r * 1.2, 0);
+      c.quadraticCurveTo(-r * 1.05, -r * 0.25, -r * 0.85, -r * 0.45);
+      c.bezierCurveTo(-r * 0.4, -r * 0.95, r * 0.4, -r * 0.95, r * 0.85, -r * 0.45);
+      c.quadraticCurveTo(r * 1.05, -r * 0.25, r * 1.2, 0);
+      c.quadraticCurveTo(r * 1.05, r * 0.25, r * 0.85, r * 0.45);
+      c.bezierCurveTo(r * 0.4, r * 0.95, -r * 0.4, r * 0.95, -r * 0.85, r * 0.45);
+      c.quadraticCurveTo(-r * 1.05, r * 0.25, -r * 1.2, 0);
+      break;
+    case 'strawberry':
+      c.moveTo(0, -r * 0.75);
+      c.bezierCurveTo(r * 0.6, -r * 0.95, r * 1.05, -r * 0.6, r * 0.95, -r * 0.1);
+      c.bezierCurveTo(r * 0.85, r * 0.45, r * 0.35, r * 0.95, 0, r * 1.05);
+      c.bezierCurveTo(-r * 0.35, r * 0.95, -r * 0.85, r * 0.45, -r * 0.95, -r * 0.1);
+      c.bezierCurveTo(-r * 1.05, -r * 0.6, -r * 0.6, -r * 0.95, 0, -r * 0.75);
+      break;
+    default:
+      c.arc(0, 0, r, 0, Math.PI * 2);
+  }
+  c.closePath();
+}
+
+function outlineW(r) { return Math.max(2.5, r * 0.085); }
+
+function drawLeaf(c, x, y, w, h, rot, lw) {
+  c.save(); c.translate(x, y); c.rotate(rot);
+  c.beginPath(); c.moveTo(0, 0);
+  c.quadraticCurveTo(w * 0.5, -h, w, 0); c.quadraticCurveTo(w * 0.5, h, 0, 0);
+  c.fillStyle = '#5cc443'; c.fill();
+  c.lineWidth = lw; c.strokeStyle = OUTLINE; c.stroke();
+  c.beginPath(); c.moveTo(w * 0.15, 0); c.lineTo(w * 0.8, 0);
+  c.lineWidth = lw * 0.5; c.strokeStyle = '#2e8b2a'; c.stroke();
+  c.restore();
+}
+
 function drawSkin(c, f, r) {
-  const g = c.createRadialGradient(-r * 0.3, -r * 0.35, r * 0.1, 0, 0, r);
-  g.addColorStop(0, shade(f.skin, 35)); g.addColorStop(0.55, f.skin); g.addColorStop(1, f.skin2);
-  c.fillStyle = g;
-  c.beginPath(); c.arc(0, 0, r, 0, Math.PI * 2); c.fill();
+  const lw = outlineW(r);
+  c.lineJoin = 'round'; c.lineCap = 'round';
+  // tallo y hoja por detrás
+  if (f.stem) {
+    const top = f.shape === 'apple' ? -r * 0.7 : -r * 0.92;
+    c.beginPath(); c.moveTo(0, top + r * 0.1); c.quadraticCurveTo(r * 0.05, top - r * 0.2, r * 0.14, top - r * 0.32);
+    c.lineWidth = r * 0.13 + lw; c.strokeStyle = OUTLINE; c.stroke();
+    c.lineWidth = r * 0.13; c.strokeStyle = '#8a5a2b'; c.stroke();
+    drawLeaf(c, r * 0.12, top - r * 0.22, r * 0.55, r * 0.26, -0.35, lw * 0.8);
+  }
+  // sombra plana (cel shading): base oscura + color principal desplazado
+  shapePath(c, f, r); c.fillStyle = f.dark; c.fill();
+  c.save();
+  shapePath(c, f, r); c.clip();
+  c.translate(-r * 0.1, -r * 0.12); c.scale(0.93, 0.93);
+  shapePath(c, f, r); c.fillStyle = f.skin; c.fill();
+  c.restore();
+  // detalles dentro de la silueta
+  c.save(); shapePath(c, f, r); c.clip();
   if (f.stripes) {
-    c.save(); c.beginPath(); c.arc(0, 0, r, 0, Math.PI * 2); c.clip();
-    c.strokeStyle = 'rgba(15,60,15,0.75)'; c.lineWidth = r * 0.16;
+    c.strokeStyle = '#1f6b1d'; c.lineWidth = r * 0.14;
     for (let i = -2; i <= 2; i++) {
-      c.beginPath(); c.moveTo(i * r * 0.42, -r);
-      c.quadraticCurveTo(i * r * 0.42 + r * 0.18 * Math.sign(i || 1), 0, i * r * 0.42, r); c.stroke();
+      const x0 = i * r * 0.42;
+      c.beginPath(); c.moveTo(x0, -r);
+      for (let k = 1; k <= 8; k++) c.lineTo(x0 + (k % 2 ? r * 0.08 : -r * 0.08), -r + k * r * 0.25);
+      c.stroke();
     }
-    c.restore();
+  }
+  if (f.dimples) {
+    c.fillStyle = 'rgba(0,0,0,0.12)';
+    for (let i = 0; i < 14; i++) {
+      const a = i * 2.4, d = r * (0.25 + (i % 4) * 0.17);
+      c.beginPath(); c.arc(Math.cos(a) * d, Math.sin(a) * d, r * 0.035, 0, Math.PI * 2); c.fill();
+    }
+  }
+  if (f.fuzz) {
+    c.strokeStyle = 'rgba(60,30,10,0.35)'; c.lineWidth = r * 0.03;
+    for (let i = 0; i < 22; i++) {
+      const a = i * 2.4, d = r * (0.2 + (i % 5) * 0.16), x = Math.cos(a) * d, y = Math.sin(a) * d * 0.8;
+      c.beginPath(); c.moveTo(x, y); c.lineTo(x + r * 0.05, y + r * 0.04); c.stroke();
+    }
+  }
+  if (f.berrySeeds) {
+    c.fillStyle = '#ffe066';
+    for (let row = 0; row < 5; row++) for (let col = -2; col <= 2; col++) {
+      const x = col * r * 0.32 + (row % 2) * r * 0.16, y = -r * 0.35 + row * r * 0.3;
+      c.beginPath(); c.ellipse(x, y, r * 0.04, r * 0.065, 0, 0, Math.PI * 2); c.fill();
+    }
+  }
+  if (f.crease) {
+    c.strokeStyle = 'rgba(200,70,40,0.5)'; c.lineWidth = r * 0.06;
+    c.beginPath(); c.moveTo(-r * 0.05, -r * 0.9); c.quadraticCurveTo(-r * 0.4, 0, -r * 0.1, r * 0.9); c.stroke();
   }
   if (f.dots) {
-    c.fillStyle = '#2b1810';
-    [[-0.22, -0.3], [0.2, -0.3], [0, -0.05]].forEach(([x, y]) => { c.beginPath(); c.arc(x * r, y * r, r * 0.09, 0, Math.PI * 2); c.fill(); });
+    c.fillStyle = '#3b2010';
+    [[-0.22, -0.55], [0.22, -0.55], [0, -0.3]].forEach(([x, y]) => { c.beginPath(); c.arc(x * r, y * r, r * 0.08, 0, Math.PI * 2); c.fill(); });
   }
-  if (f.stem) {
-    c.strokeStyle = '#5d3a1a'; c.lineWidth = r * 0.1; c.lineCap = 'round';
-    c.beginPath(); c.moveTo(0, -r * 0.85); c.lineTo(r * 0.06, -r * 1.15); c.stroke();
-    c.fillStyle = '#4caf50';
-    c.beginPath(); c.ellipse(r * 0.28, -r * 1.02, r * 0.26, r * 0.11, -0.5, 0, Math.PI * 2); c.fill();
-  }
+  c.restore();
   // brillo
-  c.fillStyle = 'rgba(255,255,255,0.35)';
-  c.beginPath(); c.ellipse(-r * 0.38, -r * 0.42, r * 0.22, r * 0.13, -0.7, 0, Math.PI * 2); c.fill();
+  c.fillStyle = 'rgba(255,255,255,0.85)';
+  c.beginPath(); c.ellipse(-r * 0.46, -r * 0.4, r * 0.2, r * 0.1, -0.7, 0, Math.PI * 2); c.fill();
+  c.beginPath(); c.arc(-r * 0.66, -r * 0.14, r * 0.055, 0, Math.PI * 2); c.fill();
+  // contorno
+  shapePath(c, f, r); c.lineWidth = lw; c.strokeStyle = OUTLINE; c.stroke();
+  if (f.nub) {
+    c.fillStyle = '#5cc443';
+    c.beginPath(); c.ellipse(0, -r * 0.95, r * 0.16, r * 0.09, 0, 0, Math.PI * 2); c.fill();
+    c.lineWidth = lw * 0.7; c.stroke();
+  }
+  if (f.calyx) {
+    c.beginPath();
+    for (let i = 0; i < 5; i++) {
+      const a = -Math.PI / 2 + (i - 2) * 0.55;
+      const tx = Math.cos(a + Math.PI) * 0 + (i - 2) * r * 0.2, ty = -r * 0.72 + Math.abs(i - 2) * r * 0.05;
+      c.moveTo(0, -r * 0.8); c.quadraticCurveTo(tx * 1.1, -r * 0.95, tx * 1.5, ty + r * 0.18);
+      c.quadraticCurveTo(tx * 0.6, ty - r * 0.02, 0, -r * 0.8);
+    }
+    c.fillStyle = '#4caf50'; c.fill(); c.lineWidth = lw * 0.7; c.stroke();
+    c.beginPath(); c.moveTo(0, -r * 0.82); c.lineTo(r * 0.04, -r * 1.05);
+    c.lineWidth = r * 0.1; c.strokeStyle = OUTLINE; c.stroke();
+  }
 }
 
 function drawFlesh(c, f, r) {
-  c.fillStyle = f.skin2; c.beginPath(); c.arc(0, 0, r, 0, Math.PI * 2); c.fill();
-  c.fillStyle = f.rind; c.beginPath(); c.arc(0, 0, r * 0.9, 0, Math.PI * 2); c.fill();
-  const g = c.createRadialGradient(0, 0, 0, 0, 0, r * 0.82);
-  g.addColorStop(0, shade(f.flesh, 20)); g.addColorStop(1, f.flesh);
-  c.fillStyle = g; c.beginPath(); c.arc(0, 0, r * 0.8, 0, Math.PI * 2); c.fill();
+  const lw = outlineW(r);
+  c.lineJoin = 'round';
+  shapePath(c, f, r); c.fillStyle = f.dark; c.fill();
+  c.save();
+  c.scale(0.88, 0.88); shapePath(c, f, r); c.fillStyle = f.rind; c.fill();
+  c.scale(0.9, 0.9); shapePath(c, f, r); c.fillStyle = f.flesh; c.fill();
+  c.restore();
+  c.fillStyle = 'rgba(255,255,255,0.25)';
+  c.beginPath(); c.ellipse(-r * 0.2, -r * 0.2, r * 0.35, r * 0.25, -0.5, 0, Math.PI * 2); c.fill();
   if (f.segments) {
-    c.strokeStyle = f.rind; c.lineWidth = r * 0.05;
-    for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4; c.beginPath(); c.moveTo(0, 0); c.lineTo(Math.cos(a) * r * 0.8, Math.sin(a) * r * 0.8); c.stroke(); }
+    c.strokeStyle = f.rind; c.lineWidth = r * 0.06;
+    for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4; c.beginPath(); c.moveTo(0, 0); c.lineTo(Math.cos(a) * r * 0.76, Math.sin(a) * r * 0.76); c.stroke(); }
   }
   if (f.core) { c.fillStyle = f.core; c.beginPath(); c.arc(0, 0, r * 0.25, 0, Math.PI * 2); c.fill(); }
   if (f.seeds) {
@@ -388,7 +508,15 @@ function drawFlesh(c, f, r) {
       c.beginPath(); c.ellipse(Math.cos(a) * r * rr, Math.sin(a) * r * rr, r * 0.05, r * 0.09, a, 0, Math.PI * 2); c.fill();
     }
   }
-  if (f.pit) { c.fillStyle = f.pit; c.beginPath(); c.ellipse(0, 0, r * 0.3, r * 0.38, 0, 0, Math.PI * 2); c.fill(); }
+  if (f.berrySeeds) {
+    c.fillStyle = '#fff';
+    c.beginPath(); c.ellipse(0, r * 0.05, r * 0.2, r * 0.55, 0, 0, Math.PI * 2); c.fill();
+  }
+  if (f.pit) { c.fillStyle = f.pit; c.beginPath(); c.ellipse(0, 0, r * 0.3, r * 0.38, 0, 0, Math.PI * 2); c.fill(); c.lineWidth = lw * 0.6; c.strokeStyle = OUTLINE; c.stroke(); }
+  shapePath(c, f, r); c.lineWidth = lw; c.strokeStyle = OUTLINE; c.stroke();
+  // línea del corte
+  c.beginPath(); c.moveTo(-r * 1.6, 0); c.lineTo(r * 1.6, 0);
+  c.lineWidth = lw * 2; c.strokeStyle = OUTLINE; c.stroke();
 }
 
 function drawNumber(c, n, x, y, r, alpha) {
@@ -415,6 +543,7 @@ function drawBomb(c, b, t) {
   const g = c.createRadialGradient(-r * 0.3, -r * 0.3, r * 0.1, 0, 0, r * 0.95);
   g.addColorStop(0, '#666'); g.addColorStop(1, '#0d0d0d');
   c.fillStyle = g; c.beginPath(); c.arc(0, 0, r * 0.92, 0, Math.PI * 2); c.fill();
+  c.lineWidth = outlineW(r); c.strokeStyle = '#000'; c.stroke();
   c.fillStyle = '#333'; c.fillRect(-r * 0.22, -r * 1.12, r * 0.44, r * 0.3);
   c.strokeStyle = '#c9a26b'; c.lineWidth = r * 0.08; c.lineCap = 'round';
   c.beginPath(); c.moveTo(0, -r * 1.1); c.quadraticCurveTo(r * 0.3, -r * 1.5, r * 0.5, -r * 1.35); c.stroke();
@@ -528,7 +657,7 @@ function launch(item) {
   const tx = W * rand(0.2, 0.8);
   objs.push({
     x: x0, y: y0, vx: (tx - x0) / T, vy, g, r, f, bomb,
-    rot: rand(0, 6.28), vr: rand(-2.5, 2.5),
+    rot: rand(-0.4, 0.4), vr: rand(-1.2, 1.2),
     num: item.num, correct: !!item.correct, wave: item.wave || 0,
     neutral: item.num == null, fade: 1, fuseT: 0,
   });
