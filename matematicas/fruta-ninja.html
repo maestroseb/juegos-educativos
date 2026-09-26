@@ -615,7 +615,7 @@ function newGame() {
   G = {
     score: 0, lives: 3, timeLeft: START_TIME, level: 1, inLevel: 0,
     streak: 0, bestStreak: 0, correct: 0, mistakes: new Map(),
-    q: null, lastKey: '', waveId: 0, answered: true, queue: [], nextWaveAt: 0, lastTick: 99,
+    q: null, lastKey: '', waveId: 0, answered: true, answerStroke: -1, queue: [], nextWaveAt: 0, lastTick: 99,
   };
   objs = []; halves = []; parts = []; stains = []; texts = []; slashes = [];
   S.t = 0; S.state = 'intro';
@@ -698,7 +698,7 @@ function launch(item) {
 // ======================================================
 //  CORTES
 // ======================================================
-const blade = { down: false, id: null, pts: [], lx: 0, ly: 0, lastSwoosh: 0, cutThisStroke: 0 };
+const blade = { down: false, id: null, pts: [], lx: 0, ly: 0, lastSwoosh: 0, stroke: 0 };
 
 function sliceCheck(ax, ay, bx, by) {
   if (Math.hypot(bx - ax, by - ay) < 2) return;
@@ -734,12 +734,16 @@ function cutFruit(o, ang) {
   stains.push({ x: o.x, y: o.y, color: o.f.juice, blobs, life: 5, max: 5 });
   if (stains.length > 30) stains.shift();
 
-  if (S.state !== 'play' || o.neutral || o.wave !== G.waveId || G.answered) return;
+  if (S.state !== 'play' || o.num == null || o.wave !== G.waveId) return;
+  // En el mismo corte que acertó, las frutas incorrectas siguen contando como fallo
+  if (G.answered) { if (!o.correct && blade.stroke === G.answerStroke) onWrong(o); return; }
+  if (o.neutral) return;
   if (o.correct) onCorrect(o); else onWrong(o);
 }
 
 function onCorrect(o) {
   G.answered = true;
+  G.answerStroke = blade.stroke;
   G.queue = [];
   G.streak++; G.correct++;
   G.bestStreak = Math.max(G.bestStreak, G.streak);
@@ -810,6 +814,7 @@ function penalize(secs, x, y) {
 function onMissed(o) {
   // la fruta correcta se ha caído sin cortar
   G.answered = true;
+  G.answerStroke = -1;
   G.queue = [];
   G.streak = 0;
   addMistake();
@@ -1023,7 +1028,7 @@ function pos(e) { return { x: e.clientX, y: e.clientY }; }
 canvas.addEventListener('pointerdown', e => {
   Sound.unlock();
   if (blade.down) return;
-  blade.down = true; blade.id = e.pointerId;
+  blade.down = true; blade.id = e.pointerId; blade.stroke++;
   try { canvas.setPointerCapture(e.pointerId); } catch (_) {}
   const p = pos(e);
   blade.lx = p.x; blade.ly = p.y;
