@@ -28,3 +28,11 @@ Juego educativo para aprender las tablas de multiplicar usando tu cuerpo. Mueve 
 - Avatar 3D que replica tus movimientos
 - Efectos de partículas al acertar
 - Temporizador por pregunta
+
+## To Be Runner (`ingles/to-be-runner.html`)
+
+Juego tipo *endless runner* (estilo Subway Surfers) para practicar el verbo **to be**. Cruza la puerta con la forma correcta: am / is / are, negativas, preguntas y pasado (was / were).
+
+- Táctil (toca el carril o desliza), teclado (← → o 1-2-3): panel digital, tablet y móvil
+- Rachas con multiplicador, preguntas doradas, monedas, niveles con más velocidad y récords
+- Pronuncia en inglés cada frase acertada y muestra la corrección al fallar
