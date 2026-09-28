@@ -36,3 +36,4 @@ Juego tipo *endless runner* (estilo Subway Surfers) para practicar el verbo **to
 - Táctil (toca el carril o desliza), teclado (← → o 1-2-3): panel digital, tablet y móvil
 - Rachas con multiplicador, preguntas doradas, monedas, niveles con más velocidad y récords
 - Pronuncia en inglés cada frase acertada y muestra la corrección al fallar
+- Obstáculos opcionales: vallas para saltar (desliza arriba, toca tu carril o ↑), cajas para esquivar, o ambos

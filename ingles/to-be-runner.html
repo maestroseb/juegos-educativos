@@ -61,6 +61,9 @@
   .row { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px; }
   .toggle { border: 2px solid #eee6ff; background: #fff; border-radius: 999px; padding: 8px 14px; font: 600 15px 'Fredoka', sans-serif; cursor: pointer; color: #2b2140; }
   .toggle.off { opacity: .5; text-decoration: line-through; }
+  .obs { margin: 12px 0 4px; font-weight: 600; color: #6b6280; }
+  .obs .row { margin-top: 6px; }
+  .toggle.on { background: #6c4ce0; border-color: #6c4ce0; color: #fff; }
   .how { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 18px; color: #6b6280; font-size: 15px; margin-top: 12px; }
   .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin: 14px 0; }
   .stat { background: #f7f3ff; border-radius: 16px; padding: 10px; }
@@ -103,6 +106,9 @@
       <button class="toggle" id="tVoice">Voz en inglés</button>
       <button class="toggle" id="tHelp">Ver la tabla</button>
     </div>
+    <div class="obs">Obstáculos
+      <div class="row" id="obsRow"></div>
+    </div>
     <div id="helpBox" style="display:none">
       <table class="tb">
         <tr><td>I</td><td>am</td><td>was</td></tr>
@@ -112,7 +118,7 @@
       </table>
     </div>
     <div class="how">
-      <span>Toca el carril o desliza</span><span>Flechas ← →</span><span>Recoge monedas</span><span>¡Encadena aciertos!</span>
+      <span>Toca el carril o desliza</span><span>Flechas ← →</span><span>Saltar: desliza arriba, toca tu carril o ↑</span><span>Recoge monedas</span><span>¡Encadena aciertos!</span>
     </div>
     <a class="back" href="../index.html">← Volver al inicio</a>
   </div>
@@ -206,6 +212,7 @@ const store = {
   set(k, v) { try { localStorage.setItem('tbr_' + k, JSON.stringify(v)); } catch {} },
 };
 let mode = store.get('mode', 'present');
+let obsMode = store.get('obs', 'off');
 let soundOn = store.get('sound', true), voiceOn = store.get('voice', true);
 let G = null; // partida
 let running = false, pausedFlag = false;
@@ -227,6 +234,8 @@ const sfx = {
   ok: c => { const b = 523 * Math.pow(2, Math.min(c, 12) / 12); beep(b, .12, 'triangle', .2); beep(b * 1.25, .12, 'triangle', .2, .08); beep(b * 1.5, .2, 'triangle', .2, .16); },
   bad: () => { beep(180, .3, 'sawtooth', .15); beep(120, .35, 'sawtooth', .15, .1); },
   lane: () => beep(420, .05, 'sine', .08),
+  jump: () => { beep(330, .12, 'triangle', .12); beep(660, .12, 'triangle', .1, .06); },
+  crash: () => { beep(90, .35, 'square', .2); beep(60, .4, 'sawtooth', .15, .05); },
   level: () => [523, 659, 784, 1047].forEach((f, i) => beep(f, .18, 'square', .1, i * .1)),
 };
 function speak(text) {
@@ -260,7 +269,7 @@ const proj = (lane, z) => { const s = sc(z); return { x: W / 2 + lane * (roadHal
 function newGame() {
   G = {
     lane: 0, px: 0, hearts: 3, score: 0, coins: 0, combo: 0, bestCombo: 0, correct: 0, wrong: 0, level: 1,
-    speed: 26, dist: 0, gate: null, coinsArr: [], deco: [], q: null, nextGateIn: 1.2, inv: 0, hop: 0, t: 0,
+    speed: 26, dist: 0, gate: null, coinsArr: [], obs: [], jumpT: 0, deco: [], q: null, nextGateIn: 1.2, inv: 0, hop: 0, t: 0,
   };
   for (let z = 0; z < ZMAX; z += 10) G.deco.push({ z, side: -1, k: Math.random() }, { z: z + 5, side: 1, k: Math.random() });
   updateHud(); running = true; pausedFlag = false;
@@ -275,8 +284,24 @@ function spawnGate() {
   G.gate = { z: 110, q, lanes: q.opts, hit: false };
   showCard(q);
   // monedas antes de la puerta
-  const lane = pick([-1, 0, 1]);
+  let lane = pick([-1, 0, 1]);
+  const blocked = spawnObstacles();
+  if (blocked.includes(lane)) lane = [-1, 0, 1].find(l => !blocked.includes(l));
   for (let i = 0; i < 6; i++) G.coinsArr.push({ z: 135 + i * 5, lane, got: false });
+}
+// Obstáculos entre puerta y puerta: vallas (saltar) y cajas (esquivar)
+function spawnObstacles() {
+  if (obsMode === 'off' || G.correct + G.wrong < 1) return [];
+  const z = 150, type = obsMode === 'both' ? pick(['jump', 'dodge']) : obsMode;
+  if (type === 'jump') {
+    const lanes = Math.random() < .5 ? [-1, 0, 1] : [pick([-1, 0, 1])];
+    lanes.forEach(l => G.obs.push({ z, lane: l, type: 'jump' }));
+    return [];
+  }
+  const free = pick([-1, 0, 1]), lanes = [-1, 0, 1].filter(l => l !== free && (Math.random() < .6 || G.level > 2));
+  if (!lanes.length) lanes.push(free === 0 ? 1 : 0);
+  lanes.forEach(l => G.obs.push({ z, lane: l, type: 'dodge' }));
+  return lanes;
 }
 function mult() { return G.combo >= 15 ? 4 : G.combo >= 10 ? 3 : G.combo >= 5 ? 2 : 1; }
 function gatePassed() {
@@ -301,6 +326,14 @@ function gatePassed() {
   }
   G.gate = null; G.nextGateIn = ok ? 1.1 : 2.2;
   updateHud();
+}
+function crash(o) {
+  G.hearts--; G.inv = 1.5; sfx.crash();
+  toast(o.type === 'jump' ? '¡Salta la valla! Desliza hacia arriba' : '¡Esquiva la caja! Cambia de carril');
+  const p = proj(G.px, 0); burst(p.x, p.y - 80, '#b8742f', 25);
+  document.body.classList.remove('shake'); void document.body.offsetWidth; document.body.classList.add('shake');
+  updateHud();
+  if (G.hearts <= 0) { running = false; setTimeout(gameOver, 900); }
 }
 function levelUp() {
   G.level++; G.speed = Math.min(26 + (G.level - 1) * 4.5, 62);
@@ -355,6 +388,12 @@ function renderModes() {
     `<button class="mode ${k === mode ? 'on' : ''}" data-m="${k}">${m.name}<small>${m.hint}</small><span class="best">Récord: ${store.get('best_' + k, 0)}</span></button>`).join('');
   $('modes').querySelectorAll('.mode').forEach(b => b.onclick = () => { mode = b.dataset.m; store.set('mode', mode); renderModes(); });
 }
+const OBS = { off: 'No', jump: 'Saltar', dodge: 'Esquivar', both: 'Ambos' };
+function renderObs() {
+  $('obsRow').innerHTML = Object.entries(OBS).map(([k, n]) => `<button class="toggle ${k === obsMode ? 'on' : ''}" data-o="${k}">${n}</button>`).join('');
+  $('obsRow').querySelectorAll('button').forEach(b => b.onclick = () => { obsMode = b.dataset.o; store.set('obs', obsMode); renderObs(); });
+}
+renderObs();
 function renderToggles() { $('tSound').classList.toggle('off', !soundOn); $('tVoice').classList.toggle('off', !voiceOn); }
 $('tSound').onclick = () => { soundOn = !soundOn; store.set('sound', soundOn); renderToggles(); };
 $('tVoice').onclick = () => { voiceOn = !voiceOn; store.set('voice', voiceOn); renderToggles(); if (voiceOn) speak('Hello!'); };
@@ -369,21 +408,25 @@ function countdown() { bigText('¡YA!'); beep(880, .25, 'square', .12); }
 renderModes(); renderToggles();
 
 // ---------- Controles ----------
+function jump() { if (!running || pausedFlag || G.jumpT > 0) return; G.jumpT = .75; sfx.jump(); }
+const jumpH = () => G.jumpT > 0 ? Math.sin(Math.PI * (1 - G.jumpT / .75)) : 0;
 function setLane(l) { if (!running || pausedFlag) return; l = Math.max(-1, Math.min(1, l)); if (l !== G.lane) { G.lane = l; G.hop = 1; sfx.lane(); } }
 addEventListener('keydown', e => {
   if (!running) return;
   if (e.key === 'ArrowLeft' || e.key === 'a') setLane(G.lane - 1);
   if (e.key === 'ArrowRight' || e.key === 'd') setLane(G.lane + 1);
   if (e.key === '1') setLane(-1); if (e.key === '2') setLane(0); if (e.key === '3') setLane(1);
+  if (e.key === 'ArrowUp' || e.key === 'w' || e.key === ' ') { e.preventDefault(); jump(); }
   if (e.key === 'Escape' || e.key === 'p') $('pause').click();
 });
 let tStart = null;
 cv.addEventListener('pointerdown', e => { tStart = { x: e.clientX, y: e.clientY }; });
 cv.addEventListener('pointerup', e => {
   if (!tStart || !running) return;
-  const dx = e.clientX - tStart.x;
-  if (Math.abs(dx) > 40) setLane(G.lane + Math.sign(dx));
-  else setLane(e.clientX < W / 3 ? -1 : e.clientX > W * 2 / 3 ? 1 : 0);
+  const dx = e.clientX - tStart.x, dy = e.clientY - tStart.y;
+  if (dy < -40 && -dy > Math.abs(dx)) jump();
+  else if (Math.abs(dx) > 40) setLane(G.lane + Math.sign(dx));
+  else { const l = e.clientX < W / 3 ? -1 : e.clientX > W * 2 / 3 ? 1 : 0; l === G.lane ? jump() : setLane(l); }
   tStart = null;
 });
 
@@ -451,6 +494,25 @@ function drawGate(g) {
     ctx.fillText(g.lanes[i], p.x, y + h * .19);
   }
 }
+function drawObstacle(o) {
+  const p = proj(o.lane, o.z), w = roadHalf * 2 / 3 * p.s * .86, x = p.x - w / 2;
+  if (o.type === 'jump') {
+    const h = w * .32;
+    ctx.fillStyle = '#555'; ctx.fillRect(x + w * .08, p.y - h, w * .06, h); ctx.fillRect(x + w * .86, p.y - h, w * .06, h);
+    const bh = h * .45, by = p.y - h;
+    ctx.fillStyle = '#fff'; ctx.fillRect(x, by, w, bh);
+    ctx.save(); ctx.beginPath(); ctx.rect(x, by, w, bh); ctx.clip(); ctx.fillStyle = '#e53935';
+    for (let i = -1; i < 8; i++) { ctx.beginPath(); ctx.moveTo(x + i * w / 6, by + bh); ctx.lineTo(x + i * w / 6 + w / 12, by + bh); ctx.lineTo(x + i * w / 6 + w / 12 + bh, by); ctx.lineTo(x + i * w / 6 + bh, by); ctx.fill(); }
+    ctx.restore();
+  } else {
+    const h = w * .9;
+    ctx.fillStyle = '#b8742f'; roundRect(x, p.y - h, w, h, 6 * p.s); ctx.fill();
+    ctx.strokeStyle = '#7a4a1a'; ctx.lineWidth = Math.max(1, 8 * p.s);
+    ctx.strokeRect(x + w * .08, p.y - h + w * .08, w * .84, h - w * .16);
+    ctx.beginPath(); ctx.moveTo(x + w * .08, p.y - h + w * .08); ctx.lineTo(x + w * .92, p.y - w * .08); ctx.stroke();
+    ctx.lineWidth = 1;
+  }
+}
 function drawCoin(c, t) {
   const p = proj(c.lane, c.z), r = 26 * p.s, sq = Math.abs(Math.cos(t * 5 + c.z));
   const y = p.y - 60 * p.s;
@@ -459,11 +521,12 @@ function drawCoin(c, t) {
 }
 function drawPlayer(t) {
   const p = proj(G.px, 0), s = p.s * 1.15;
-  const run = Math.sin(t * 18), bob = Math.abs(run) * 8 * s + G.hop * 30 * s;
+  const run = Math.sin(t * 18), bob = Math.abs(run) * 8 * s + G.hop * 30 * s + jumpH() * 150 * s;
   const x = p.x, y = p.y - bob;
   if (G.inv > 0 && Math.floor(t * 15) % 2) return;
   // sombra
-  ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.beginPath(); ctx.ellipse(p.x, p.y, 44 * s, 12 * s, 0, 0, 7); ctx.fill();
+  const sh = 1 - jumpH() * .5;
+  ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.beginPath(); ctx.ellipse(p.x, p.y, 44 * s * sh, 12 * s * sh, 0, 0, 7); ctx.fill();
   // piernas
   ctx.strokeStyle = '#2b2140'; ctx.lineCap = 'round'; ctx.lineWidth = 16 * s;
   ctx.beginPath(); ctx.moveTo(x - 14 * s, y - 60 * s); ctx.lineTo(x - 14 * s + run * 12 * s, y - 10 * s); ctx.stroke();
@@ -513,7 +576,7 @@ function frame(now) {
     G.t += dt;
     const v = G.speed * dt; G.dist += v;
     G.px += (G.lane - G.px) * Math.min(1, dt * 14);
-    G.hop = Math.max(0, G.hop - dt * 5); G.inv = Math.max(0, G.inv - dt);
+    G.hop = Math.max(0, G.hop - dt * 5); G.inv = Math.max(0, G.inv - dt); G.jumpT = Math.max(0, G.jumpT - dt);
     for (const d of G.deco) { d.z -= v; if (d.z < -3) { d.z += ZMAX + 5; d.k = Math.random(); } }
     if (G.gate) { G.gate.z -= v; if (G.gate.z <= 0) gatePassed(); }
     else { G.nextGateIn -= dt; if (G.nextGateIn <= 0) spawnGate(); }
@@ -522,12 +585,20 @@ function frame(now) {
       if (!c.got && c.z < 1.5 && c.z > -1 && Math.abs(G.px - c.lane) < .4) { c.got = true; G.coins++; G.score += 10; sfx.coin(); updateHud(); }
     }
     G.coinsArr = G.coinsArr.filter(c => c.z > -3 && !c.got);
+    for (const o of G.obs) {
+      o.z -= v;
+      if (!o.hit && o.z < 1 && o.z > -1 && Math.abs(G.px - o.lane) < .45 && G.inv <= 0 && !(o.type === 'jump' && jumpH() > .3)) {
+        o.hit = true; crash(o);
+      }
+    }
+    G.obs = G.obs.filter(o => o.z > -3);
   }
   ctx.clearRect(0, 0, W, H);
   drawSky(t); drawGround();
   if (G) {
     const items = [];
     for (const d of G.deco) items.push({ z: d.z, f: () => { const p = proj(d.side * 2.4, d.z); drawTree(p.x, p.y, p.s, d.k); } });
+    for (const o of G.obs) items.push({ z: o.z, f: () => drawObstacle(o) });
     for (const c of G.coinsArr) items.push({ z: c.z, f: () => drawCoin(c, t) });
     if (G.gate) items.push({ z: G.gate.z, f: () => drawGate(G.gate) });
     items.sort((a, b) => b.z - a.z).forEach(i => i.z > -2 && i.f());
