@@ -4,11 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Cuentas Mágicas</title>
-<meta name="description" content="Sumas y restas con y sin llevadas, paso a paso, arrastrando los números a su sitio.">
+<meta name="description" content="Sumas, restas y multiplicaciones con y sin llevadas, paso a paso, arrastrando los números a su sitio.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Juegos educativos">
 <meta property="og:title" content="Cuentas Mágicas">
-<meta property="og:description" content="Sumas y restas con y sin llevadas, paso a paso, arrastrando los números a su sitio.">
+<meta property="og:description" content="Sumas, restas y multiplicaciones con y sin llevadas, paso a paso, arrastrando los números a su sitio.">
 <meta property="og:url" content="https://maestroseb.github.io/juegos-educativos/matematicas/operaciones.html">
 <meta property="og:image" content="https://maestroseb.github.io/juegos-educativos/img/capturas/operaciones.jpg">
 <meta property="og:image:width" content="1100">
@@ -113,11 +113,13 @@
   }
   .cell { position: absolute; width: var(--s); height: var(--s); display: grid; place-items: center; font-weight: 600; border-radius: 10px; transition: background .2s; }
   .cell.sm { width: calc(var(--s) * .52); height: calc(var(--s) * .52); font-size: calc(var(--s) * .36); border-radius: 8px; }
+  .cell.sm.corner { width: calc(var(--s) * .4); height: calc(var(--s) * .4); font-size: calc(var(--s) * .3); }
   .cell.given { color: var(--ink); }
   .cell.hl { background: rgba(253, 224, 71, .5); }
   .cell.k-d { color: var(--res); }
   .cell.k-c { color: var(--carry); }
   .cell.mark { color: var(--mark); }
+  .cell.pp { color: #7c3aed; }
   .cell.pending { border: 2px dashed #a5b4fc; transform: scale(.86); }
   .cell.active { border: 3px dashed var(--res); background: #fff1f7; animation: glow 1.2s ease-in-out infinite; transform: scale(.9); }
   .cell.sm.active { border-width: 2px; border-color: var(--carry); background: #fff7ed; transform: none; }
@@ -291,6 +293,15 @@ const genSub = (la, lb, borrow, zeros) => () => {
   }
 };
 
+const mulCarries = (a, b) => String(b).split('').some(d => String(a).split('').some(x => x * d >= 10));
+const genMul = (la, lb, carry) => () => {
+  for (;;) {
+    const a = num(la), b = num(lb);
+    if (String(b).includes('0') || String(b).includes('1') && lb === 1) continue;
+    if (mulCarries(a, b) === carry) return [a, b];
+  }
+};
+
 const OPS = {
   suma: {
     sign: '+', name: 'Sumas', c: '#22c55e', grad: 'linear-gradient(160deg, #0f766e 0%, #0e7490 40%, #4338ca 100%)',
@@ -312,6 +323,17 @@ const OPS = {
       { name: 'Con ceros', desc: 'Ceros en el minuendo', ex: '3005 − 1278', gen: () => genSub(4, rnd(3, 4), true, true)() },
     ],
   },
+  mult: {
+    sign: '×', name: 'Multiplicaciones', c: '#0ea5e9', grad: 'linear-gradient(160deg, #075985 0%, #0369a1 35%, #be185d 100%)',
+    levels: [
+      { name: 'Sin llevar', desc: '2 cifras × 1 cifra, sin llevadas', ex: '23 × 3', gen: genMul(2, 1, false) },
+      { name: 'Me llevo una', desc: '2 cifras × 1 cifra, con llevadas', ex: '47 × 6', gen: genMul(2, 1, true) },
+      { name: 'Centenas', desc: '3 cifras × 1 cifra', ex: '358 × 7', gen: genMul(3, 1, true) },
+      { name: 'Millares', desc: '4 cifras × 1 cifra', ex: '4729 × 8', gen: genMul(4, 1, true) },
+      { name: 'Por 2 cifras', desc: '2 cifras × 2 cifras', ex: '64 × 37', gen: genMul(2, 2, true) },
+      { name: 'Gran reto', desc: '3 cifras × 2 cifras', ex: '527 × 46', gen: genMul(3, 2, true) },
+    ],
+  },
 };
 
 const game = { op: 'suma', level: null, pi: 0, stars: 0, custom: null };
@@ -322,7 +344,7 @@ let prob = null;
 function buildSuma(nums) {
   const total = nums.reduce((a, b) => a + b), k = nums.length;
   const nc = len(total), ml = Math.max(...nums.map(len));
-  const rows = [.6, ...nums.map(() => 1), 1];
+  const rows = [1, ...nums.map(() => 1), 1];
   const resRow = k + 1;
   const statics = [], tasks = [];
   nums.forEach((n, j) => String(n).split('').reverse().forEach((v, c) => statics.push({ col: c, row: 1 + j, v })));
@@ -409,6 +431,97 @@ function buildResta([a, b]) {
   };
 }
 
+function buildMult([a, b]) {
+  const res = a * b, nc = len(res), la = len(a), nb = len(b);
+  const pr = nb > 1 ? 4 : 3;
+  const rows = [1, 1, 1, ...(nb > 1 ? [1] : []), ...Array(nb).fill(1), ...(nb > 1 ? [1] : [])];
+  const statics = [], tasks = [];
+  String(a).split('').reverse().forEach((v, c) => statics.push({ col: c, row: 1, v }));
+  String(b).split('').reverse().forEach((v, c) => statics.push({ col: c, row: 2, v }));
+  const parts = [];
+  for (let j = 0; j < nb; j++) {
+    const dj = dig(b, j), row = pr + j, start = tasks.length;
+    parts.push(a * dj);
+    let carry = 0;
+    for (let c = 0; c < la; c++) {
+      const ad = dig(a, c), p = ad * dj + carry, u = p % 10, t = Math.floor(p / 10);
+      const hl = [[c, 1], [j, 2]];
+      if (carry) hl.push([c, 0]);
+      const expr = `${dj} × ${ad}` + (carry ? ` + <em>${carry}</em>` : '');
+      const first = c === 0 && j > 0
+        ? `Ahora multiplicamos por el <b>${dj}</b> de las ${COLN[j]}. Empieza debajo de las ${COLN[j]}, dejando ${j > 1 ? 'huecos' : 'un hueco'} a la derecha. ` : '';
+      tasks.push({
+        kind: 'd', pp: nb > 1, col: c + j, row, value: u, hl, colHead: c + j, group: 'pp' + j,
+        instr: `${first}Multiplica: <b>${dj} × ${ad}</b>${carry ? `, y súmale la <em>${carry}</em> que te llevabas` : ''}.`,
+        wrong: (v, n) => {
+          if (t && v === t) return `${expr} = ${p}. ¡Ese es el que te llevas! Primero escribe las unidades: el <b>${u}</b>.`;
+          if (n >= 2) return `${dj} × ${ad} = ${dj * ad}${carry ? ` y + ${carry} = ${p}` : ''}. ${t ? `Escribe el <b>${u}</b>.` : ''}`;
+          return `Esa no es. Revisa ${expr}. ¡Repasa la tabla del ${dj}!`;
+        },
+        hint: `${dj} × ${ad} = ${dj * ad}${carry ? `, + ${carry} = <b>${p}</b>` : ''}.${t ? ` Escribe el <b>${u}</b> y te llevas <em>${t}</em>.` : ''}`,
+      });
+      if (t) {
+        if (c < la - 1) tasks.push({
+          kind: 'c', col: c + 1, row: 0, value: t, hl, colHead: c + j, group: 'c' + j + c,
+          instr: `${expr} = ${p}: pones el ${u} y <b>te llevas ${t}</b>. Ponlo encima de la siguiente cifra.`,
+          wrong: () => `${expr} = ${p}. Ya has puesto el ${u}; ¿cuántas decenas te sobran? ¡Esas te las llevas!`,
+          hint: `De ${p} te llevas <b>${t}</b>.`,
+        });
+        else tasks.push({
+          kind: 'd', pp: nb > 1, col: c + 1 + j, row, value: t, hl, colHead: c + 1 + j, group: 'pp' + j,
+          instr: `${expr} = ${p}. Es la última cifra, así que escribe el <b>${t}</b> delante.`,
+          wrong: () => `${expr} = ${p}. Ya tienes el ${u}; delante va el <b>${t}</b>.`,
+          hint: `Escribe el <b>${t}</b>.`,
+        });
+      }
+      carry = t;
+    }
+    // Las llevadas de cada fila se borran al pasar a la siguiente cifra del multiplicador
+    if (nb > 1) for (let i = start; i < tasks.length; i++) if (tasks[i].kind === 'c') tasks[i].until = tasks.length - 1;
+  }
+  if (nb > 1) {
+    const resRow = pr + nb;
+    let carry = 0;
+    for (let c = 0; c < nc; c++) {
+      const js = parts.map((_, j) => j).filter(j => c >= j && c - j < len(parts[j]));
+      const ds = js.map(j => dig(parts[j], c - j));
+      const s = ds.reduce((x, y) => x + y, carry);
+      if (!js.length && !carry) break;
+      const u = s % 10, t = Math.floor(s / 10);
+      const hl = js.map(j => [c, pr + j]);
+      if (carry) hl.push([c, 3]);
+      const expr = ds.join(' + ') + (carry ? ` + <em>${carry}</em>` : '');
+      const head = c === 0 ? '¡Ahora suma los resultados! ' : '';
+      const last = c === nc - 1 && t === 0;
+      tasks.push({
+        kind: 'd', col: c, row: resRow, value: u, hl, colHead: c, group: 'res',
+        instr: head + (ds.length === 1 && !carry
+          ? `En las <b>${COLN[c]}</b> solo hay un <b>${ds[0]}</b>: bájalo.`
+          : `Suma las <b>${COLN[c]}</b>: ${expr}.`),
+        wrong: (v, n) => {
+          if (t && v === t) return `${expr} = ${s}. ¡Ese es el que te llevas! Primero escribe el <b>${u}</b>.`;
+          return n >= 2 ? `${expr} = <b>${s}</b>.${t ? ` Escribe solo el <b>${u}</b>.` : ''}` : `Mmm, esa no es. Vuelve a sumar: ${expr}.`;
+        },
+        hint: `${expr} = <b>${s}</b>.${t ? ` Escribe el <b>${u}</b> y te llevas <em>${t}</em>.` : ''}`,
+      });
+      if (t) tasks.push({
+        kind: 'c', col: c + 1, row: 3, value: t, hl, colHead: c, group: 's' + c,
+        instr: `${expr} = ${s}: pones el ${u} y <b>te llevas ${t}</b>. Ponlo encima de las ${COLN[c + 1]}.`,
+        wrong: () => `${expr} = ${s}. Ya has puesto el ${u}; ¿cuántas te llevas?`,
+        hint: `De ${s} te llevas <b>${t}</b>.`,
+      });
+      carry = t;
+      if (last) break;
+    }
+  }
+  return {
+    op: 'mult', nums: [a, b], result: res, nc, rows, statics, tasks,
+    signs: nb > 1 ? [[2, '×'], [pr + nb - 1, '+']] : [[2, '×']],
+    lines: nb > 1 ? [2, pr + nb - 1] : [2],
+    eq: `${a} × ${b} = <span class="cq">${res}</span>`,
+  };
+}
+
 /* ---------- Sonido ---------- */
 let AC = null, soundOn = true;
 function tone(f, dur, type = 'sine', vol = .15, delay = 0) {
@@ -449,7 +562,6 @@ function renderMenu() {
   document.documentElement.style.setProperty('--op', op.c);
   $('#ops').innerHTML = Object.entries(OPS).map(([id, o]) =>
     `<button class="op${id === game.op ? ' on' : ''}" data-op="${id}" style="--c:${o.c}"><span class="sym">${o.sign}</span><b>${o.name}</b><small>Con y sin llevadas</small></button>`).join('') +
-    `<div class="op soon" style="--c:#0ea5e9"><span class="sym">×</span><b>Multiplicaciones</b><small>¡Muy pronto!</small></div>` +
     `<a class="op" href="division.html" style="--c:#8b5cf6"><span class="sym">÷</span><b>Divisiones</b><small>Divide y Vencerás</small></a>`;
   const box = $('#levels');
   box.innerHTML = '';
@@ -471,6 +583,7 @@ $('#custom').onsubmit = e => {
   e.preventDefault();
   const a = parseInt($('#cA').value, 10), b = parseInt($('#cB').value, 10), err = $('#cErr');
   if (!(a >= 1 && b >= 1 && a <= 9999999 && b <= 9999999)) return err.textContent = 'Escribe dos números entre 1 y 9999999.';
+  if (game.op === 'mult' && (a > 99999 || b > 999)) return err.textContent = 'Para multiplicar: arriba hasta 99999 y abajo hasta 999.';
   if (game.op === 'resta' && b >= a) return err.textContent = 'En la resta, el número de arriba tiene que ser mayor.';
   err.textContent = '';
   game.custom = [a, b]; game.pi = 0; game.stars = 0;
@@ -488,7 +601,7 @@ function startRound() {
 }
 
 function newProblem(nums) {
-  prob = game.op === 'suma' ? buildSuma(nums) : buildResta(nums);
+  prob = { suma: buildSuma, resta: buildResta, mult: buildMult }[game.op](nums);
   Object.assign(prob, { t: 0, errors: 0, taskErr: 0, lastKey: null });
   prob.tasks.forEach((tk, i) => tk.key = 'k' + i);
   prob.tasks.push({ kind: 'done' });
@@ -548,33 +661,36 @@ function render() {
   };
   const hl = new Set((T.hl || []).map(([c, r]) => c + ',' + r));
   // Cabecera de columnas (U, D, C…)
-  for (let c = 0; c < p.nc; c++) el('colhead' + (T.colHead === c || (T.hl && T.hl[0][0] === c) ? ' on' : ''), X(c), pad * .45, COLS[c]);
-  // Posición de una casilla pequeña (llevada)
+  for (let c = 0; c < p.nc; c++) el('colhead' + ((T.colHead ?? (T.hl && T.hl[0][0])) === c ? ' on' : ''), X(c), pad * .45, COLS[c]);
+  // Las llevadas van dentro de su cuadro: abajo en su fila, o en la esquina del número en la resta
   const small = tk => tk.corner
-    ? [X(tk.col) - S * .2, Y(tk.row) - S * .16]
-    : [X(tk.col) + S * .24, Y(tk.row) + (p.rows[tk.row] * S - S * .52) / 2];
+    ? [X(tk.col) + S * .03, Y(tk.row) + S * .03]
+    : [X(tk.col) + S * .24, Y(tk.row) + S * .44];
 
   p.statics.forEach(s => {
     if (s.mark) {
       if (p.t <= s.after) return;
-      const e = el('cell sm mark', X(s.col) - S * .2, Y(s.row) - S * .16, s.v);
+      const e = el('cell sm corner mark', X(s.col) + S * .03, Y(s.row) + S * .03, s.v);
       return e;
     }
     el('cell given' + (hl.has(s.col + ',' + s.row) ? ' hl' : ''), X(s.col), Y(s.row), s.v);
   });
-  el('sign', X(p.nc), Y(p.signRow), OPS[p.op].sign);
-  const r = el('rule', X(p.nc) + S * .1, Y(p.lineRow) + S - 2);
-  r.style.width = (p.nc + .8) * S + 'px';
+  (p.signs || [[p.signRow, OPS[p.op].sign]]).forEach(([row, sg]) => el('sign', X(p.nc), Y(row), sg));
+  (p.lines || [p.lineRow]).forEach(row => {
+    const r = el('rule', X(p.nc) + S * .1, Y(row) + S - 2);
+    r.style.width = (p.nc + .8) * S + 'px';
+  });
 
   p.tasks.forEach((tk, i) => {
     if (!tk.key) return;
     const st = i < p.t ? 'filled' : i === p.t ? 'active' : (tk.kind === 'd' && tk.group === T.group ? 'pending' : null);
-    if (!st) return;
+    if (!st || (st === 'filled' && tk.until != null && p.t > tk.until)) return;
     let cls = `cell k-${tk.kind} ${st}`;
-    if (tk.kind === 'c') cls += ' sm';
+    if (tk.kind === 'c') cls += tk.corner ? ' sm corner' : ' sm';
     if (st === 'active') cls += ' drop';
     if (tk.key === p.lastKey) cls += ' pop';
-    if (done && tk.kind === 'd') cls += ' final';
+    if (tk.pp) cls += ' pp';
+    if (done && tk.kind === 'd' && !tk.pp) cls += ' final';
     const [x, y] = tk.kind === 'c' ? small(tk) : [X(tk.col), Y(tk.row)];
     el(cls, x, y, st === 'filled' ? tk.value : null);
   });
