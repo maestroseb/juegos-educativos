@@ -433,8 +433,8 @@ function buildResta([a, b]) {
 
 function buildMult([a, b]) {
   const res = a * b, nc = len(res), la = len(a), nb = len(b);
-  const pr = nb > 1 ? 4 : 3;
-  const rows = [1, 1, 1, ...(nb > 1 ? [1] : []), ...Array(nb).fill(1), ...(nb > 1 ? [1] : [])];
+  const pr = 3;
+  const rows = [1, 1, 1, ...Array(nb).fill(1), ...(nb > 1 ? [1] : [])];
   const statics = [], tasks = [];
   String(a).split('').reverse().forEach((v, c) => statics.push({ col: c, row: 1, v }));
   String(b).split('').reverse().forEach((v, c) => statics.push({ col: c, row: 2, v }));
@@ -489,7 +489,7 @@ function buildMult([a, b]) {
       if (!js.length && !carry) break;
       const u = s % 10, t = Math.floor(s / 10);
       const hl = js.map(j => [c, pr + j]);
-      if (carry) hl.push([c, 3]);
+      if (carry) hl.push([c, pr]);
       const expr = ds.join(' + ') + (carry ? ` + <em>${carry}</em>` : '');
       const head = c === 0 ? '¡Ahora suma los resultados! ' : '';
       const last = c === nc - 1 && t === 0;
@@ -505,8 +505,8 @@ function buildMult([a, b]) {
         hint: `${expr} = <b>${s}</b>.${t ? ` Escribe el <b>${u}</b> y te llevas <em>${t}</em>.` : ''}`,
       });
       if (t) tasks.push({
-        kind: 'c', col: c + 1, row: 3, value: t, hl, colHead: c, group: 's' + c,
-        instr: `${expr} = ${s}: pones el ${u} y <b>te llevas ${t}</b>. Ponlo encima de las ${COLN[c + 1]}.`,
+        kind: 'c', col: c + 1, row: pr, value: t, hl, colHead: c, corner: true, group: 's' + c,
+        instr: `${expr} = ${s}: pones el ${u} y <b>te llevas ${t}</b>. Ponlo en la esquina de las ${COLN[c + 1]}.`,
         wrong: () => `${expr} = ${s}. Ya has puesto el ${u}; ¿cuántas te llevas?`,
         hint: `De ${s} te llevas <b>${t}</b>.`,
       });
