@@ -113,6 +113,7 @@
   }
   .cell { position: absolute; width: var(--s); height: var(--s); display: grid; place-items: center; font-weight: 600; border-radius: 10px; transition: background .2s; }
   .cell.sm { width: calc(var(--s) * .52); height: calc(var(--s) * .52); font-size: calc(var(--s) * .36); border-radius: 8px; }
+  .cell.sm.corner { width: calc(var(--s) * .4); height: calc(var(--s) * .4); font-size: calc(var(--s) * .3); }
   .cell.given { color: var(--ink); }
   .cell.hl { background: rgba(253, 224, 71, .5); }
   .cell.k-d { color: var(--res); }
@@ -343,7 +344,7 @@ let prob = null;
 function buildSuma(nums) {
   const total = nums.reduce((a, b) => a + b), k = nums.length;
   const nc = len(total), ml = Math.max(...nums.map(len));
-  const rows = [.6, ...nums.map(() => 1), 1];
+  const rows = [1, ...nums.map(() => 1), 1];
   const resRow = k + 1;
   const statics = [], tasks = [];
   nums.forEach((n, j) => String(n).split('').reverse().forEach((v, c) => statics.push({ col: c, row: 1 + j, v })));
@@ -433,7 +434,7 @@ function buildResta([a, b]) {
 function buildMult([a, b]) {
   const res = a * b, nc = len(res), la = len(a), nb = len(b);
   const pr = nb > 1 ? 4 : 3;
-  const rows = [.6, 1, 1, ...(nb > 1 ? [.6] : []), ...Array(nb).fill(1), ...(nb > 1 ? [1] : [])];
+  const rows = [1, 1, 1, ...(nb > 1 ? [1] : []), ...Array(nb).fill(1), ...(nb > 1 ? [1] : [])];
   const statics = [], tasks = [];
   String(a).split('').reverse().forEach((v, c) => statics.push({ col: c, row: 1, v }));
   String(b).split('').reverse().forEach((v, c) => statics.push({ col: c, row: 2, v }));
@@ -661,15 +662,15 @@ function render() {
   const hl = new Set((T.hl || []).map(([c, r]) => c + ',' + r));
   // Cabecera de columnas (U, D, C…)
   for (let c = 0; c < p.nc; c++) el('colhead' + ((T.colHead ?? (T.hl && T.hl[0][0])) === c ? ' on' : ''), X(c), pad * .45, COLS[c]);
-  // Posición de una casilla pequeña (llevada)
+  // Las llevadas van dentro de su cuadro: abajo en su fila, o en la esquina del número en la resta
   const small = tk => tk.corner
-    ? [X(tk.col) - S * .2, Y(tk.row) - S * .16]
-    : [X(tk.col) + S * .24, Y(tk.row) + (p.rows[tk.row] * S - S * .52) / 2];
+    ? [X(tk.col) + S * .03, Y(tk.row) + S * .03]
+    : [X(tk.col) + S * .24, Y(tk.row) + S * .44];
 
   p.statics.forEach(s => {
     if (s.mark) {
       if (p.t <= s.after) return;
-      const e = el('cell sm mark', X(s.col) - S * .2, Y(s.row) - S * .16, s.v);
+      const e = el('cell sm corner mark', X(s.col) + S * .03, Y(s.row) + S * .03, s.v);
       return e;
     }
     el('cell given' + (hl.has(s.col + ',' + s.row) ? ' hl' : ''), X(s.col), Y(s.row), s.v);
@@ -685,7 +686,7 @@ function render() {
     const st = i < p.t ? 'filled' : i === p.t ? 'active' : (tk.kind === 'd' && tk.group === T.group ? 'pending' : null);
     if (!st || (st === 'filled' && tk.until != null && p.t > tk.until)) return;
     let cls = `cell k-${tk.kind} ${st}`;
-    if (tk.kind === 'c') cls += ' sm';
+    if (tk.kind === 'c') cls += tk.corner ? ' sm corner' : ' sm';
     if (st === 'active') cls += ' drop';
     if (tk.key === p.lastKey) cls += ' pop';
     if (tk.pp) cls += ' pp';
