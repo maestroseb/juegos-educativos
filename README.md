@@ -54,5 +54,5 @@ Sumas, restas y multiplicaciones en columna, paso a paso, con el mismo estilo qu
 - Sumas: sin llevar, llevando, 3, 4 y 5 cifras y tres sumandos
 - Restas: sin llevar, llevando, 3, 4 y 5 cifras (método tradicional: «me llevo una» junto al sustraendo; opcionalmente se arrastra el 1 prestado a la esquina de la cifra de arriba) y con ceros en el minuendo
 - Cuentas propias, pistas y explicación de cada error, columnas U/D/C/UM y prueba de la resta
-- Multiplicaciones: por 1 cifra (sin y con llevadas, hasta 4 cifras) y por 2 cifras, con productos parciales desplazados y suma final
+- Multiplicaciones: por 1 cifra (sin y con llevadas, hasta 5 cifras) y por 2 cifras (hasta 4 cifras arriba), con productos parciales desplazados y suma final
 - Enlaza con *Divide y Vencerás*
