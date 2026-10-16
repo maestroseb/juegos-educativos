@@ -46,6 +46,7 @@ Cálculo mental con descomposición de números hasta 10 y hasta 20 y amigos del
 - **Glotones**: arrastra un monstruo sobre otro para que se lo coma solo si juntos forman el número objetivo (amigos del 10, del 7, del 15…)
 - **Saltamonstruos**: ¿cuánto salta de 6 a 10 o de 8 a 13? Recta numérica con saltos contados, hacia delante y hacia atrás, y pista pasando por el 10
 - Puntos agrupados de 5 en 5, voz que lee cada igualdad, pistas, estrellas y confeti
+- Experiencia cuidada: cuchilla con estela brillante y zumo al cortar, monstruos que abren la boca con glotonería al acercarles otro (y lo escupen si no suman), ojos que siguen el dedo, saltos con rebote y polvo, racha de aciertos y vibración en móvil
 
 ## Divide y Vencerás (`matematicas/division.html`)
 
