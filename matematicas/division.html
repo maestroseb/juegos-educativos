@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Divide y Vencerás</title>
+<meta name="description" content="Aprende la división paso a paso arrastrando los números a su sitio.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Juegos educativos">
+<meta property="og:title" content="Divide y Vencerás">
+<meta property="og:description" content="Aprende la división paso a paso arrastrando los números a su sitio.">
+<meta property="og:url" content="https://maestroseb.github.io/juegos-educativos/matematicas/division.html">
+<meta property="og:image" content="https://maestroseb.github.io/juegos-educativos/img/capturas/division.jpg">
+<meta property="og:image:width" content="1100">
+<meta property="og:image:height" content="688">
+<meta property="og:locale" content="es_ES">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1e1b4b; --muted: #6b6593;
+    --q: #e11d74; --p: #ea7a0c; --r: #0b8f6a; --b: #7c3aed;
+    --grid: #cfe3ff; --paper: #fffef8;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    font-family: 'Fredoka', 'Segoe UI', sans-serif; color: var(--ink);
+    background: linear-gradient(160deg, #4c1d95 0%, #6d28d9 35%, #2563eb 100%);
+    overflow-x: hidden; user-select: none; -webkit-user-select: none; touch-action: manipulation;
+  }
+  button { font-family: inherit; }
+  #bgsym { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 0; }
+  #bgsym span { position: absolute; color: rgba(255,255,255,.09); font-weight: 700; animation: drift linear infinite; }
+  @keyframes drift { from { transform: translateY(110vh) rotate(0); } to { transform: translateY(-20vh) rotate(360deg); } }
+
+  .screen { display: none; position: relative; z-index: 1; }
+  .screen.on { display: flex; }
+
+  /* ---------- Menú ---------- */
+  #menu { flex-direction: column; align-items: center; min-height: 100vh; padding: 20px 16px 40px; }
+  .back { align-self: flex-start; color: #fff; text-decoration: none; font-weight: 600; background: rgba(255,255,255,.15); padding: 8px 14px; border-radius: 999px; }
+  .hero { text-align: center; color: #fff; margin-top: 8px; }
+  .hero .owl { width: 120px; height: 120px; animation: float 3s ease-in-out infinite; filter: drop-shadow(0 10px 18px rgba(0,0,0,.3)); }
+  @keyframes float { 50% { transform: translateY(-10px); } }
+  .hero h1 { margin: 6px 0 4px; font-size: clamp(38px, 8vw, 64px); line-height: 1; text-shadow: 0 5px 0 rgba(0,0,0,.2); }
+  .hero h1 span { color: #fde047; }
+  .hero p { margin: 0; font-size: 19px; opacity: .9; }
+  .mode { display: flex; background: rgba(255,255,255,.18); border-radius: 999px; padding: 5px; margin: 24px 0 6px; }
+  .mode button { border: 0; background: none; color: #fff; font-size: 17px; font-weight: 600; padding: 10px 20px; border-radius: 999px; cursor: pointer; }
+  .mode button.on { background: #fff; color: var(--ink); box-shadow: 0 3px 0 rgba(0,0,0,.15); }
+  .mode-hint { color: #e0e7ff; font-size: 15px; margin-bottom: 18px; text-align: center; max-width: 480px; }
+  .levels { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; width: 100%; max-width: 1000px; }
+  .lvl {
+    --c: #22c55e; border: 0; text-align: left; cursor: pointer; background: #fff; border-radius: 22px; padding: 18px;
+    box-shadow: 0 6px 0 color-mix(in srgb, var(--c) 55%, #1e1b4b); transition: transform .15s; position: relative; overflow: hidden;
+  }
+  .lvl:hover { transform: translateY(-4px) rotate(-1deg); }
+  .lvl:active { transform: translateY(3px); box-shadow: 0 2px 0 color-mix(in srgb, var(--c) 55%, #1e1b4b); }
+  .lvl .n { width: 44px; height: 44px; border-radius: 14px; background: var(--c); color: #fff; display: grid; place-items: center; font-size: 24px; font-weight: 700; }
+  .lvl h3 { margin: 10px 0 2px; font-size: 22px; color: var(--ink); }
+  .lvl p { margin: 0; color: var(--muted); font-size: 15px; }
+  .lvl .ex { position: absolute; right: 14px; top: 16px; font-size: 22px; font-weight: 700; color: color-mix(in srgb, var(--c) 40%, white); }
+  .custom { margin-top: 22px; background: rgba(255,255,255,.15); color: #fff; border-radius: 22px; padding: 16px 20px; width: 100%; max-width: 1000px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: center; }
+  .custom b { font-size: 18px; }
+  .custom input { width: 110px; font: 600 22px 'Fredoka'; text-align: center; border: 0; border-radius: 12px; padding: 8px; color: var(--ink); }
+  .custom input#cDiv { width: 80px; }
+  .custom span { font-size: 26px; font-weight: 700; }
+  .btn { border: 0; cursor: pointer; font-size: 19px; font-weight: 600; padding: 12px 24px; border-radius: 999px; background: #fde047; color: var(--ink); box-shadow: 0 5px 0 #ca8a04; transition: transform .1s; }
+  .btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #ca8a04; }
+  .btn.alt { background: #fff; box-shadow: 0 5px 0 #c7d2fe; }
+  #cErr { width: 100%; text-align: center; color: #fecaca; min-height: 1em; font-size: 15px; }
+
+  /* ---------- Juego ---------- */
+  #game { flex-direction: column; height: 100vh; height: 100dvh; padding: 10px 12px 12px; gap: 10px; }
+  .bar { display: flex; align-items: center; gap: 10px; color: #fff; }
+  .ibtn { border: 0; background: rgba(255,255,255,.18); color: #fff; height: 42px; min-width: 42px; padding: 0 12px; border-radius: 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-size: 16px; font-weight: 600; }
+  .ibtn svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+  .ibtn.on { background: #fde047; color: var(--ink); }
+  .dots { display: flex; gap: 6px; margin: 0 auto; }
+  .dots i { width: 14px; height: 14px; border-radius: 50%; background: rgba(255,255,255,.25); }
+  .dots i.done { background: #fde047; }
+  .dots i.now { background: #fff; box-shadow: 0 0 0 4px rgba(255,255,255,.3); }
+  .starc { font-weight: 700; font-size: 20px; display: flex; align-items: center; gap: 4px; }
+  .starc b { color: #fde047; font-size: 24px; }
+
+  .coach { display: flex; align-items: center; gap: 10px; }
+  .coach .owl { width: 64px; height: 64px; flex: none; }
+  .bubble { position: relative; background: #fff; border-radius: 18px; padding: 10px 16px; font-size: 18px; line-height: 1.35; flex: 1; box-shadow: 0 4px 0 rgba(30,27,75,.2); min-height: 52px; display: flex; align-items: center; }
+  .bubble::before { content: ''; position: absolute; left: -9px; top: 50%; margin-top: -9px; border: 9px solid transparent; border-right-color: #fff; border-left: 0; }
+  .bubble b { color: var(--q); }
+  .bubble i { color: var(--muted); }
+  .bubble.bump { animation: bump .35s; }
+  @keyframes bump { 40% { transform: scale(1.03); } }
+
+  .play { flex: 1; display: flex; gap: 12px; min-height: 0; }
+  #paperWrap { flex: 1; min-width: 0; background: rgba(255,255,255,.12); border-radius: 24px; display: flex; align-items: center; justify-content: center; overflow: auto; padding: 4px; }
+  #board {
+    position: relative; flex: none; border-radius: 18px; background-color: var(--paper);
+    background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: var(--s) var(--s);
+    box-shadow: 0 10px 0 rgba(30,27,75,.25), 0 20px 40px rgba(0,0,0,.25);
+    font-size: calc(var(--s) * .66); margin: auto;
+  }
+  .cell { position: absolute; width: var(--s); height: var(--s); display: grid; place-items: center; font-weight: 600; border-radius: 10px; transition: background .2s; }
+  .cell.given { color: var(--ink); }
+  .cell.dv { color: var(--b); }
+  .cell.tap { cursor: pointer; }
+  .cell.tap:hover { background: #fef9c3; }
+  .cell.hl { background: rgba(253, 224, 71, .45); }
+  .cell.used { color: #a5a1c7; }
+  .cell.t-q { color: var(--q); } .cell.t-p { color: var(--p); } .cell.t-r { color: var(--r); } .cell.t-b { color: var(--b); }
+  .cell.pending { border: 2px dashed #c4b5fd; transform: scale(.86); }
+  .cell.active { border: 3px dashed var(--q); background: #fff1f7; animation: glow 1.2s ease-in-out infinite; transform: scale(.9); }
+  .cell.active.over { background: #dcfce7; border-color: #22c55e; transform: scale(1.05); }
+  @keyframes glow { 50% { box-shadow: 0 0 0 6px rgba(225, 29, 116, .18); } }
+  .cell.pop { animation: pop .45s cubic-bezier(.3, 1.8, .5, 1); }
+  @keyframes pop { from { transform: scale(.2); } }
+  .cell.shake { animation: shake .4s; }
+  @keyframes shake { 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
+  .cell.final { background: #fde047; box-shadow: 0 0 0 3px #facc15; animation: pop .5s cubic-bezier(.3, 1.8, .5, 1); }
+  .cell.bring { cursor: grab; touch-action: none; animation: hop 1s ease-in-out infinite; background: #ede9fe; color: var(--b); }
+  @keyframes hop { 50% { transform: translateY(18%); } }
+  .vline, .hline, .rule { position: absolute; background: var(--ink); border-radius: 3px; }
+  .rule { background: var(--p); height: 3px; }
+  .minus { position: absolute; width: var(--s); height: var(--s); display: grid; place-items: center; color: var(--p); font-weight: 700; }
+  .arrow { position: absolute; width: 0; border-left: 3px dashed #c4b5fd; }
+  .arrow::after { content: ''; position: absolute; left: -8px; bottom: -2px; border: 6.5px solid transparent; border-top: 9px solid #c4b5fd; border-bottom: 0; }
+  .arrow.live { border-color: var(--b); animation: blink 1s infinite; }
+  .arrow.live::after { border-top-color: var(--b); }
+  @keyframes blink { 50% { opacity: .35; } }
+  .tag { position: absolute; font-size: calc(var(--s) * .24); font-weight: 600; color: var(--muted); letter-spacing: .5px; text-transform: uppercase; }
+
+  .helper { width: 200px; flex: none; background: #fff; border-radius: 24px; padding: 14px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 6px 0 rgba(30,27,75,.25); }
+  .helper h3 { margin: 0; font-size: 19px; text-align: center; }
+  .helper h3 b { color: var(--b); }
+  .helper ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; flex: 1; overflow: auto; }
+  .helper li { display: flex; justify-content: space-between; padding: 4px 10px; border-radius: 10px; font-size: 18px; background: #f5f3ff; transition: background .3s, transform .3s; }
+  .helper li span { color: var(--muted); }
+  .helper li b { color: var(--ink); }
+  .helper li.good { background: #bbf7d0; transform: scale(1.04); }
+  .helper li.bad { background: #fecdd3; }
+  .hint { border: 0; cursor: pointer; background: #fef3c7; color: #92400e; font-size: 17px; font-weight: 600; padding: 10px; border-radius: 14px; display: flex; gap: 6px; align-items: center; justify-content: center; }
+  .hint svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+  #tblBtn { display: none; }
+
+  .palette { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; transition: opacity .3s; }
+  .palette.off { opacity: .35; pointer-events: none; }
+  .tile {
+    --c: #ef4444; width: 58px; height: 64px; border-radius: 18px; border: 0; color: #fff; font: 700 36px 'Fredoka';
+    background: linear-gradient(180deg, color-mix(in srgb, var(--c) 70%, white), var(--c));
+    box-shadow: 0 6px 0 color-mix(in srgb, var(--c) 60%, black), inset 0 -4px 0 rgba(0,0,0,.08);
+    cursor: grab; touch-action: none; display: grid; place-items: center; text-shadow: 0 2px 0 rgba(0,0,0,.18); transition: transform .12s;
+  }
+  .tile:hover { transform: translateY(-4px) rotate(-3deg); }
+  .tile.lift { opacity: .35; }
+  .ghost { position: fixed; z-index: 50; pointer-events: none; transform: translate(-50%, -60%) scale(1.15) rotate(-6deg); box-shadow: 0 16px 30px rgba(0,0,0,.35); }
+  .ghost.back { transition: all .25s ease-in; transform: translate(-50%, -50%) scale(.5); opacity: 0; }
+
+  .owl.happy { animation: happy .6s; }
+  @keyframes happy { 30% { transform: translateY(-14px) rotate(-8deg); } 60% { transform: translateY(0) rotate(6deg); } }
+  .owl.sad { animation: sad .5s; }
+  @keyframes sad { 25%, 75% { transform: rotate(-10deg); } 50% { transform: rotate(10deg); } }
+
+  .spark { position: fixed; z-index: 40; width: 10px; height: 10px; border-radius: 50%; pointer-events: none; animation: spark .7s ease-out forwards; }
+  @keyframes spark { to { transform: translate(var(--dx), var(--dy)) scale(0); opacity: 0; } }
+
+  .modal { position: fixed; inset: 0; z-index: 60; background: rgba(30, 27, 75, .55); display: none; align-items: center; justify-content: center; padding: 16px; backdrop-filter: blur(4px); }
+  .modal.on { display: flex; }
+  .card { background: #fff; border-radius: 28px; padding: 26px 24px; text-align: center; max-width: 440px; width: 100%; box-shadow: 0 10px 0 rgba(0,0,0,.2); animation: pop .5s cubic-bezier(.3, 1.6, .5, 1); }
+  .card h2 { margin: 6px 0; font-size: 32px; }
+  .stars { font-size: 56px; letter-spacing: 6px; line-height: 1; }
+  .stars span { color: #e5e7eb; display: inline-block; }
+  .stars span.on { color: #facc15; text-shadow: 0 4px 0 #ca8a04; animation: pop .5s cubic-bezier(.3, 1.8, .5, 1) backwards; }
+  .eq { font-size: 28px; font-weight: 600; margin: 10px 0; }
+  .eq .cq { color: var(--q); } .eq .cr { color: var(--r); }
+  .eq small { font-size: 18px; color: var(--muted); }
+  .proof { background: #f0fdf4; border-radius: 16px; padding: 10px; font-size: 18px; color: #166534; margin-bottom: 18px; }
+  .proof span { display: block; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: #15803d; }
+  .card .row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  .trophy { width: 110px; height: 110px; }
+  #confetti { position: fixed; inset: 0; pointer-events: none; z-index: 70; }
+
+  @media (max-width: 760px) {
+    .helper { position: fixed; right: 12px; top: 64px; bottom: 170px; z-index: 30; transform: translateX(120%); transition: transform .3s; }
+    .helper.open { transform: none; }
+    #tblBtn { display: inline-flex; }
+    .bubble { font-size: 16px; }
+    .coach .owl { width: 50px; height: 50px; }
+    .tile { width: calc((100vw - 64px) / 5); max-width: 64px; height: 54px; font-size: 30px; }
+    .bar .lbl { display: none; }
+  }
+</style>
+</head>
+<body>
+<div id="bgsym"></div>
+
+<svg width="0" height="0" style="position:absolute">
+  <symbol id="owl" viewBox="0 0 100 100">
+    <path d="M20 36 L22 10 L40 26 Z" fill="#6d28d9"/><path d="M80 36 L78 10 L60 26 Z" fill="#6d28d9"/>
+    <ellipse cx="50" cy="58" rx="35" ry="37" fill="#8b5cf6"/>
+    <ellipse cx="50" cy="68" rx="23" ry="25" fill="#ddd6fe"/>
+    <text x="50" y="84" font-size="26" font-weight="700" fill="#7c3aed" text-anchor="middle" font-family="Fredoka, sans-serif">÷</text>
+    <circle cx="35" cy="42" r="14" fill="#fff"/><circle cx="65" cy="42" r="14" fill="#fff"/>
+    <circle cx="37" cy="44" r="6.5" fill="#1e1b4b"/><circle cx="63" cy="44" r="6.5" fill="#1e1b4b"/>
+    <circle cx="39" cy="41.5" r="2.2" fill="#fff"/><circle cx="65" cy="41.5" r="2.2" fill="#fff"/>
+    <ellipse cx="35" cy="42" rx="15" ry="0" fill="#7c3aed"><animate attributeName="ry" values="0;0;15;0" keyTimes="0;.92;.96;1" dur="4s" repeatCount="indefinite"/></ellipse><ellipse cx="65" cy="42" rx="15" ry="0" fill="#7c3aed"><animate attributeName="ry" values="0;0;15;0" keyTimes="0;.92;.96;1" dur="4s" repeatCount="indefinite"/></ellipse>
+    <path d="M44 53 L56 53 L50 62 Z" fill="#f59e0b"/>
+    <path d="M36 95 l4 -6 l4 6 M56 95 l4 -6 l4 6" stroke="#f59e0b" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+  </symbol>
+</svg>
+
+<!-- MENÚ -->
+<section id="menu" class="screen on">
+  <a class="back" href="../index.html">← Juegos</a>
+  <div class="hero">
+    <svg class="owl"><use href="#owl"/></svg>
+    <h1>Divide <span>y</span> Vencerás</h1>
+    <p>Aprende la división paso a paso arrastrando los números</p>
+  </div>
+  <div class="mode" id="mode">
+    <button data-m="1" class="on">Con restas</button>
+    <button data-m="0">Sin restas</button>
+  </div>
+  <div class="mode-hint" id="modeHint"></div>
+  <div class="levels" id="levels"></div>
+  <form class="custom" id="custom">
+    <b>Tu propia división:</b>
+    <input id="cDvd" type="number" inputmode="numeric" placeholder="1234" min="2" max="999999">
+    <span>:</span>
+    <input id="cDiv" type="number" inputmode="numeric" placeholder="6" min="2" max="999">
+    <button class="btn" type="submit">¡A dividir!</button>
+    <div id="cErr"></div>
+  </form>
+</section>
+
+<!-- JUEGO -->
+<section id="game" class="screen">
+  <div class="bar">
+    <button class="ibtn" id="homeBtn" title="Menú"><svg viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg><span class="lbl">Menú</span></button>
+    <div class="dots" id="dots"></div>
+    <div class="starc"><b>★</b><span id="starN">0</span></div>
+    <button class="ibtn" id="tblBtn" title="Tabla"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg></button>
+    <button class="ibtn on" id="sndBtn" title="Sonido"><svg viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/></svg></button>
+  </div>
+  <div class="coach">
+    <svg class="owl" id="coachOwl"><use href="#owl"/></svg>
+    <div class="bubble" id="msg"></div>
+  </div>
+  <div class="play">
+    <div id="paperWrap"><div id="board"></div></div>
+    <aside class="helper" id="helper">
+      <h3>Tabla del <b id="tdiv"></b></h3>
+      <ol id="table"></ol>
+      <button class="hint" id="hintBtn"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.3h6c0-1 .4-1.8 1-2.3A7 7 0 0 0 12 2z"/></svg>Pista</button>
+    </aside>
+  </div>
+  <div class="palette" id="palette"></div>
+</section>
+
+<div class="modal" id="modal"><div class="card" id="mcard"></div></div>
+<canvas id="confetti"></canvas>
+
+<script>
+const $ = s => document.querySelector(s);
+const TILE = ['#ef4444', '#f97316', '#f59e0b', '#84cc16', '#22c55e', '#14b8a6', '#0ea5e9', '#6366f1', '#a855f7', '#ec4899'];
+const LEVELS = [
+  { name: 'Primeros pasos', desc: '2 cifras entre 1 cifra', dd: 2, dv: 1, c: '#22c55e', ex: '84 : 4' },
+  { name: 'Explorador', desc: '3 cifras entre 1 cifra', dd: 3, dv: 1, c: '#06b6d4', ex: '735 : 5' },
+  { name: 'Aventurero', desc: '4 cifras entre 1 cifra', dd: 4, dv: 1, c: '#3b82f6', ex: '3286 : 7' },
+  { name: 'Experto', desc: '3 cifras entre 2 cifras', dd: 3, dv: 2, c: '#a855f7', ex: '845 : 23' },
+  { name: 'Maestro', desc: '4 cifras entre 2 cifras', dd: 4, dv: 2, c: '#f43f5e', ex: '9372 : 38' },
+];
+const ROUND = 5;
+const PRAISE = ['¡Genial!', '¡Muy bien!', '¡Perfecto!', '¡Eso es!', '¡Fenomenal!', '¡Bravo!', '¡Así se hace!'];
+const pick = a => a[Math.floor(Math.random() * a.length)];
+const rnd = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+
+const game = { restas: true, level: null, pi: 0, stars: 0, custom: false };
+let prob = null;
+
+/* ---------- Sonido ---------- */
+let AC = null, soundOn = true;
+function tone(f, dur, type = 'sine', vol = .15, delay = 0) {
+  if (!soundOn) return;
+  try {
+    AC = AC || new (window.AudioContext || window.webkitAudioContext)();
+    const t0 = AC.currentTime + delay, o = AC.createOscillator(), g = AC.createGain();
+    o.type = type; o.frequency.setValueAtTime(f, t0);
+    g.gain.setValueAtTime(vol, t0); g.gain.exponentialRampToValueAtTime(.001, t0 + dur);
+    o.connect(g).connect(AC.destination); o.start(t0); o.stop(t0 + dur + .02);
+  } catch (e) {}
+}
+const SFX = {
+  pick() { tone(520, .06, 'triangle', .08); },
+  ok() { tone(660, .1, 'triangle'); tone(990, .16, 'triangle', .14, .08); },
+  bad() { tone(180, .22, 'sawtooth', .07); tone(140, .25, 'sawtooth', .06, .1); },
+  win() { [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, .3, 'triangle', .14, i * .11)); },
+};
+
+/* ---------- Fondo ---------- */
+(function () {
+  const bg = $('#bgsym'), sy = ['÷', '×', '+', '−', '=', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+  for (let i = 0; i < 22; i++) {
+    const s = document.createElement('span');
+    s.textContent = pick(sy);
+    s.style.left = rnd(0, 96) + 'vw';
+    s.style.fontSize = rnd(28, 80) + 'px';
+    s.style.animationDuration = rnd(16, 34) + 's';
+    s.style.animationDelay = -rnd(0, 30) + 's';
+    bg.appendChild(s);
+  }
+})();
+
+/* ---------- Menú ---------- */
+const MODE_HINT = {
+  1: 'Escribes la multiplicación y haces la resta debajo. Ideal para empezar.',
+  0: 'Como en el cuaderno: haces la resta de cabeza y solo escribes lo que sobra.',
+};
+function renderMenu() {
+  const box = $('#levels');
+  box.innerHTML = '';
+  LEVELS.forEach((lv, i) => {
+    const b = document.createElement('button');
+    b.className = 'lvl';
+    b.style.setProperty('--c', lv.c);
+    b.innerHTML = `<div class="n">${i + 1}</div><span class="ex">${lv.ex}</span><h3>${lv.name}</h3><p>${lv.desc}</p>`;
+    b.onclick = () => { game.level = lv; game.custom = false; startRound(); };
+    box.appendChild(b);
+  });
+  $('#modeHint').textContent = MODE_HINT[+game.restas];
+}
+$('#mode').onclick = e => {
+  const b = e.target.closest('button'); if (!b) return;
+  game.restas = b.dataset.m === '1';
+  document.querySelectorAll('#mode button').forEach(x => x.classList.toggle('on', x === b));
+  $('#modeHint').textContent = MODE_HINT[+game.restas];
+};
+$('#custom').onsubmit = e => {
+  e.preventDefault();
+  const D = parseInt($('#cDvd').value, 10), d = parseInt($('#cDiv').value, 10);
+  const err = $('#cErr');
+  if (!(d >= 2 && d <= 999)) return err.textContent = 'El divisor tiene que estar entre 2 y 999.';
+  if (!(D >= d && D <= 999999)) return err.textContent = 'El dividendo tiene que ser mayor que el divisor (y como mucho 999999).';
+  err.textContent = '';
+  game.custom = { D, d }; game.pi = 0; game.stars = 0;
+  showScreen('game'); newProblem(D, d);
+};
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id === id));
+}
+
+/* ---------- Problemas ---------- */
+function generate(lv) {
+  for (;;) {
+    const d = lv.dv === 1 ? rnd(2, 9) : rnd(11, 49);
+    const D = rnd(10 ** (lv.dd - 1), 10 ** lv.dd - 1);
+    if (D >= d * 2 && D % 10 !== 0) return { D, d };
+  }
+}
+
+function build(D, d, restas) {
+  const digs = String(D).split('').map(Number);
+  let e = 0, P = digs[0], pLen = 1;
+  while (P < d) { e++; P = P * 10 + digs[e]; pLen++; }
+  const steps = [];
+  for (;;) {
+    const q = Math.floor(P / d), prod = q * d, rem = P - prod;
+    steps.push({ P, e, q, prod, rem, pLen });
+    if (e === digs.length - 1) break;
+    e++; P = rem * 10 + digs[e]; pLen = String(rem).length + 1;
+  }
+  const tasks = [{ type: 'select' }];
+  steps.forEach((s, k) => {
+    s.pRow = 1 + 2 * k;
+    s.rRow = restas ? 2 + 2 * k : 1 + k;
+    tasks.push({ type: 'q', k, value: s.q, key: 'q' + k });
+    const add = (type, row, str) => {
+      for (let i = str.length - 1; i >= 0; i--)
+        tasks.push({ type, k, row, col: s.e - (str.length - 1) + i, value: +str[i], key: `${type}${k}_${i}` });
+    };
+    if (restas) add('p', s.pRow, String(s.prod));
+    add('r', s.rRow, String(s.rem));
+    if (k < steps.length - 1) tasks.push({ type: 'b', k, row: s.rRow, col: s.e + 1, value: digs[s.e + 1], key: 'b' + k });
+  });
+  tasks.push({ type: 'done' });
+  return { D, d, digs, steps, tasks, restas, t: 0, sel: -1, errors: 0, taskErr: 0, lastKey: null };
+}
+
+function startRound() {
+  game.pi = 0; game.stars = 0;
+  showScreen('game');
+  const { D, d } = generate(game.level);
+  newProblem(D, d);
+}
+
+function newProblem(D, d) {
+  prob = build(D, d, game.restas);
+  $('#tdiv').textContent = d;
+  $('#table').innerHTML = Array.from({ length: 9 }, (_, i) =>
+    `<li data-i="${i + 1}"><span>${d} × ${i + 1}</span><b>${d * (i + 1)}</b></li>`).join('');
+  $('#palette').innerHTML = TILE.map((c, i) =>
+    `<button class="tile" style="--c:${c}" data-drag data-val="${i}">${i}</button>`).join('');
+  renderDots();
+  say(instr());
+  render();
+}
+
+function renderDots() {
+  $('#starN').textContent = game.stars;
+  const total = game.custom ? 1 : ROUND;
+  $('#dots').innerHTML = Array.from({ length: total }, (_, i) =>
+    `<i class="${i < game.pi ? 'done' : i === game.pi ? 'now' : ''}"></i>`).join('');
+}
+
+/* ---------- Mensajes ---------- */
+function say(html, mood) {
+  const m = $('#msg');
+  m.innerHTML = `<span>${html}</span>`;
+  m.classList.remove('bump'); void m.offsetWidth; m.classList.add('bump');
+  if (mood) {
+    const o = $('#coachOwl');
+    o.classList.remove('happy', 'sad'); void o.getBoundingClientRect(); o.classList.add(mood);
+  }
+}
+
+function instr() {
+  const p = prob, T = p.tasks[p.t];
+  if (T.type === 'select') return `Vamos a dividir <b>${p.D}</b> entre <b>${p.d}</b>. ¿Cuántas cifras necesitas coger para que quepa el <b>${p.d}</b>? <i>&nbsp;Toca la última cifra.</i>`;
+  if (T.type === 'done') return '';
+  const s = p.steps[T.k];
+  switch (T.type) {
+    case 'q': return `¿Cuántas veces cabe el <b>${p.d}</b> en <b>${s.P}</b>? Arrastra la cifra al cociente.`;
+    case 'p': return `Multiplica <b>${s.q} × ${p.d}</b> y coloca el resultado debajo de <b>${s.P}</b>, empezando por la derecha.`;
+    case 'r': return p.restas
+      ? `Ahora resta: <b>${s.P} − ${s.prod}</b>. ¿Cuánto queda?`
+      : `Calcula <b>${s.q} × ${p.d}</b> de cabeza. ¿Cuánto le falta para llegar a <b>${s.P}</b>? Escribe lo que sobra.`;
+    case 'b': return `¡Baja la siguiente cifra! Arrastra el <b>${T.value}</b> del dividendo hacia abajo.`;
+  }
+}
+
+function wrongMsg(val) {
+  const p = prob, T = p.tasks[p.t], s = p.steps[T.k], n = p.taskErr;
+  switch (T.type) {
+    case 'q': {
+      const pr = val * p.d;
+      if (pr > s.P) return `¡Uy! <b>${val} × ${p.d} = ${pr}</b>, que es más que <b>${s.P}</b>. Prueba con un número más pequeño.`;
+      return `<b>${val} × ${p.d} = ${pr}</b>. Sobrarían <b>${s.P - pr}</b>, ¡y ahí todavía cabe otro ${p.d}! Prueba con uno mayor.`;
+    }
+    case 'p': return n >= 2 ? `<b>${s.q} × ${p.d} = ${s.prod}</b>. ¿Qué cifra va en la casilla que brilla?` : `Mmm, esa no es. Revisa <b>${s.q} × ${p.d}</b>. ¡Mira la tabla!`;
+    case 'r':
+      if (n >= 2) return `<b>${s.P} − ${s.prod} = ${s.rem}</b>. ¿Qué cifra va en la casilla que brilla?`;
+      return p.restas ? `Esa no es. Revisa la resta <b>${s.P} − ${s.prod}</b>.` : `Piensa: <b>${s.q} × ${p.d} = ${s.prod}</b>. ¿Cuánto va de <b>${s.prod}</b> a <b>${s.P}</b>?`;
+    case 'b': return `Tienes que bajar la siguiente cifra del dividendo: el <b>${T.value}</b>.`;
+  }
+}
+
+function hint() {
+  const p = prob, T = p.tasks[p.t];
+  if (T.type === 'done') return;
+  p.errors++;
+  if (T.type === 'select') {
+    const first = p.digs[0];
+    return say(first >= p.d
+      ? `El <b>${first}</b> ya es mayor o igual que <b>${p.d}</b>, ¡con la primera cifra basta!`
+      : `Empieza por la izquierda: <b>${first}</b> es menor que <b>${p.d}</b>, así que necesitas más cifras. Ve cogiendo una a una hasta que quepa.`);
+  }
+  const s = p.steps[T.k];
+  if (T.type === 'q') {
+    flashRow(s.q, 'good');
+    return say(`Busca en la tabla el resultado más grande que <b>no se pase</b> de <b>${s.P}</b>.`);
+  }
+  if (T.type === 'p') return say(`<b>${s.q} × ${p.d} = ${s.prod}</b>. Coloca sus cifras de derecha a izquierda.`);
+  if (T.type === 'r') return say(`<b>${s.P} − ${s.prod} = ${s.rem}</b>.`);
+  if (T.type === 'b') return say(`Arrastra el <b>${T.value}</b> que parpadea en el dividendo a la casilla de abajo.`);
+}
+$('#hintBtn').onclick = hint;
+
+function flashRow(i, cls) {
+  const li = document.querySelector(`#table li[data-i="${i}"]`);
+  if (!li) return;
+  document.querySelectorAll('#table li').forEach(x => x.classList.remove('good', 'bad'));
+  li.classList.add(cls);
+  li.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  setTimeout(() => li.classList.remove(cls), 2200);
+}
+
+/* ---------- Tablero ---------- */
+function render() {
+  const p = prob, b = $('#board'), wrap = $('#paperWrap');
+  const T = p.tasks[p.t];
+  const n = p.digs.length, m = String(p.d).length, ql = p.steps.length;
+  const rows = p.restas ? 1 + 2 * ql : 1 + ql;
+  const boxW = Math.max(m, ql) + .5;
+  const uw = n + 1 + .4 + boxW + 1, uh = rows + 1.3;
+  let S = Math.floor(Math.min((wrap.clientWidth - 12) / uw, (wrap.clientHeight - 24) / uh, 72));
+  S = Math.max(S, 30);
+  const pad = S * .5;
+  b.innerHTML = '';
+  b.style.setProperty('--s', S + 'px');
+  b.style.width = uw * S + 'px';
+  b.style.height = uh * S + 'px';
+  b.style.backgroundPosition = `${pad}px ${pad}px`;
+  const X = c => pad + (c + 1) * S, Y = r => pad + r * S;
+  const boxX = X(n) + S * .4;
+  const el = (cls, x, y, txt, attrs = {}) => {
+    const e = document.createElement('div');
+    e.className = cls; e.style.left = x + 'px'; e.style.top = y + 'px';
+    if (txt != null) e.textContent = txt;
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    b.appendChild(e); return e;
+  };
+
+  // Celdas del dividendo parcial que se está usando
+  const hl = new Set();
+  if (T.type === 'select' && p.sel >= 0) for (let c = 0; c <= p.sel; c++) hl.add('0,' + c);
+  if (['q', 'p', 'r'].includes(T.type)) {
+    const s = p.steps[T.k], row = T.k === 0 ? 0 : p.steps[T.k - 1].rRow;
+    for (let c = s.e - s.pLen + 1; c <= s.e; c++) hl.add(row + ',' + c);
+  }
+  const brought = new Set(p.tasks.filter((tk, i) => tk.type === 'b' && i < p.t).map(tk => tk.col));
+
+  // Flechas de "bajar cifra"
+  p.tasks.forEach((tk, i) => {
+    if (tk.type !== 'b' || i > p.t) return;
+    const a = el('arrow' + (i === p.t ? ' live' : ''), X(tk.col) + S / 2 - 1, Y(1) - S * .05);
+    a.style.height = Math.max(Y(tk.row) - Y(1) - S * .02, S * .3) + 'px';
+  });
+
+  // Dividendo
+  p.digs.forEach((v, c) => {
+    let cls = 'cell given';
+    const attrs = {};
+    if (T.type === 'select') { cls += ' tap'; attrs['data-sel'] = c; }
+    if (T.type === 'b' && c === T.col) { cls += ' bring'; attrs['data-drag'] = ''; attrs['data-val'] = v; }
+    else if (brought.has(c)) cls += ' used';
+    if (hl.has('0,' + c)) cls += ' hl';
+    el(cls, X(c), Y(0), v, attrs);
+  });
+  el('tag', X(0), Y(0) - pad * .85, 'Dividendo').style.whiteSpace = 'nowrap';
+
+  // Divisor y caja
+  String(p.d).split('').forEach((v, j) => el('cell given dv', boxX + S * .25 + j * S, Y(0), v));
+  el('tag', boxX + S * .25, Y(0) - pad * .85, 'Divisor').style.whiteSpace = 'nowrap';
+  const vl = el('vline', boxX - 2, Y(0) + S * .08);
+  vl.style.width = '4px'; vl.style.height = S * .92 + 'px';
+  const hl2 = el('hline', boxX - 2, Y(1) - 2);
+  hl2.style.height = '4px'; hl2.style.width = boxW * S + 'px';
+  if (p.t > 0) el('tag', boxX + S * .25, Y(2) + S * .25, 'Cociente').style.whiteSpace = 'nowrap';
+
+  // Signo menos y raya de cada resta
+  if (p.restas) p.steps.forEach((s, k) => {
+    const first = p.tasks.findIndex(tk => tk.type === 'p' && tk.k === k);
+    if (first > p.t) return;
+    const w = Math.max(s.pLen, String(s.prod).length);
+    el('minus', X(s.e - w), Y(s.pRow), '−');
+    const r = el('rule', X(s.e - w + 1) - S * .05, Y(s.pRow) + S - 2);
+    r.style.width = w * S + S * .1 + 'px';
+  });
+
+  // Casillas de respuesta
+  const done = T.type === 'done';
+  p.tasks.forEach((tk, i) => {
+    if (!tk.key) return;
+    const st = i < p.t ? 'filled' : i === p.t ? 'active' : (tk.type === T.type && tk.k === T.k ? 'pending' : null);
+    if (!st) return;
+    const isQ = tk.type === 'q';
+    const x = isQ ? boxX + S * .25 + tk.k * S : X(tk.col);
+    const y = isQ ? Y(1) + S * .1 : Y(tk.row);
+    let cls = `cell t-${tk.type} ${st}`;
+    if (st === 'active') cls += ' drop';
+    if (!isQ && hl.has(tk.row + ',' + tk.col)) cls += ' hl';
+    if (tk.key === p.lastKey) cls += ' pop';
+    if (done && (isQ || (tk.type === 'r' && tk.k === ql - 1))) cls += ' final';
+    el(cls, x, y, st === 'filled' ? tk.value : null);
+  });
+
+  $('#palette').classList.toggle('off', T.type === 'select' || done);
+}
+
+/* ---------- Jugadas ---------- */
+function advance() {
+  const p = prob;
+  p.t++; p.taskErr = 0;
+  const T = p.tasks[p.t];
+  if (T.type === 'done') return finish();
+  const prev = p.tasks[p.t - 1];
+  const newGroup = !(prev.type === T.type && prev.k === T.k);
+  say((newGroup ? pick(PRAISE) + ' ' : '') + instr(), newGroup ? 'happy' : null);
+}
+
+function place(val) {
+  const p = prob, T = p.tasks[p.t];
+  if (!T.key) return false;
+  if (val === T.value) {
+    p.lastKey = T.key;
+    SFX.ok();
+    advance();
+    render();
+    const c = document.querySelector('.cell.pop');
+    if (c) sparkle(c);
+    return true;
+  }
+  p.errors++; p.taskErr++;
+  SFX.bad();
+  say(wrongMsg(val), 'sad');
+  if (T.type === 'q' && val > 0) flashRow(val, 'bad');
+  const a = document.querySelector('.cell.active');
+  if (a) { a.classList.remove('shake'); void a.offsetWidth; a.classList.add('shake'); }
+  return false;
+}
+
+function selectTap(c) {
+  const p = prob, e0 = p.steps[0].e;
+  const val = +p.digs.slice(0, c + 1).join('');
+  p.sel = c;
+  if (c === e0) {
+    SFX.ok();
+    p.lastKey = null;
+    advance();
+    render();
+    document.querySelectorAll('.cell.hl').forEach(sparkle);
+    return;
+  }
+  p.errors++;
+  SFX.bad();
+  say(val < p.d
+    ? `<b>${val}</b> es menor que <b>${p.d}</b>: ¡no cabe! Necesitas coger una cifra más.`
+    : `<b>${val}</b> es mayor que <b>${p.d}</b>, pero ¿cabe con menos cifras? Prueba con una menos.`, 'sad');
+  render();
+}
+
+function finish() {
+  const p = prob, last = p.steps[p.steps.length - 1];
+  const Q = Math.floor(p.D / p.d), R = last.rem;
+  const st = p.errors === 0 ? 3 : p.errors <= 2 ? 2 : 1;
+  game.stars += st;
+  SFX.win();
+  say(`¡División terminada! El cociente es <b>${Q}</b> y el resto es <b>${R}</b>.`, 'happy');
+  setTimeout(() => {
+    confetti();
+    const lastOne = game.custom || game.pi === ROUND - 1;
+    const title = st === 3 ? '¡Perfecto!' : st === 2 ? '¡Muy bien!' : '¡Lo has conseguido!';
+    showModal(`
+      <div class="stars">${[0, 1, 2].map(i => `<span class="${i < st ? 'on' : ''}" style="animation-delay:${i * .15}s">★</span>`).join('')}</div>
+      <h2>${title}</h2>
+      <div class="eq">${p.D} : ${p.d} = <span class="cq">${Q}</span> <small>resto</small> <span class="cr">${R}</span></div>
+      <div class="proof"><span>Prueba de la división</span>${p.d} × <b>${Q}</b> + <b>${R}</b> = ${p.D} ✔</div>
+      <div class="row"><button class="btn" id="nextBtn">${lastOne ? (game.custom ? 'Terminar' : 'Ver resultado') : 'Siguiente división ➜'}</button></div>`);
+    $('#nextBtn').onclick = () => {
+      hideModal();
+      if (game.custom) { showScreen('menu'); return; }
+      game.pi++;
+      if (game.pi >= ROUND) return endRound();
+      const { D, d } = generate(game.level);
+      newProblem(D, d);
+    };
+  }, 900);
+}
+
+function endRound() {
+  renderDots();
+  confetti();
+  SFX.win();
+  const max = ROUND * 3, s = game.stars;
+  const msg = s === max ? '¡Eres un maestro de la división!' : s >= max * .7 ? '¡Lo estás bordando!' : '¡Sigue practicando y serás imparable!';
+  showModal(`
+    <svg class="trophy" viewBox="0 0 24 24" fill="#facc15" stroke="#b45309" stroke-width="1.2" stroke-linejoin="round"><path d="M6 4h12v4a6 6 0 0 1-12 0z"/><path d="M6 6H3a3 3 0 0 0 3 4M18 6h3a3 3 0 0 1-3 4" fill="none"/><path d="M10 14h4v3h-4zM8 20h8v2H8zM9 17h6v3H9z"/></svg>
+    <h2>${msg}</h2>
+    <div class="eq">★ ${s} <small>de ${max} estrellas</small></div>
+    <div class="row"><button class="btn" id="againBtn">Otra ronda</button><button class="btn alt" id="menuBtn">Menú</button></div>`);
+  $('#againBtn').onclick = () => { hideModal(); startRound(); };
+  $('#menuBtn').onclick = () => { hideModal(); showScreen('menu'); };
+}
+
+function showModal(html) { $('#mcard').innerHTML = html; $('#modal').classList.add('on'); }
+function hideModal() { $('#modal').classList.remove('on'); }
+
+/* ---------- Arrastrar y soltar ---------- */
+let drag = null;
+document.addEventListener('pointerdown', e => {
+  const src = e.target.closest('[data-drag]');
+  if (!src || $('#modal').classList.contains('on')) return;
+  e.preventDefault();
+  drag = { src, val: +src.dataset.val, x0: e.clientX, y0: e.clientY, moved: false, ghost: null, over: null };
+});
+window.addEventListener('pointermove', e => {
+  if (!drag) return;
+  if (!drag.moved && Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0) < 6) return;
+  if (!drag.moved) {
+    drag.moved = true;
+    SFX.pick();
+    const g = document.createElement('div');
+    g.className = 'tile ghost';
+    g.textContent = drag.val;
+    g.style.setProperty('--c', drag.src.classList.contains('tile') ? TILE[drag.val] : '#7c3aed');
+    document.body.appendChild(g);
+    drag.ghost = g;
+    drag.src.classList.add('lift');
+  }
+  drag.ghost.style.left = e.clientX + 'px';
+  drag.ghost.style.top = e.clientY + 'px';
+  const t = document.elementFromPoint(e.clientX, e.clientY);
+  const over = t && t.closest('.drop');
+  if (over !== drag.over) {
+    if (drag.over) drag.over.classList.remove('over');
+    if (over) over.classList.add('over');
+    drag.over = over;
+  }
+});
+function endDrag() {
+  if (!drag) return;
+  const d = drag;
+  drag = null;
+  d.src.classList.remove('lift');
+  if (!d.moved) { place(d.val); return; }
+  if (d.over && place(d.val)) { d.ghost.remove(); return; }
+  if (d.over) d.over.classList.remove('over');
+  const r = d.src.getBoundingClientRect();
+  d.ghost.classList.add('back');
+  d.ghost.style.left = (r.left + r.width / 2) + 'px';
+  d.ghost.style.top = (r.top + r.height / 2) + 'px';
+  setTimeout(() => d.ghost.remove(), 260);
+}
+window.addEventListener('pointerup', endDrag);
+window.addEventListener('pointercancel', endDrag);
+
+$('#board').addEventListener('click', e => {
+  const c = e.target.closest('[data-sel]');
+  if (c && prob.tasks[prob.t].type === 'select') selectTap(+c.dataset.sel);
+});
+document.addEventListener('keydown', e => {
+  if (!$('#game').classList.contains('on') || $('#modal').classList.contains('on')) return;
+  if (/^[0-9]$/.test(e.key) && prob.tasks[prob.t].key) place(+e.key);
+});
+
+/* ---------- Efectos ---------- */
+function sparkle(cell) {
+  const r = cell.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+  for (let i = 0; i < 10; i++) {
+    const s = document.createElement('div');
+    s.className = 'spark';
+    const a = Math.PI * 2 * i / 10, dist = 30 + Math.random() * 30;
+    s.style.left = cx - 5 + 'px'; s.style.top = cy - 5 + 'px';
+    s.style.background = pick(['#fde047', '#f472b6', '#4ade80', '#60a5fa', '#c084fc']);
+    s.style.setProperty('--dx', Math.cos(a) * dist + 'px');
+    s.style.setProperty('--dy', Math.sin(a) * dist + 'px');
+    document.body.appendChild(s);
+    setTimeout(() => s.remove(), 750);
+  }
+}
+
+function confetti() {
+  const cv = $('#confetti'), ctx = cv.getContext('2d');
+  cv.width = innerWidth; cv.height = innerHeight;
+  const cols = ['#fde047', '#f472b6', '#4ade80', '#60a5fa', '#c084fc', '#fb923c'];
+  const ps = Array.from({ length: 160 }, () => ({
+    x: innerWidth / 2 + (Math.random() - .5) * 200, y: innerHeight * .45,
+    vx: (Math.random() - .5) * 16, vy: -Math.random() * 16 - 6,
+    w: 6 + Math.random() * 8, h: 4 + Math.random() * 6, r: Math.random() * 6, vr: (Math.random() - .5) * .4, c: pick(cols),
+  }));
+  let f = 0;
+  (function loop() {
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    ps.forEach(p => {
+      p.vy += .4; p.vx *= .99; p.x += p.vx; p.y += p.vy; p.r += p.vr;
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.r); ctx.fillStyle = p.c;
+      ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h); ctx.restore();
+    });
+    if (++f < 150) requestAnimationFrame(loop); else ctx.clearRect(0, 0, cv.width, cv.height);
+  })();
+}
+
+/* ---------- Barra ---------- */
+$('#homeBtn').onclick = () => showScreen('menu');
+$('#sndBtn').onclick = () => { soundOn = !soundOn; $('#sndBtn').classList.toggle('on', soundOn); };
+$('#tblBtn').onclick = () => { $('#helper').classList.toggle('open'); $('#tblBtn').classList.toggle('on'); };
+window.addEventListener('resize', () => { if (prob && $('#game').classList.contains('on')) render(); });
+
+renderMenu();
+</script>
+</body>
+</html>

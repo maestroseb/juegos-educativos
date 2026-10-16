@@ -37,3 +37,12 @@ Juego tipo *endless runner* (estilo Subway Surfers) para practicar el verbo **to
 - Rachas con multiplicador, preguntas doradas, monedas, niveles con más velocidad y récords
 - Pronuncia en inglés cada frase acertada y muestra la corrección al fallar
 - Obstáculos opcionales: vallas para saltar (desliza arriba, toca tu carril o ↑), cajas para esquivar, o ambos
+
+## Divide y Vencerás (`matematicas/division.html`)
+
+División tradicional paso a paso: el alumno coge las cifras del dividendo, arrastra cada cifra del cociente, la multiplicación, el resto y "baja" las cifras al cuaderno cuadriculado.
+
+- Modo **con restas** (se escribe la multiplicación y la resta) o **sin restas** (resta de cabeza, como en el cuaderno)
+- 5 niveles: de 2 cifras entre 1 cifra hasta 4 cifras entre 2 cifras, y divisiones propias
+- Tabla de multiplicar del divisor, pistas y explicación de cada error
+- Arrastrar y soltar (táctil y ratón), tocar o teclado; estrellas, confeti y prueba de la división al terminar
