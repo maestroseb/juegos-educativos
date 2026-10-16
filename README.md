@@ -38,6 +38,15 @@ Juego tipo *endless runner* (estilo Subway Surfers) para practicar el verbo **to
 - Pronuncia en inglés cada frase acertada y muestra la corrección al fallar
 - Obstáculos opcionales: vallas para saltar (desliza arriba, toca tu carril o ↑), cajas para esquivar, o ambos
 
+## Monstruos Glotones (`matematicas/monstruos.html`)
+
+Cálculo mental con descomposición de números hasta 10 y hasta 20 y amigos del 10, en tres minijuegos:
+
+- **Corta-monstruos**: desliza el dedo para partir un monstruo de bolitas; encuentra todas las formas de partir un número (7 = 3 + 4…) o haz un trozo concreto
+- **Glotones**: arrastra un monstruo sobre otro para que se lo coma solo si juntos forman el número objetivo (amigos del 10, del 7, del 15…)
+- **Saltamonstruos**: ¿cuánto salta de 6 a 10 o de 8 a 13? Recta numérica con saltos contados, hacia delante y hacia atrás, y pista pasando por el 10
+- Puntos agrupados de 5 en 5, voz que lee cada igualdad, pistas, estrellas y confeti
+
 ## Divide y Vencerás (`matematicas/division.html`)
 
 División tradicional paso a paso: el alumno coge las cifras del dividendo, arrastra cada cifra del cociente, la multiplicación, el resto y "baja" las cifras al cuaderno cuadriculado.
