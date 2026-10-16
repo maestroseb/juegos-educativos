@@ -46,3 +46,12 @@ División tradicional paso a paso: el alumno coge las cifras del dividendo, arra
 - 5 niveles: de 2 cifras entre 1 cifra hasta 4 cifras entre 2 cifras, y divisiones propias
 - Tabla de multiplicar del divisor, pistas y explicación de cada error
 - Arrastrar y soltar (táctil y ratón), tocar o teclado; estrellas, confeti y prueba de la división al terminar
+
+## Cuentas Mágicas (`matematicas/operaciones.html`)
+
+Sumas y restas en columna, paso a paso, con el mismo estilo que *Divide y Vencerás*. El alumno arrastra cada cifra del resultado y cada llevada a su sitio, empezando por las unidades.
+
+- Sumas: sin llevar, llevando, 3 y 4 cifras y tres sumandos
+- Restas: sin llevar, llevando (método tradicional: «me llevo una» junto al sustraendo), 3 y 4 cifras y con ceros en el minuendo
+- Cuentas propias, pistas y explicación de cada error, columnas U/D/C/UM y prueba de la resta
+- Enlaza con *Divide y Vencerás*; la multiplicación llegará en el mismo motor
