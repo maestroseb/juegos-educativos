@@ -51,8 +51,8 @@ División tradicional paso a paso: el alumno coge las cifras del dividendo, arra
 
 Sumas, restas y multiplicaciones en columna, paso a paso, con el mismo estilo que *Divide y Vencerás*. El alumno arrastra cada cifra del resultado y cada llevada a su sitio, empezando por las unidades.
 
-- Sumas: sin llevar, llevando, 3 y 4 cifras y tres sumandos
-- Restas: sin llevar, llevando (método tradicional: «me llevo una» junto al sustraendo; opcionalmente se arrastra el 1 prestado a la esquina de la cifra de arriba), 3 y 4 cifras y con ceros en el minuendo
+- Sumas: sin llevar, llevando, 3, 4 y 5 cifras y tres sumandos
+- Restas: sin llevar, llevando, 3, 4 y 5 cifras (método tradicional: «me llevo una» junto al sustraendo; opcionalmente se arrastra el 1 prestado a la esquina de la cifra de arriba) y con ceros en el minuendo
 - Cuentas propias, pistas y explicación de cada error, columnas U/D/C/UM y prueba de la resta
 - Multiplicaciones: por 1 cifra (sin y con llevadas, hasta 4 cifras) y por 2 cifras, con productos parciales desplazados y suma final
 - Enlaza con *Divide y Vencerás*
