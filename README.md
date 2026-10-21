@@ -29,6 +29,19 @@ Juego educativo para aprender las tablas de multiplicar usando tu cuerpo. Mueve 
 - Efectos de partículas al acertar
 - Temporizador por pregunta
 
+## Maestro del Tiempo (`matematicas/maestro-tiempo.html`)
+
+Versión en español inspirada en *Tokei Master* (ota tools × kita), con estética manga y dibujos propios. Cinco modos y tres niveles (en punto y medias, de 5 en 5, minuto a minuto):
+
+1. **Leer la hora** del reloj de agujas.
+2. **Mover las agujas** hasta la hora pedida (arrastrando).
+3. **Mañana o tarde**: de 24 h a a.m./p.m. y al revés.
+4. **Antes y después**: «dentro de…» y «hace…».
+5. **¿Cuánto tiempo pasa?** entre dos relojes.
+
+- Pistas, segunda oportunidad con consejo y solución leída en voz alta («las tres menos cuarto»)
+- Estrellas por modo y nivel, y una mascota que crece con los aciertos (se guarda en el navegador)
+
 ## To Be Runner (`ingles/to-be-runner.html`)
 
 Juego tipo *endless runner* (estilo Subway Surfers) para practicar el verbo **to be**. Cruza la puerta con la forma correcta: am / is / are, negativas, preguntas y pasado (was / were).
