@@ -31,7 +31,7 @@ Juego educativo para aprender las tablas de multiplicar usando tu cuerpo. Mueve 
 
 ## Maestro del Tiempo (`matematicas/maestro-tiempo.html`)
 
-Versión en español de *Tokei Master* (otatools). Cinco modos y tres niveles (en punto y medias, de 5 en 5, minuto a minuto):
+Versión en español inspirada en *Tokei Master* (ota tools × kita), con estética manga y dibujos propios. Cinco modos y tres niveles (en punto y medias, de 5 en 5, minuto a minuto):
 
 1. **Leer la hora** del reloj de agujas.
 2. **Mover las agujas** hasta la hora pedida (arrastrando).

@@ -16,138 +16,184 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Zen+Maru+Gothic:wght@700;900&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #fff3d6;
+    --bg: #ffd93b;
+    --dot: #ffe57a;
     --ink: #1f3a5f;
-    --muted: #5d6b85;
+    --muted: #4f5f7a;
     --card: #ffffff;
-    --line: #f0dcb4;
-    --hour: #e5484d;
+    --cream: #fff3a6;
+    --hour: #ef4444;
     --min: #2f6fed;
-    --ok: #22a06b;
-    --bad: #e5484d;
+    --ok: #20b97a;
+    --bad: #ff5a5f;
     --accent: #ff9f1c;
+    --purple: #8b5cf6;
     --pink: #ff5c8a;
+    --bd: 4px solid var(--ink);
+    --sh: 5px 5px 0 var(--ink);
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html, body { margin: 0; height: 100%; }
+  html, body { margin: 0; min-height: 100%; }
   body {
-    font-family: 'Fredoka', 'Segoe UI', sans-serif; color: var(--ink); background: var(--bg);
-    background-image: radial-gradient(circle at 0% 0%, #ffe0a3 0, transparent 40%), radial-gradient(circle at 100% 100%, #d5ebff 0, transparent 45%);
-    background-attachment: fixed; user-select: none; overflow-x: hidden;
+    font-family: 'Fredoka', 'Zen Maru Gothic', 'Arial Rounded MT Bold', sans-serif; color: var(--ink); font-weight: 600;
+    background-color: var(--bg);
+    background-image: radial-gradient(var(--dot) 22%, transparent 24%), radial-gradient(var(--dot) 22%, transparent 24%);
+    background-size: 34px 34px; background-position: 0 0, 17px 17px; background-attachment: fixed;
+    user-select: none; overflow-x: hidden;
   }
   button { font-family: inherit; color: inherit; cursor: pointer; }
   .hidden { display: none !important; }
-  .screen { min-height: 100%; padding: 16px; max-width: 1180px; margin: 0 auto; }
+  .screen { min-height: 100vh; padding: 16px; max-width: 1180px; margin: 0 auto; }
+  .ic { width: 1.1em; height: 1.1em; vertical-align: -0.18em; }
 
   /* ---------- Portada ---------- */
-  #home { display: grid; grid-template-columns: 300px 1fr; gap: 20px; align-items: start; }
-  .panel { background: var(--card); border: 3px solid var(--line); border-radius: 24px; box-shadow: 0 5px 0 var(--line); padding: 18px; }
-  .logo { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-  .logo h1 { margin: 0; font-size: 30px; line-height: 1; }
-  .logo .back { text-decoration: none; color: var(--muted); font-size: 14px; display: block; margin-top: 4px; }
-  .pet { text-align: center; }
-  .pet .bubble { display: inline-block; background: #fff7e6; border: 2px solid var(--line); border-radius: 16px; padding: 6px 12px; font-weight: 600; font-size: 15px; }
-  .pet .disc { width: 130px; height: 130px; margin: 10px auto 4px; border-radius: 50%; display: grid; place-items: center; font-size: 76px; background: radial-gradient(circle, #fff 40%, #ffe2a8 100%); border: 4px solid #ffd27a; }
-  .pet .name { font-weight: 700; font-size: 20px; }
-  .gauge { height: 14px; background: #f3ead9; border-radius: 99px; overflow: hidden; margin: 8px 0 4px; }
-  .gauge i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #ffb703, #fb8500); border-radius: 99px; transition: width .6s; }
-  .small { font-size: 14px; color: var(--muted); }
-  .levels { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; }
-  .chip { border: 3px solid var(--line); background: #fff; border-radius: 18px; padding: 8px 14px; text-align: left; font-weight: 700; font-size: 17px; }
+  #home { display: grid; grid-template-columns: 360px 1fr; gap: 22px; align-items: start; }
+  .logo { display: flex; align-items: center; gap: 10px; }
+  .logo svg { width: 52px; height: 52px; flex: none; }
+  .logo h1 { margin: 0; font-size: 36px; line-height: 1; font-weight: 700; letter-spacing: .5px; color: var(--ink); text-shadow: 3px 3px 0 #fff; }
+  .logo .back { text-decoration: none; color: var(--ink); font-size: 14px; display: inline-block; margin-top: 6px; background: #fff; border: 3px solid var(--ink); border-radius: 99px; padding: 1px 10px; }
+  .pet { text-align: center; margin-top: 14px; }
+  .bubble { position: relative; display: inline-block; background: #fff; border: var(--bd); border-radius: 18px; padding: 8px 18px; font-weight: 700; font-size: 18px; box-shadow: var(--sh); letter-spacing: .5px; }
+  .bubble::after { content: ''; position: absolute; left: 50%; bottom: -14px; margin-left: -10px; width: 18px; height: 18px; background: #fff; border-right: var(--bd); border-bottom: var(--bd); transform: rotate(45deg); }
+  .pet .disc { width: 250px; height: 250px; margin: 20px auto 0; border-radius: 50%; display: grid; place-items: center; background: radial-gradient(circle, #fffbd8 0, #fff1a0 100%); border: 5px solid var(--ink); box-shadow: 6px 6px 0 var(--ink); }
+  .pet .disc svg { width: 72%; height: 72%; }
+  .pet .disc.bounce svg { animation: bounce 2.4s ease-in-out infinite; }
+  @keyframes bounce { 0%,100% { transform: translateY(0) rotate(0); } 25% { transform: translateY(-6px) rotate(-3deg); } 75% { transform: translateY(-3px) rotate(3deg); } }
+  .card { background: var(--card); border: var(--bd); border-radius: 22px; box-shadow: var(--sh); padding: 12px 16px; }
+  .pet .name { display: inline-block; margin-top: -16px; position: relative; background: var(--ink); color: #fff; border-radius: 99px; padding: 4px 18px; font-size: 18px; }
+  .growth { margin-top: 14px; text-align: center; }
+  .growth .t { font-size: 16px; }
+  .growth .t b { color: var(--accent); font-size: 20px; }
+  .gauge { height: 18px; background: #fff; border: 3px solid var(--ink); border-radius: 99px; overflow: hidden; margin: 6px 0 2px; }
+  .gauge i { display: block; height: 100%; width: 0; background: repeating-linear-gradient(45deg, #ffb703 0 10px, #ffc93c 10px 20px); transition: width .6s; }
+  .small { font-size: 14px; color: var(--muted); font-weight: 500; }
+  .tools { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; justify-content: center; }
+  .pill { border: 3px solid var(--ink); background: #fff; border-radius: 99px; padding: 6px 14px; font-weight: 700; font-size: 15px; box-shadow: 3px 3px 0 var(--ink); }
+  .pill:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
+  .levels { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 18px; }
+  .chip { border: var(--bd); background: #fff; border-radius: 20px; padding: 8px 10px; text-align: center; font-weight: 700; font-size: 19px; box-shadow: var(--sh); }
+  .chip .st { display: block; color: #f4b400; font-size: 16px; line-height: 1; }
   .chip small { display: block; font-weight: 500; font-size: 13px; color: var(--muted); }
-  .chip.on { background: var(--ink); border-color: var(--ink); color: #fff; }
+  .chip.on { background: var(--ink); color: #fff; }
   .chip.on small { color: #cfe0ff; }
-  .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 14px; }
-  .tile { border: 3px solid var(--line); background: #fff; border-radius: 22px; padding: 0; overflow: hidden; text-align: left; box-shadow: 0 5px 0 var(--line); transition: transform .12s; display: flex; flex-direction: column; }
-  .tile:hover { transform: translateY(-3px); }
-  .tile .band { background: var(--c); height: 78px; display: grid; place-items: center; font-size: 42px; }
-  .tile .tx { padding: 10px 14px 12px; flex: 1; }
-  .tile .tx b { display: block; font-size: 19px; }
-  .tile .tx span { display: block; font-size: 14px; color: var(--muted); line-height: 1.25; margin-top: 2px; }
-  .tile .best { font-size: 18px; letter-spacing: 2px; color: #f4b400; margin-top: 6px; }
-  .tools { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; justify-content: center; }
-  .pill { border: 2px solid var(--line); background: #fff; border-radius: 99px; padding: 6px 14px; font-weight: 600; font-size: 14px; }
+  .tiles { display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px; }
+  .tile { grid-column: span 2; border: var(--bd); background: #fff; border-radius: 24px; padding: 0; overflow: hidden; text-align: center; box-shadow: var(--sh); transition: transform .12s; display: flex; flex-direction: column; }
+  .tile.wide { grid-column: span 3; }
+  .tile:hover { transform: translate(-2px, -3px); box-shadow: 7px 8px 0 var(--ink); }
+  .tile:active { transform: translate(3px, 3px); box-shadow: 2px 2px 0 var(--ink); }
+  .tile .band { background: var(--c); height: 150px; display: grid; place-items: center; border-bottom: var(--bd); }
+  .tile .band svg { height: 118px; width: auto; max-width: 92%; }
+  .tile .tx { padding: 8px 12px 10px; flex: 1; }
+  .tile .tx b { display: block; font-size: 20px; }
+  .tile .tx span { display: block; font-size: 13px; color: var(--muted); line-height: 1.25; margin-top: 2px; font-weight: 500; }
+  .tile .best { font-size: 18px; letter-spacing: 2px; color: #f4b400; margin-top: 4px; -webkit-text-stroke: 1px #c98f00; }
+  .credit { text-align: center; font-size: 12px; color: var(--muted); margin-top: 16px; grid-column: 1 / -1; }
 
   /* ---------- Juego ---------- */
-  #game { display: flex; flex-direction: column; gap: 12px; }
+  #game { display: flex; flex-direction: column; gap: 14px; }
   .topbar { display: flex; align-items: center; gap: 10px; }
-  .topbar .title { font-weight: 700; font-size: 18px; flex: 1; text-align: center; }
-  .stamps { display: flex; gap: 5px; justify-content: center; flex-wrap: wrap; }
-  .stamp { width: 30px; height: 30px; border-radius: 50%; border: 2px dashed #d9c6a0; display: grid; place-items: center; font-size: 16px; background: #fff; }
-  .stamp.cur { border: 3px solid var(--accent); }
-  .stamp.s1 { background: #fff2b8; border: 2px solid #f4b400; }
-  .stamp.s2 { background: #d9f5e6; border: 2px solid var(--ok); }
-  .stamp.s0 { background: #ffe1e1; border: 2px solid var(--bad); }
-  .circle { width: 44px; height: 44px; border-radius: 50%; border: 2px solid var(--line); background: #fff; font-size: 20px; flex: none; }
+  .topbar .grow { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .topbar .title { font-weight: 700; font-size: 16px; background: #fff; border: 3px solid var(--ink); border-radius: 99px; padding: 2px 14px; }
+  .stamps { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+  .stamp { width: 36px; height: 36px; border-radius: 50%; border: 3px dashed var(--ink); display: grid; place-items: center; font-size: 15px; font-weight: 700; color: transparent; opacity: .55; }
+  .stamp.cur { background: var(--ink); color: #fff; border-style: solid; opacity: 1; transform: scale(1.18); }
+  .stamp.s1, .stamp.s2, .stamp.s0 { opacity: 1; border-style: solid; color: var(--ink); }
+  .stamp.s1 { background: #ffe066; }
+  .stamp.s2 { background: #9ee6c4; }
+  .stamp.s0 { background: #ffb3b5; }
+  .circle { width: 48px; height: 48px; border-radius: 50%; border: 3px solid var(--ink); background: #fff; font-size: 20px; flex: none; box-shadow: 3px 3px 0 var(--ink); display: grid; place-items: center; }
+  .circle svg { width: 24px; height: 24px; }
 
-  .stage { display: grid; grid-template-columns: 1.15fr 1fr; gap: 16px; align-items: stretch; }
-  .left { display: flex; flex-direction: column; align-items: center; gap: 10px; justify-content: center; }
-  .prompt { font-size: 22px; font-weight: 700; text-align: center; line-height: 1.3; }
-  .prompt .big { display: inline-block; font-size: 30px; background: #1f3a5f; color: #fff; border-radius: 12px; padding: 0 12px; margin: 2px 0; font-variant-numeric: tabular-nums; }
-  .prompt .sub { display: block; font-size: 16px; color: var(--muted); font-weight: 500; }
+  .stage { display: grid; grid-template-columns: 1.6fr 1fr; gap: 18px; align-items: stretch; }
+  .left { position: relative; display: flex; flex-direction: column; align-items: center; gap: 12px; justify-content: center; background: var(--cream); border: var(--bd); border-radius: 30px; box-shadow: 6px 6px 0 var(--ink); padding: 18px; min-height: min(560px, calc(100vh - 110px)); }
+  .mini-pet { position: absolute; left: 18px; bottom: 18px; width: 120px; height: 120px; border-radius: 50%; background: #fff; border: var(--bd); box-shadow: var(--sh); display: grid; place-items: center; }
+  .mini-pet svg { width: 76%; height: 76%; }
+  .prompt { position: relative; background: #fff; border: var(--bd); border-radius: 20px; box-shadow: 4px 4px 0 var(--ink); padding: 8px 18px; font-size: 21px; font-weight: 700; text-align: center; line-height: 1.35; align-self: center; max-width: 100%; }
+  .left > .prompt:first-child { align-self: flex-start; }
+  .prompt::after { content: ''; position: absolute; left: 34px; bottom: -13px; width: 16px; height: 16px; background: #fff; border-right: var(--bd); border-bottom: var(--bd); transform: rotate(45deg); }
+  .prompt .big { display: inline-block; font-size: 30px; background: var(--ink); color: #fff; border-radius: 12px; padding: 0 12px; margin: 2px 0; font-variant-numeric: tabular-nums; letter-spacing: 1px; }
+  .prompt .sub { display: block; font-size: 15px; color: var(--muted); font-weight: 500; }
   .clocks { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; flex-wrap: wrap; }
-  .clockbox { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; }
-  .clockbox .lbl { font-weight: 700; font-size: 15px; background: #fff; border: 2px solid var(--line); border-radius: 99px; padding: 2px 12px; }
-  svg.clock { width: min(52vh, 92vw, 430px); height: auto; display: block; touch-action: none; }
-  .two svg.clock { width: min(36vh, 42vw, 300px); }
-  svg.clock.mini { width: 120px; }
-  .arrow { font-size: 34px; color: var(--muted); }
+  .clockbox { position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .lbl { font-weight: 700; font-size: 15px; background: #fff; border: 3px solid var(--ink); border-radius: 99px; padding: 2px 12px; }
+  svg.clock { width: min(52vh, 92vw, 440px); height: auto; display: block; touch-action: none; filter: drop-shadow(5px 5px 0 rgba(31,58,95,.9)); }
+  .two svg.clock { width: min(36vh, 34vw, 280px); }
+  svg.clock.mini { width: 130px; filter: drop-shadow(3px 3px 0 rgba(31,58,95,.9)); }
+  .arrow svg { width: 44px; height: 44px; }
   .fine { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
-  .fine button { border: 2px solid var(--line); background: #fff; border-radius: 14px; padding: 6px 12px; font-weight: 700; font-size: 16px; }
-  .context { font-size: 18px; font-weight: 600; background: #fff; border: 2px solid var(--line); border-radius: 99px; padding: 4px 16px; }
+  .fine button { border: 3px solid var(--ink); background: #fff; border-radius: 14px; padding: 6px 12px; font-weight: 700; font-size: 16px; box-shadow: 3px 3px 0 var(--ink); }
+  .fine button:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
+  .context { font-size: 18px; font-weight: 700; background: #fff; border: 3px solid var(--ink); border-radius: 99px; padding: 4px 16px; box-shadow: 3px 3px 0 var(--ink); }
 
-  .right { display: flex; flex-direction: column; gap: 10px; justify-content: center; }
-  .answer { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; }
-  .abox { min-width: 96px; height: 76px; border-radius: 18px; border: 3px solid var(--line); background: #fff; font-size: 40px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 0 10px; font-variant-numeric: tabular-nums; }
-  .abox .u { font-size: 17px; color: var(--muted); font-weight: 600; }
-  .abox.on { border-color: var(--accent); box-shadow: 0 0 0 4px #ffe1b0; }
-  .abox.h .n { color: var(--hour); }
-  .abox.m .n { color: var(--min); }
+  .right { display: flex; flex-direction: column; gap: 12px; justify-content: flex-start; }
+  .answer { display: flex; align-items: center; justify-content: center; gap: 8px; background: #fff; border: var(--bd); border-radius: 22px; box-shadow: var(--sh); padding: 12px; }
+  .abox { flex: 1; min-width: 0; height: 78px; border-radius: 16px; border: 3px solid currentColor; background: #fff; font-size: 42px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 8px; font-variant-numeric: tabular-nums; }
+  .abox .u { font-size: 16px; font-weight: 700; }
+  .abox.h { color: var(--hour); }
+  .abox.m { color: var(--min); }
+  .abox.on { background: #fff3a6; box-shadow: 0 0 0 3px var(--ink); }
   .colon { font-size: 40px; font-weight: 700; }
-  .ampm { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-  .ampm button { border: 3px solid var(--line); background: #fff; border-radius: 16px; padding: 8px; font-weight: 700; font-size: 17px; }
+  .ampm { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .ampm button { border: var(--bd); background: #fff; border-radius: 18px; padding: 8px; font-weight: 700; font-size: 18px; box-shadow: var(--sh); }
   .ampm button small { display: block; font-weight: 500; font-size: 12px; color: var(--muted); }
-  .ampm button.on { border-color: var(--accent); background: #fff3dc; }
-  .pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-  .key { border: none; border-radius: 16px; background: #fff; box-shadow: 0 4px 0 #e2cfa8; font-size: 28px; font-weight: 700; height: 60px; transition: transform .05s; }
-  .key:active { transform: translateY(3px); box-shadow: 0 1px 0 #e2cfa8; }
-  .key.del { font-size: 18px; background: #ffe9e9; box-shadow: 0 4px 0 #f2bcbc; }
-  .key.hint { font-size: 18px; background: #fff7d1; box-shadow: 0 4px 0 #ecd98a; }
-  .go { border: none; border-radius: 18px; background: linear-gradient(90deg, #ff9f1c, #ff5c8a); color: #fff; font-size: 24px; font-weight: 700; height: 64px; box-shadow: 0 5px 0 #c94b6d; }
-  .go:active { transform: translateY(3px); box-shadow: 0 2px 0 #c94b6d; }
-  .hinttext { background: #fff7d1; border: 2px dashed #ecd98a; border-radius: 14px; padding: 8px 12px; font-size: 16px; line-height: 1.35; }
+  .ampm button.on { background: #fff3a6; transform: translate(3px, 3px); box-shadow: 2px 2px 0 var(--ink); }
+  .pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .key { border: var(--bd); border-radius: 18px; background: #fff; box-shadow: var(--sh); font-size: 34px; font-weight: 700; height: 76px; transition: transform .05s; }
+  .key:active { transform: translate(4px, 4px); box-shadow: 1px 1px 0 var(--ink); }
+  .key.del { font-size: 20px; background: var(--bad); color: #fff; }
+  .key.hint { font-size: 18px; background: var(--purple); color: #fff; }
+  .go { border: var(--bd); border-radius: 20px; background: var(--ok); color: #fff; font-size: 28px; font-weight: 700; height: 76px; box-shadow: var(--sh); letter-spacing: 1px; text-shadow: 2px 2px 0 rgba(31,58,95,.35); }
+  .go:active { transform: translate(4px, 4px); box-shadow: 1px 1px 0 var(--ink); }
+  .hinttext { background: #f1eaff; border: 3px dashed var(--purple); border-radius: 16px; padding: 8px 12px; font-size: 16px; line-height: 1.35; font-weight: 500; }
   .feedback { min-height: 26px; font-size: 18px; font-weight: 700; text-align: center; }
-  .feedback.bad { color: var(--bad); }
+  .feedback.bad { color: #d92d33; }
   .feedback.ok { color: var(--ok); }
   .shake { animation: shake .35s; }
   @keyframes shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
 
-  /* ---------- Hojas y modales ---------- */
-  .overlay { position: fixed; inset: 0; background: rgba(20, 30, 50, .55); display: grid; place-items: center; z-index: 50; padding: 16px; }
-  .modal { background: #fff; border-radius: 28px; border: 6px solid #ffd27a; padding: 22px; max-width: 420px; width: 100%; text-align: center; animation: pop .3s; }
+  /* ---------- Modales ---------- */
+  .overlay { position: fixed; inset: 0; background: rgba(20, 30, 50, .6); display: grid; place-items: center; z-index: 50; padding: 16px; }
+  .modal { position: relative; background: #fff; border-radius: 30px; border: 5px solid var(--ink); box-shadow: 8px 8px 0 var(--ink); padding: 22px; max-width: 430px; width: 100%; text-align: center; animation: pop .3s; }
+  .modal::before { content: ''; position: absolute; inset: 0; border-radius: 26px; background: repeating-conic-gradient(from 0deg, #fff6c2 0 10deg, #fff 10deg 20deg); opacity: .7; z-index: -1; }
   @keyframes pop { from { transform: scale(.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-  .modal h2 { margin: 4px 0 6px; font-size: 30px; color: var(--pink); }
-  .modal .em { font-size: 64px; }
+  .modal h2 { margin: 4px 0 6px; font-size: 34px; color: var(--pink); text-shadow: 3px 3px 0 var(--ink); -webkit-text-stroke: 1px var(--ink); letter-spacing: 1px; }
+  .modal .em { font-size: 70px; line-height: 1.1; }
+  .modal .em svg { width: 110px; height: 110px; }
   .modal p { margin: 6px 0; font-size: 17px; line-height: 1.4; }
-  .modal .stars { font-size: 40px; letter-spacing: 4px; color: #f4b400; }
-  .modal .btns { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
-  .modal .btns button { border: none; border-radius: 16px; padding: 12px; font-size: 18px; font-weight: 700; }
-  .modal .btns .p { background: linear-gradient(90deg, #ff9f1c, #ff5c8a); color: #fff; }
-  .modal .btns .s { background: #eef3ff; color: var(--ink); }
-  .modal .frase { font-size: 22px; font-weight: 700; color: var(--ink); background: #f4f8ff; border-radius: 14px; padding: 8px; }
+  .modal .stars { font-size: 46px; letter-spacing: 4px; color: #ffcc00; -webkit-text-stroke: 2px var(--ink); }
+  .modal .btns { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+  .modal .btns button { border: var(--bd); border-radius: 18px; padding: 12px; font-size: 19px; font-weight: 700; box-shadow: var(--sh); }
+  .modal .btns button:active { transform: translate(3px, 3px); box-shadow: 2px 2px 0 var(--ink); }
+  .modal .btns .p { background: #ffcc00; }
+  .modal .btns .s { background: #fff; }
+  .modal .frase { font-size: 22px; font-weight: 700; color: var(--ink); background: #fff; border: 3px solid var(--ink); border-radius: 16px; padding: 8px; }
   .modal .yours { color: var(--muted); font-size: 15px; }
-  .toast { position: fixed; left: 50%; top: 18px; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 10px 18px; border-radius: 99px; font-weight: 600; z-index: 60; animation: pop .25s; }
+  .toast { position: fixed; left: 50%; top: 18px; transform: translateX(-50%); background: #fff; border: var(--bd); box-shadow: var(--sh); color: var(--ink); padding: 10px 18px; border-radius: 99px; font-weight: 700; z-index: 60; animation: pop .25s; }
 
-  @media (max-width: 860px) {
+  @media (max-width: 980px) {
     #home { grid-template-columns: 1fr; }
+    .pet .disc { width: 190px; height: 190px; }
     .stage { grid-template-columns: 1fr; }
-    svg.clock { width: min(42vh, 88vw, 380px); }
-    .key { height: 52px; font-size: 24px; }
-    .two svg.clock { width: min(36vh, 38vw); }
-    .abox { height: 64px; font-size: 34px; min-width: 84px; }
+    .left { min-height: 0; }
+    .mini-pet { display: none; }
+    svg.clock { width: min(44vh, 84vw, 400px); }
+    .two svg.clock { width: min(34vh, 36vw, 260px); }
+    .key { height: 58px; font-size: 26px; }
+    .go { height: 64px; font-size: 24px; }
+    .abox { height: 64px; font-size: 34px; }
+  }
+  @media (max-width: 560px) {
+    .tiles { grid-template-columns: 1fr 1fr; }
+    .tile, .tile.wide { grid-column: span 1; }
+    .tile.wide:last-child { grid-column: 1 / -1; }
+    .tile .band { height: 110px; }
+    .tile .band svg { height: 88px; }
+    .levels { gap: 8px; }
+    .chip { font-size: 15px; padding: 6px; }
+    .logo h1 { font-size: 28px; }
   }
 </style>
 </head>
@@ -155,37 +201,40 @@
 
 <!-- ===== Portada ===== -->
 <div id="home" class="screen">
-  <section class="panel">
+  <section>
     <div class="logo">
-      <div style="font-size:44px">⏰</div>
-      <div><h1>Maestro del Tiempo</h1><a class="back" href="../index.html">← Todos los juegos</a></div>
+      <span id="logo-art"></span>
+      <div><h1>¡Maestro del Tiempo!</h1><a class="back" href="../index.html">← Todos los juegos</a></div>
     </div>
     <div class="pet">
       <div class="bubble" id="pet-bubble">¡Hoy aprendemos juntos!</div>
-      <div class="disc" id="pet-emoji">🥚</div>
+      <div class="disc bounce" id="pet-art"></div>
       <div class="name" id="pet-name">Huevito</div>
+    </div>
+    <div class="card growth">
+      <div class="t" id="pet-next">Para crecer: <b>20</b></div>
       <div class="gauge"><i id="pet-gauge"></i></div>
-      <div class="small" id="pet-next">Para crecer: 20 puntos</div>
+      <div class="small" id="pet-pts">Puntos: 0</div>
     </div>
     <div class="tools">
-      <button class="pill" id="sound-btn-home">🔊 Sonido</button>
-      <button class="pill" id="reset-btn">🗑️ Borrar progreso</button>
+      <button class="pill" id="sound-btn-home"></button>
+      <button class="pill" id="reset-btn">Borrar progreso</button>
     </div>
   </section>
   <section>
     <div class="levels" id="levels"></div>
     <div class="tiles" id="tiles"></div>
   </section>
+  <div class="credit">Maestro del Tiempo · inspirado en «Tokei Master» de ota tools × kita</div>
 </div>
 
 <!-- ===== Juego ===== -->
 <div id="game" class="screen hidden">
   <div class="topbar">
-    <button class="circle" id="home-btn" title="Volver al inicio">🏠</button>
-    <div class="title" id="game-title"></div>
-    <button class="circle" id="sound-btn" title="Sonido">🔊</button>
+    <button class="circle" id="home-btn" title="Volver al inicio"></button>
+    <div class="grow"><div class="title" id="game-title"></div><div class="stamps" id="stamps"></div></div>
+    <button class="circle" id="sound-btn" title="Sonido"></button>
   </div>
-  <div class="stamps" id="stamps"></div>
   <div class="stage">
     <div class="left" id="left"></div>
     <div class="right" id="right"></div>
@@ -267,13 +316,40 @@ let save = { pts: 0, best: {} };
 try { Object.assign(save, JSON.parse(localStorage.getItem(KEY)) || {}); } catch (e) {}
 const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) {} };
 
+// ================== Dibujos (SVG propios) ==================
+const INK = '#1f3a5f';
+const S = (vb, body) => `<svg viewBox="${vb}" xmlns="http://www.w3.org/2000/svg" stroke-linejoin="round" stroke-linecap="round">${body}</svg>`;
+const EYES = (y = 52, dx = 12) => `<circle cx="${50 - dx}" cy="${y}" r="4.5" fill="${INK}"/><circle cx="${50 + dx}" cy="${y}" r="4.5" fill="${INK}"/><circle cx="${51.5 - dx}" cy="${y - 1.5}" r="1.4" fill="#fff"/><circle cx="${51.5 + dx}" cy="${y - 1.5}" r="1.4" fill="#fff"/>`;
+const CHEEKS = (y = 60, dx = 20) => `<ellipse cx="${50 - dx}" cy="${y}" rx="5" ry="3" fill="#ff9db4" opacity=".8"/><ellipse cx="${50 + dx}" cy="${y}" rx="5" ry="3" fill="#ff9db4" opacity=".8"/>`;
+const ART = {
+  egg: S('0 0 100 100', `<path d="M50 8C30 8 18 40 18 60c0 20 14 32 32 32s32-12 32-32C82 40 70 8 50 8z" fill="#fff9ec" stroke="${INK}" stroke-width="6"/><ellipse cx="38" cy="34" rx="6" ry="11" fill="#fff" transform="rotate(20 38 34)"/><circle cx="62" cy="64" r="4" fill="#ffd27a"/><circle cx="40" cy="74" r="3" fill="#ffd27a"/>`),
+  hatch: S('0 0 100 100', `<circle cx="50" cy="44" r="26" fill="#ffd93b" stroke="${INK}" stroke-width="5"/><path d="M44 22c2-8 8-8 8-2" fill="none" stroke="${INK}" stroke-width="4"/>${EYES(42, 9)}<path d="M45 52l5 5 5-5z" fill="#ff9f1c" stroke="${INK}" stroke-width="3"/><path d="M16 56l10-8 8 8 8-8 8 8 8-8 8 8 8-8 10 8v8c0 18-14 28-34 28S16 82 16 64z" fill="#fff9ec" stroke="${INK}" stroke-width="5"/>`),
+  chick: S('0 0 100 100', `<path d="M42 90v6M58 90v6M38 96h8M54 96h8" stroke="#ff9f1c" stroke-width="4"/><ellipse cx="50" cy="56" rx="34" ry="34" fill="#ffd93b" stroke="${INK}" stroke-width="5"/><path d="M46 22c0-8 8-10 8-4M50 22c4-6 10-4 8 0" fill="none" stroke="${INK}" stroke-width="4"/>${EYES(50, 11)}${CHEEKS(60, 20)}<path d="M44 58l6 6 6-6z" fill="#ff9f1c" stroke="${INK}" stroke-width="3"/><path d="M16 60c-6 4-6 12 2 14" fill="#ffc400" stroke="${INK}" stroke-width="4"/><path d="M84 60c6 4 6 12-2 14" fill="#ffc400" stroke="${INK}" stroke-width="4"/>`),
+  hen: S('0 0 100 100', `<path d="M40 88v8M60 88v8" stroke="#ff9f1c" stroke-width="4"/><path d="M36 26c-2-12 8-14 10-6 2-10 12-10 12 0 6-6 12 0 6 8z" fill="#ff5a5f" stroke="${INK}" stroke-width="4"/><path d="M84 48c12-8 14 10 4 20" fill="#fff" stroke="${INK}" stroke-width="5"/><ellipse cx="50" cy="58" rx="34" ry="32" fill="#fff" stroke="${INK}" stroke-width="5"/>${EYES(48, 12)}${CHEEKS(58, 22)}<path d="M43 56l7 8 7-8z" fill="#ff9f1c" stroke="${INK}" stroke-width="3"/><path d="M47 64c0 8 6 8 6 0" fill="#ff5a5f" stroke="${INK}" stroke-width="3"/><path d="M28 70c6 8 14 8 18 2" fill="none" stroke="${INK}" stroke-width="4"/>`),
+  owl: S('0 0 100 100', `<path d="M24 26l6-16 12 12M76 26l-6-16-12 12" fill="#a0673a" stroke="${INK}" stroke-width="5"/><ellipse cx="50" cy="56" rx="36" ry="38" fill="#c98b55" stroke="${INK}" stroke-width="5"/><ellipse cx="50" cy="70" rx="22" ry="20" fill="#f5deb3" stroke="${INK}" stroke-width="3"/><circle cx="36" cy="42" r="13" fill="#fff" stroke="${INK}" stroke-width="4"/><circle cx="64" cy="42" r="13" fill="#fff" stroke="${INK}" stroke-width="4"/><circle cx="37" cy="43" r="6" fill="${INK}"/><circle cx="63" cy="43" r="6" fill="${INK}"/><circle cx="39" cy="41" r="2" fill="#fff"/><circle cx="65" cy="41" r="2" fill="#fff"/><path d="M45 52l5 8 5-8z" fill="#ff9f1c" stroke="${INK}" stroke-width="3"/><circle cx="50" cy="74" r="11" fill="#fff" stroke="${INK}" stroke-width="3"/><path d="M50 74v-7M50 74l5 3" stroke="${INK}" stroke-width="2.5"/>`),
+  alarm: S('0 0 100 100', `<path d="M20 22l14-12M80 22L66 10" stroke="${INK}" stroke-width="8"/><path d="M30 84l-8 10M70 84l8 10" stroke="${INK}" stroke-width="7"/><circle cx="50" cy="54" r="38" fill="#ff5a5f" stroke="${INK}" stroke-width="6"/><circle cx="50" cy="54" r="28" fill="#fff" stroke="${INK}" stroke-width="4"/><path d="M50 54V36M50 54l12 8" stroke="${INK}" stroke-width="5"/><circle cx="50" cy="54" r="4" fill="${INK}"/>`),
+  digital: S('0 0 140 100', `<path d="M24 22l-8-10M34 16l-4-12M116 22l8-10M106 16l4-12" stroke="${INK}" stroke-width="5"/><rect x="14" y="28" width="112" height="62" rx="18" fill="#9fd3ff" stroke="${INK}" stroke-width="6"/><rect x="26" y="40" width="88" height="38" rx="8" fill="#2c3e57" stroke="${INK}" stroke-width="4"/><text x="70" y="69" text-anchor="middle" font-family="Fredoka, sans-serif" font-weight="700" font-size="26" fill="#ffe066">10:15</text><rect x="58" y="22" width="24" height="8" rx="4" fill="#ff5a5f" stroke="${INK}" stroke-width="3"/>`),
+  analog: S('0 0 120 110', `<path d="M96 14l8-8M104 26l10-4M100 40h10" stroke="${INK}" stroke-width="5"/><circle cx="56" cy="58" r="46" fill="#ffd27a" stroke="${INK}" stroke-width="6"/><circle cx="56" cy="58" r="35" fill="#fffdf4" stroke="${INK}" stroke-width="3"/><g stroke="${INK}" stroke-width="4"><path d="M56 28v6M56 82v6M26 58h6M80 58h6"/></g><path d="M56 58L42 46" stroke="${INK}" stroke-width="6"/><path d="M56 58l20-12" stroke="${INK}" stroke-width="4"/><circle cx="56" cy="58" r="5" fill="#ffcc00" stroke="${INK}" stroke-width="3"/>`),
+  ampm: S('0 0 160 110', `<g stroke="${INK}" stroke-width="5"><path d="M44 8v10M44 70v10M10 44h10M68 44h10M20 20l7 7M61 61l7 7M68 20l-7 7M27 61l-7 7"/></g><circle cx="44" cy="44" r="20" fill="#ffcc00" stroke="${INK}" stroke-width="5"/><path d="M128 14a30 30 0 1 0 14 54A26 26 0 0 1 128 14z" fill="#2c3e8f" stroke="${INK}" stroke-width="5"/><rect x="22" y="86" width="44" height="20" rx="10" fill="${INK}"/><text x="44" y="101" text-anchor="middle" font-family="Fredoka, sans-serif" font-weight="700" font-size="14" fill="#fff">a.m.</text><rect x="100" y="86" width="44" height="20" rx="10" fill="${INK}"/><text x="122" y="101" text-anchor="middle" font-family="Fredoka, sans-serif" font-weight="700" font-size="14" fill="#fff">p.m.</text>`),
+  hourglass: S('0 0 100 120', `<rect x="18" y="6" width="64" height="12" rx="5" fill="${INK}"/><rect x="18" y="102" width="64" height="12" rx="5" fill="${INK}"/><path d="M26 18c0 26 18 32 18 42S26 76 26 102h48c0-26-18-32-18-42s18-16 18-42z" fill="#fff" stroke="${INK}" stroke-width="5"/><path d="M33 34h34c-4 10-14 16-17 22-3-6-13-12-17-22z" fill="#ffc21a"/><path d="M50 62v26" stroke="#ffc21a" stroke-width="3" stroke-dasharray="3 4"/><path d="M32 98c4-10 12-14 18-14s14 4 18 14z" fill="#ffc21a"/>`),
+  twoclocks: S('0 0 200 100', `${[44, 156].map(x => `<circle cx="${x}" cy="54" r="34" fill="#ffd27a" stroke="${INK}" stroke-width="5"/><circle cx="${x}" cy="54" r="25" fill="#fffdf4" stroke="${INK}" stroke-width="3"/><path d="M${x} 54l-10-8M${x} 54l14-6" stroke="${INK}" stroke-width="4"/><circle cx="${x}" cy="54" r="4" fill="#ffcc00" stroke="${INK}" stroke-width="2"/><path d="M${x + 26} 16l6-6M${x + 34} 26l8-3" stroke="${INK}" stroke-width="4"/>`).join('')}<path d="M86 54h26M102 42l12 12-12 12" fill="none" stroke="${INK}" stroke-width="7"/>`),
+  arrow: S('0 0 40 40', `<path d="M6 20h24M21 10l10 10-10 10" fill="none" stroke="${INK}" stroke-width="5"/>`),
+  home: S('0 0 24 24', `<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z" fill="#ff5a5f" stroke="${INK}" stroke-width="2"/>`),
+  soundOn: S('0 0 24 24', `<path d="M4 9h4l5-4v14l-5-4H4z" fill="${INK}" stroke="${INK}" stroke-width="2"/><path d="M16 9c1.5 1.5 1.5 4.5 0 6M19 6c3 3 3 9 0 12" fill="none" stroke="${INK}" stroke-width="2"/>`),
+  soundOff: S('0 0 24 24', `<path d="M4 9h4l5-4v14l-5-4H4z" fill="${INK}" stroke="${INK}" stroke-width="2"/><path d="M16 9l6 6M22 9l-6 6" stroke="${INK}" stroke-width="2"/>`),
+  bulb: S('0 0 24 24', `<path d="M12 3a6 6 0 0 0-3.5 10.9V17h7v-3.1A6 6 0 0 0 12 3z" fill="#ffe066" stroke="#fff" stroke-width="2"/><path d="M9.5 20h5" stroke="#fff" stroke-width="2"/>`),
+  sparkle: S('0 0 24 24', `<path d="M12 2l2.6 7.4L22 12l-7.4 2.6L12 22l-2.6-7.4L2 12l7.4-2.6z" fill="#ffe066" stroke="${INK}" stroke-width="1.6"/>`),
+  trophy: S('0 0 100 100', `<path d="M30 14h40v24a20 20 0 0 1-40 0z" fill="#ffcc00" stroke="${INK}" stroke-width="5"/><path d="M30 22H16c0 14 8 20 16 20M70 22h14c0 14-8 20-16 20" fill="none" stroke="${INK}" stroke-width="5"/><path d="M44 58h12v14H44z" fill="#ffcc00" stroke="${INK}" stroke-width="4"/><rect x="28" y="72" width="44" height="16" rx="4" fill="#ff9f1c" stroke="${INK}" stroke-width="5"/>`),
+};
+const svgIcon = (k) => ART[k].replace('<svg ', '<svg class="ic" ');
+
 // ================== Mascota ==================
 const PETS = [
-  { at: 0, e: '🥚', n: 'Huevito' },
-  { at: 20, e: '🐣', n: 'Pío' },
-  { at: 60, e: '🐥', n: 'Pollito Tic' },
-  { at: 130, e: '🐓', n: 'Gallo Tac' },
-  { at: 240, e: '🦉', n: 'Búho del Tiempo' },
+  { at: 0, e: 'egg', n: 'Huevito' },
+  { at: 20, e: 'hatch', n: 'Pío' },
+  { at: 60, e: 'chick', n: 'Pollito Tic' },
+  { at: 130, e: 'hen', n: 'Gallo Tac' },
+  { at: 240, e: 'owl', n: 'Búho del Tiempo' },
 ];
 const petIndex = p => PETS.reduce((a, x, i) => p >= x.at ? i : a, 0);
 
@@ -286,32 +362,40 @@ function el(tag, attrs, parent) {
   return e;
 }
 // t = minutos desde las 12:00 (0..719)
+let clockUid = 0;
 function makeClock({ interactive = false, mini = false, step = 1, onChange } = {}) {
-  const svg = el('svg', { viewBox: '-128 -128 256 256', class: 'clock' + (mini ? ' mini' : '') });
-  el('circle', { r: 112, fill: '#ffd27a' }, svg);
-  el('circle', { r: 104, fill: '#fff', stroke: '#1f3a5f', 'stroke-width': 4 }, svg);
+  const id = 'ck' + (++clockUid);
+  const svg = el('svg', { viewBox: '-130 -130 260 260', class: 'clock' + (mini ? ' mini' : '') });
+  svg.innerHTML = `<defs>
+    <linearGradient id="${id}b" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4cc0ff"/><stop offset="1" stop-color="#6d7dff"/></linearGradient>
+    <radialGradient id="${id}f" cx=".45" cy=".4" r=".7"><stop offset=".6" stop-color="#ffffff"/><stop offset="1" stop-color="#e6ebf3"/></radialGradient></defs>`;
+  el('circle', { r: 125, fill: INK }, svg);
+  el('circle', { r: 119, fill: `url(#${id}b)` }, svg);
+  el('circle', { r: 101, fill: `url(#${id}f)`, stroke: '#c9d3e3', 'stroke-width': 4 }, svg);
+  const labels = el('g', { 'font-family': 'Fredoka, sans-serif', 'font-weight': 700, 'text-anchor': 'middle' }, svg);
+  for (let i = 0; i < 12; i++) {
+    const a = i * 30 * Math.PI / 180;
+    const t = el('text', { x: Math.sin(a) * 110, y: -Math.cos(a) * 110 + 3.5, 'font-size': 10, fill: '#fff' }, labels);
+    t.textContent = i * 5;
+  }
   for (let i = 0; i < 60; i++) {
-    const big = i % 5 === 0, a = i * 6 * Math.PI / 180, r1 = big ? 88 : 94;
-    el('line', { x1: Math.sin(a) * r1, y1: -Math.cos(a) * r1, x2: Math.sin(a) * 100, y2: -Math.cos(a) * 100, stroke: big ? '#1f3a5f' : '#9aa7bd', 'stroke-width': big ? 3 : 1.5, 'stroke-linecap': 'round' }, svg);
+    const big = i % 5 === 0, a = i * 6 * Math.PI / 180, r1 = big ? 85 : 91;
+    el('line', { x1: Math.sin(a) * r1, y1: -Math.cos(a) * r1, x2: Math.sin(a) * 96, y2: -Math.cos(a) * 96, stroke: big ? INK : '#9aa7bd', 'stroke-width': big ? 4 : 1.6, 'stroke-linecap': 'round' }, svg);
   }
   for (let i = 1; i <= 12; i++) {
     const a = i * 30 * Math.PI / 180;
-    const t = el('text', { x: Math.sin(a) * 72, y: -Math.cos(a) * 72 + 9, 'text-anchor': 'middle', 'font-size': 26, 'font-weight': 700, fill: '#1f3a5f', 'font-family': 'Fredoka, sans-serif' }, svg);
+    const t = el('text', { x: Math.sin(a) * 70, y: -Math.cos(a) * 70 + 9, 'text-anchor': 'middle', 'font-size': 26, 'font-weight': 700, fill: INK, 'font-family': 'Fredoka, sans-serif' }, svg);
     t.textContent = i;
   }
-  const labels = el('g', { opacity: 0, style: 'transition:opacity .3s' }, svg);
-  for (let i = 0; i < 12; i++) {
-    const a = i * 30 * Math.PI / 180;
-    el('circle', { cx: Math.sin(a) * 120, cy: -Math.cos(a) * 120, r: 9, fill: '#2f6fed' }, labels);
-    const t = el('text', { x: Math.sin(a) * 120, y: -Math.cos(a) * 120 + 4, 'text-anchor': 'middle', 'font-size': 11, 'font-weight': 700, fill: '#fff', 'font-family': 'Fredoka, sans-serif' }, labels);
-    t.textContent = i * 5;
-  }
+  // Agujas con punta de flecha
   const hourH = el('g', {}, svg);
-  el('line', { x1: 0, y1: 10, x2: 0, y2: -52, stroke: '#e5484d', 'stroke-width': 10, 'stroke-linecap': 'round' }, hourH);
+  el('path', { d: 'M-5 12 L-5 -38 L-13 -38 L0 -60 L13 -38 L5 -38 L5 12 Z', fill: '#ef4444', stroke: '#b91c1c', 'stroke-width': 2.5, 'stroke-linejoin': 'round' }, hourH);
+  el('path', { d: 'M-1.5 6 L-1.5 -36', stroke: '#ffb4b4', 'stroke-width': 2.5, 'stroke-linecap': 'round' }, hourH);
   const minH = el('g', {}, svg);
-  el('line', { x1: 0, y1: 12, x2: 0, y2: -86, stroke: '#2f6fed', 'stroke-width': 6, 'stroke-linecap': 'round' }, minH);
-  el('circle', { r: 8, fill: '#1f3a5f' }, svg);
-  el('circle', { r: 3, fill: '#fff' }, svg);
+  el('path', { d: 'M-3.5 14 L-3.5 -70 L-10 -70 L0 -90 L10 -70 L3.5 -70 L3.5 14 Z', fill: '#2f6fed', stroke: '#1d4fb8', 'stroke-width': 2.5, 'stroke-linejoin': 'round' }, minH);
+  el('path', { d: 'M-1 8 L-1 -68', stroke: '#a9c4ff', 'stroke-width': 2, 'stroke-linecap': 'round' }, minH);
+  el('circle', { r: 11, fill: INK }, svg);
+  el('circle', { r: 5.5, fill: '#ffcc00' }, svg);
 
   const clock = { svg, t: 0 };
   clock.set = (t) => {
@@ -320,7 +404,8 @@ function makeClock({ interactive = false, mini = false, step = 1, onChange } = {
     hourH.setAttribute('transform', `rotate(${t / 2})`);
     minH.setAttribute('transform', `rotate(${(t % 60) * 6})`);
   };
-  clock.labels = (on) => labels.setAttribute('opacity', on ? 1 : 0);
+  // En la pista, los minutos del bisel se destacan en amarillo
+  clock.labels = (on) => labels.querySelectorAll('text').forEach(t => { t.setAttribute('fill', on ? '#ffe066' : '#fff'); t.setAttribute('font-size', on ? 13 : 10); });
 
   if (interactive) {
     // Zonas de agarre invisibles más anchas
@@ -367,16 +452,16 @@ function makeClock({ interactive = false, mini = false, step = 1, onChange } = {
 
 // ================== Definición de modos ==================
 const LEVELS = [
-  { id: 1, name: '★ Nivel 1', sub: 'En punto y medias' },
-  { id: 2, name: '★★ Nivel 2', sub: 'De 5 en 5 minutos' },
-  { id: 3, name: '★★★ Nivel 3', sub: 'Minuto a minuto' },
+  { id: 1, name: 'Nivel 1', sub: 'En punto y medias' },
+  { id: 2, name: 'Nivel 2', sub: 'De 5 en 5 minutos' },
+  { id: 3, name: 'Nivel 3', sub: 'Minuto a minuto' },
 ];
 const STAGES = [
-  { id: 1, e: '👀', c: '#ffcfa8', t: 'Leer la hora', d: 'Mira el reloj y escribe qué hora es.' },
-  { id: 2, e: '🖐️', c: '#bfe0ff', t: 'Mover las agujas', d: 'Gira las agujas hasta la hora pedida.' },
-  { id: 3, e: '☀️🌙', c: '#dccfff', t: 'Mañana o tarde', d: 'Pasa de 24 horas a a.m./p.m. y al revés.' },
-  { id: 4, e: '⏪⏩', c: '#b8f0d5', t: 'Antes y después', d: '¿Qué hora será dentro de… o era hace…?' },
-  { id: 5, e: '⏳', c: '#ffd6e7', t: '¿Cuánto tiempo pasa?', d: 'Compara dos relojes y calcula la duración.' },
+  { id: 1, e: 'digital', c: '#ffcfa8', t: 'Leer la hora', d: 'Mira el reloj y escribe qué hora es.' },
+  { id: 2, e: 'analog', c: '#bfe0ff', t: 'Mover las agujas', d: 'Gira las agujas hasta la hora pedida.' },
+  { id: 3, e: 'ampm', c: '#dccfff', t: 'Mañana o tarde', d: 'Pasa de 24 horas a a.m./p.m. y al revés.' },
+  { id: 4, e: 'hourglass', c: '#b8f0d5', t: 'Antes y después', d: '¿Qué hora será dentro de… o era hace…?' },
+  { id: 5, e: 'twoclocks', c: '#ffd6e7', t: '¿Cuánto tiempo pasa?', d: 'Compara dos relojes y calcula la duración.' },
 ];
 const ROUND = 10;
 let level = 1;
@@ -425,7 +510,7 @@ function startGame(stage) {
   document.getElementById('home').classList.add('hidden');
   document.getElementById('game').classList.remove('hidden');
   const st = STAGES[stage - 1];
-  document.getElementById('game-title').textContent = `${st.e} ${st.t} · ${LEVELS[level - 1].name}`;
+  document.getElementById('game-title').textContent = `${st.t} · ${LEVELS[level - 1].name}`;
   nextQuestion();
 }
 
@@ -491,7 +576,7 @@ function makePad(input, onHint) {
   const del = document.createElement('button'); del.className = 'key del'; del.textContent = '⌫ Borrar';
   del.onclick = () => { input.clear(); sfx.tap(); }; pad.appendChild(del);
   addKey(0);
-  const hint = document.createElement('button'); hint.className = 'key hint'; hint.textContent = '💡 Pista';
+  const hint = document.createElement('button'); hint.className = 'key hint'; hint.innerHTML = svgIcon('bulb') + ' Pista';
   hint.onclick = onHint; pad.appendChild(hint);
   function addKey(n) {
     const b = document.createElement('button'); b.className = 'key'; b.textContent = n;
@@ -502,7 +587,7 @@ function makePad(input, onHint) {
 
 function goButton(fn) {
   const b = document.createElement('button');
-  b.className = 'go'; b.textContent = '¡Comprobar! ✨'; b.onclick = fn;
+  b.className = 'go'; b.innerHTML = '¡Comprobar! ' + svgIcon('sparkle'); b.onclick = fn;
   return b;
 }
 function div(cls, html) { const d = document.createElement('div'); if (cls) d.className = cls; if (html !== undefined) d.innerHTML = html; return d; }
@@ -521,6 +606,7 @@ function nextQuestion() {
   UI.hint = div('hinttext hidden');
   UI.fb = div('feedback');
   [renderS1, renderS2, renderS3, renderS4, renderS5][G.stage - 1](G.q);
+  if (G.stage === 1 || G.stage === 3) L.appendChild(div('mini-pet', ART[PETS[petIndex(save.pts)].e]));
 }
 
 function showHint(text, clock) {
@@ -686,7 +772,7 @@ function renderS5(q) {
   c1.set(s); c2.set(e);
   const b1 = div('clockbox'); b1.append(c1.svg, div('lbl', '▶ Empieza ' + dig(q.sh, q.sm)));
   const b2 = div('clockbox'); b2.append(c2.svg, div('lbl', '⏹ Termina ' + dig(eh, em)));
-  const row = div('clocks'); row.append(b1, div('arrow', '➜'), b2);
+  const row = div('clocks'); row.append(b1, div('arrow', ART.arrow), b2);
   L.appendChild(row);
   const inp = makeInput([{ key: 'h', label: 'h', cls: 'h', max: 12 }, { key: 'm', label: 'min', cls: 'm', max: 59 }]);
   UI.input = inp;
@@ -721,7 +807,7 @@ function check(ok, tip, sentence, answer, yours, reveal) {
     gainPts(r === 1 ? 2 : 1);
     say(sentence);
     showModal({
-      em: pick(['🎉', '🌟', '🥳', '👏', '💯']), title: r === 1 ? pick(['¡Genial!', '¡Perfecto!', '¡Muy bien!', '¡Bravo!']) : '¡Ahora sí!',
+      em: ART[PETS[petIndex(save.pts)].e], title: r === 1 ? pick(['¡Genial!', '¡Perfecto!', '¡Muy bien!', '¡Bravo!']) : '¡Ahora sí!',
       body: `<p class="frase">${sentence}</p>`,
       btn: G.i + 1 < ROUND ? 'Siguiente ➜' : 'Ver resultado 🏆',
     });
@@ -767,7 +853,7 @@ function finish() {
   persist();
   sfx.win();
   showModal({
-    em: stars === 3 ? '🏆' : stars ? '🎖️' : '💪',
+    em: stars ? ART.trophy : ART[PETS[petIndex(save.pts)].e],
     title: stars === 3 ? '¡Eres un maestro del tiempo!' : stars ? '¡Buen trabajo!' : '¡Sigue practicando!',
     body: `<div class="stars">${'★'.repeat(stars)}${'☆'.repeat(3 - stars)}</div>
       <p><b>${good}</b> de ${ROUND} aciertos (${first} a la primera)</p>${isBest && stars ? '<p>🎉 ¡Nuevo récord!</p>' : ''}`,
@@ -783,7 +869,7 @@ function gainPts(n) {
   save.pts += n;
   persist();
   const after = petIndex(save.pts);
-  if (after > before) setTimeout(() => toast(`✨ ¡Tu mascota ha crecido! Ahora es ${PETS[after].e} ${PETS[after].n}`), 400);
+  if (after > before) setTimeout(() => toast(`✨ ¡Tu mascota ha crecido! Ahora es ${PETS[after].n}`), 400);
 }
 function toast(msg) {
   const t = div('toast', msg); document.body.appendChild(t);
@@ -805,7 +891,7 @@ function renderHome() {
   LEVELS.forEach(l => {
     const b = document.createElement('button');
     b.className = 'chip' + (l.id === level ? ' on' : '');
-    b.innerHTML = `${l.name}<small>${l.sub}</small>`;
+    b.innerHTML = `<span class="st">${'★'.repeat(l.id)}</span>Nivel ${l.id}<small>${l.sub}</small>`;
     b.onclick = () => { level = l.id; sfx.tap(); renderHome(); };
     lv.appendChild(b);
   });
@@ -813,17 +899,19 @@ function renderHome() {
   tiles.innerHTML = '';
   STAGES.forEach(s => {
     const b = document.createElement('button');
-    b.className = 'tile'; b.style.setProperty('--c', s.c);
+    b.className = 'tile' + (s.id > 3 ? ' wide' : ''); b.style.setProperty('--c', s.c);
     const best = save.best[`${s.id}-${level}`] || 0;
-    b.innerHTML = `<div class="band">${s.e}</div><div class="tx"><b>${s.id}. ${s.t}</b><span>${s.d}</span><div class="best">${'★'.repeat(best)}${'☆'.repeat(3 - best)}</div></div>`;
+    b.innerHTML = `<div class="band">${ART[s.e]}</div><div class="tx"><b>${s.t}</b><span>${s.d}</span><div class="best">${'★'.repeat(best)}${'☆'.repeat(3 - best)}</div></div>`;
     b.onclick = () => { sfx.tap(); startGame(s.id); };
     tiles.appendChild(b);
   });
   const i = petIndex(save.pts), p = PETS[i], nx = PETS[i + 1];
-  document.getElementById('pet-emoji').textContent = p.e;
+  document.getElementById('pet-art').innerHTML = ART[p.e];
+  document.getElementById('logo-art').innerHTML = ART.alarm;
   document.getElementById('pet-name').textContent = p.n;
   document.getElementById('pet-gauge').style.width = nx ? ((save.pts - p.at) / (nx.at - p.at) * 100) + '%' : '100%';
-  document.getElementById('pet-next').textContent = nx ? `Puntos: ${save.pts} · Para crecer: ${nx.at - save.pts} más` : `Puntos: ${save.pts} · ¡Ha llegado a lo más alto!`;
+  document.getElementById('pet-next').innerHTML = nx ? `Para crecer faltan <b>${nx.at - save.pts}</b> puntos` : '¡Ha llegado a lo más alto!';
+  document.getElementById('pet-pts').textContent = `Puntos: ${save.pts}`;
   document.getElementById('pet-bubble').textContent = pick(['¡Hoy aprendemos juntos!', '¿Qué hora es? ¡Vamos a jugar!', '¡Cada acierto me hace crecer!', 'Tic, tac… ¡a por ello!']);
 }
 
@@ -832,9 +920,11 @@ function toggleSound() {
   if (!soundOn && window.speechSynthesis) speechSynthesis.cancel();
   ['sound-btn', 'sound-btn-home'].forEach(id => {
     const b = document.getElementById(id);
-    b.textContent = id === 'sound-btn' ? (soundOn ? '🔊' : '🔇') : (soundOn ? '🔊 Sonido' : '🔇 Sin sonido');
+    b.innerHTML = id === 'sound-btn' ? ART[soundOn ? 'soundOn' : 'soundOff'] : svgIcon(soundOn ? 'soundOn' : 'soundOff') + (soundOn ? ' Sonido' : ' Sin sonido');
   });
 }
+document.getElementById('home-btn').innerHTML = ART.home;
+soundOn = !soundOn; toggleSound();
 document.getElementById('sound-btn').onclick = toggleSound;
 document.getElementById('sound-btn-home').onclick = toggleSound;
 document.getElementById('home-btn').onclick = goHome;
