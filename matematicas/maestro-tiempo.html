@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#fff3d6">
+<title>Maestro del Tiempo · La hora, a.m./p.m. y duraciones</title>
+<meta name="description" content="Lee la hora, mueve las agujas, pasa de 24 h a a.m./p.m., calcula antes y después y cuánto tiempo pasa. Tres niveles: en punto, de 5 en 5 y minuto a minuto.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Juegos educativos">
+<meta property="og:title" content="Maestro del Tiempo">
+<meta property="og:description" content="Lee la hora, mueve las agujas, a.m./p.m., antes y después y cuánto tiempo pasa.">
+<meta property="og:url" content="https://maestroseb.github.io/juegos-educativos/matematicas/maestro-tiempo.html">
+<meta property="og:image" content="https://maestroseb.github.io/juegos-educativos/img/capturas/maestro-tiempo.jpg">
+<meta property="og:locale" content="es_ES">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #fff3d6;
+    --ink: #1f3a5f;
+    --muted: #5d6b85;
+    --card: #ffffff;
+    --line: #f0dcb4;
+    --hour: #e5484d;
+    --min: #2f6fed;
+    --ok: #22a06b;
+    --bad: #e5484d;
+    --accent: #ff9f1c;
+    --pink: #ff5c8a;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    font-family: 'Fredoka', 'Segoe UI', sans-serif; color: var(--ink); background: var(--bg);
+    background-image: radial-gradient(circle at 0% 0%, #ffe0a3 0, transparent 40%), radial-gradient(circle at 100% 100%, #d5ebff 0, transparent 45%);
+    background-attachment: fixed; user-select: none; overflow-x: hidden;
+  }
+  button { font-family: inherit; color: inherit; cursor: pointer; }
+  .hidden { display: none !important; }
+  .screen { min-height: 100%; padding: 16px; max-width: 1180px; margin: 0 auto; }
+
+  /* ---------- Portada ---------- */
+  #home { display: grid; grid-template-columns: 300px 1fr; gap: 20px; align-items: start; }
+  .panel { background: var(--card); border: 3px solid var(--line); border-radius: 24px; box-shadow: 0 5px 0 var(--line); padding: 18px; }
+  .logo { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .logo h1 { margin: 0; font-size: 30px; line-height: 1; }
+  .logo .back { text-decoration: none; color: var(--muted); font-size: 14px; display: block; margin-top: 4px; }
+  .pet { text-align: center; }
+  .pet .bubble { display: inline-block; background: #fff7e6; border: 2px solid var(--line); border-radius: 16px; padding: 6px 12px; font-weight: 600; font-size: 15px; }
+  .pet .disc { width: 130px; height: 130px; margin: 10px auto 4px; border-radius: 50%; display: grid; place-items: center; font-size: 76px; background: radial-gradient(circle, #fff 40%, #ffe2a8 100%); border: 4px solid #ffd27a; }
+  .pet .name { font-weight: 700; font-size: 20px; }
+  .gauge { height: 14px; background: #f3ead9; border-radius: 99px; overflow: hidden; margin: 8px 0 4px; }
+  .gauge i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #ffb703, #fb8500); border-radius: 99px; transition: width .6s; }
+  .small { font-size: 14px; color: var(--muted); }
+  .levels { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; }
+  .chip { border: 3px solid var(--line); background: #fff; border-radius: 18px; padding: 8px 14px; text-align: left; font-weight: 700; font-size: 17px; }
+  .chip small { display: block; font-weight: 500; font-size: 13px; color: var(--muted); }
+  .chip.on { background: var(--ink); border-color: var(--ink); color: #fff; }
+  .chip.on small { color: #cfe0ff; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 14px; }
+  .tile { border: 3px solid var(--line); background: #fff; border-radius: 22px; padding: 0; overflow: hidden; text-align: left; box-shadow: 0 5px 0 var(--line); transition: transform .12s; display: flex; flex-direction: column; }
+  .tile:hover { transform: translateY(-3px); }
+  .tile .band { background: var(--c); height: 78px; display: grid; place-items: center; font-size: 42px; }
+  .tile .tx { padding: 10px 14px 12px; flex: 1; }
+  .tile .tx b { display: block; font-size: 19px; }
+  .tile .tx span { display: block; font-size: 14px; color: var(--muted); line-height: 1.25; margin-top: 2px; }
+  .tile .best { font-size: 18px; letter-spacing: 2px; color: #f4b400; margin-top: 6px; }
+  .tools { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; justify-content: center; }
+  .pill { border: 2px solid var(--line); background: #fff; border-radius: 99px; padding: 6px 14px; font-weight: 600; font-size: 14px; }
+
+  /* ---------- Juego ---------- */
+  #game { display: flex; flex-direction: column; gap: 12px; }
+  .topbar { display: flex; align-items: center; gap: 10px; }
+  .topbar .title { font-weight: 700; font-size: 18px; flex: 1; text-align: center; }
+  .stamps { display: flex; gap: 5px; justify-content: center; flex-wrap: wrap; }
+  .stamp { width: 30px; height: 30px; border-radius: 50%; border: 2px dashed #d9c6a0; display: grid; place-items: center; font-size: 16px; background: #fff; }
+  .stamp.cur { border: 3px solid var(--accent); }
+  .stamp.s1 { background: #fff2b8; border: 2px solid #f4b400; }
+  .stamp.s2 { background: #d9f5e6; border: 2px solid var(--ok); }
+  .stamp.s0 { background: #ffe1e1; border: 2px solid var(--bad); }
+  .circle { width: 44px; height: 44px; border-radius: 50%; border: 2px solid var(--line); background: #fff; font-size: 20px; flex: none; }
+
+  .stage { display: grid; grid-template-columns: 1.15fr 1fr; gap: 16px; align-items: stretch; }
+  .left { display: flex; flex-direction: column; align-items: center; gap: 10px; justify-content: center; }
+  .prompt { font-size: 22px; font-weight: 700; text-align: center; line-height: 1.3; }
+  .prompt .big { display: inline-block; font-size: 30px; background: #1f3a5f; color: #fff; border-radius: 12px; padding: 0 12px; margin: 2px 0; font-variant-numeric: tabular-nums; }
+  .prompt .sub { display: block; font-size: 16px; color: var(--muted); font-weight: 500; }
+  .clocks { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; flex-wrap: wrap; }
+  .clockbox { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .clockbox .lbl { font-weight: 700; font-size: 15px; background: #fff; border: 2px solid var(--line); border-radius: 99px; padding: 2px 12px; }
+  svg.clock { width: min(52vh, 92vw, 430px); height: auto; display: block; touch-action: none; }
+  .two svg.clock { width: min(36vh, 42vw, 300px); }
+  svg.clock.mini { width: 120px; }
+  .arrow { font-size: 34px; color: var(--muted); }
+  .fine { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+  .fine button { border: 2px solid var(--line); background: #fff; border-radius: 14px; padding: 6px 12px; font-weight: 700; font-size: 16px; }
+  .context { font-size: 18px; font-weight: 600; background: #fff; border: 2px solid var(--line); border-radius: 99px; padding: 4px 16px; }
+
+  .right { display: flex; flex-direction: column; gap: 10px; justify-content: center; }
+  .answer { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; }
+  .abox { min-width: 96px; height: 76px; border-radius: 18px; border: 3px solid var(--line); background: #fff; font-size: 40px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 0 10px; font-variant-numeric: tabular-nums; }
+  .abox .u { font-size: 17px; color: var(--muted); font-weight: 600; }
+  .abox.on { border-color: var(--accent); box-shadow: 0 0 0 4px #ffe1b0; }
+  .abox.h .n { color: var(--hour); }
+  .abox.m .n { color: var(--min); }
+  .colon { font-size: 40px; font-weight: 700; }
+  .ampm { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .ampm button { border: 3px solid var(--line); background: #fff; border-radius: 16px; padding: 8px; font-weight: 700; font-size: 17px; }
+  .ampm button small { display: block; font-weight: 500; font-size: 12px; color: var(--muted); }
+  .ampm button.on { border-color: var(--accent); background: #fff3dc; }
+  .pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .key { border: none; border-radius: 16px; background: #fff; box-shadow: 0 4px 0 #e2cfa8; font-size: 28px; font-weight: 700; height: 60px; transition: transform .05s; }
+  .key:active { transform: translateY(3px); box-shadow: 0 1px 0 #e2cfa8; }
+  .key.del { font-size: 18px; background: #ffe9e9; box-shadow: 0 4px 0 #f2bcbc; }
+  .key.hint { font-size: 18px; background: #fff7d1; box-shadow: 0 4px 0 #ecd98a; }
+  .go { border: none; border-radius: 18px; background: linear-gradient(90deg, #ff9f1c, #ff5c8a); color: #fff; font-size: 24px; font-weight: 700; height: 64px; box-shadow: 0 5px 0 #c94b6d; }
+  .go:active { transform: translateY(3px); box-shadow: 0 2px 0 #c94b6d; }
+  .hinttext { background: #fff7d1; border: 2px dashed #ecd98a; border-radius: 14px; padding: 8px 12px; font-size: 16px; line-height: 1.35; }
+  .feedback { min-height: 26px; font-size: 18px; font-weight: 700; text-align: center; }
+  .feedback.bad { color: var(--bad); }
+  .feedback.ok { color: var(--ok); }
+  .shake { animation: shake .35s; }
+  @keyframes shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
+
+  /* ---------- Hojas y modales ---------- */
+  .overlay { position: fixed; inset: 0; background: rgba(20, 30, 50, .55); display: grid; place-items: center; z-index: 50; padding: 16px; }
+  .modal { background: #fff; border-radius: 28px; border: 6px solid #ffd27a; padding: 22px; max-width: 420px; width: 100%; text-align: center; animation: pop .3s; }
+  @keyframes pop { from { transform: scale(.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .modal h2 { margin: 4px 0 6px; font-size: 30px; color: var(--pink); }
+  .modal .em { font-size: 64px; }
+  .modal p { margin: 6px 0; font-size: 17px; line-height: 1.4; }
+  .modal .stars { font-size: 40px; letter-spacing: 4px; color: #f4b400; }
+  .modal .btns { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+  .modal .btns button { border: none; border-radius: 16px; padding: 12px; font-size: 18px; font-weight: 700; }
+  .modal .btns .p { background: linear-gradient(90deg, #ff9f1c, #ff5c8a); color: #fff; }
+  .modal .btns .s { background: #eef3ff; color: var(--ink); }
+  .modal .frase { font-size: 22px; font-weight: 700; color: var(--ink); background: #f4f8ff; border-radius: 14px; padding: 8px; }
+  .modal .yours { color: var(--muted); font-size: 15px; }
+  .toast { position: fixed; left: 50%; top: 18px; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 10px 18px; border-radius: 99px; font-weight: 600; z-index: 60; animation: pop .25s; }
+
+  @media (max-width: 860px) {
+    #home { grid-template-columns: 1fr; }
+    .stage { grid-template-columns: 1fr; }
+    svg.clock { width: min(42vh, 88vw, 380px); }
+    .key { height: 52px; font-size: 24px; }
+    .two svg.clock { width: min(36vh, 38vw); }
+    .abox { height: 64px; font-size: 34px; min-width: 84px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== Portada ===== -->
+<div id="home" class="screen">
+  <section class="panel">
+    <div class="logo">
+      <div style="font-size:44px">⏰</div>
+      <div><h1>Maestro del Tiempo</h1><a class="back" href="../index.html">← Todos los juegos</a></div>
+    </div>
+    <div class="pet">
+      <div class="bubble" id="pet-bubble">¡Hoy aprendemos juntos!</div>
+      <div class="disc" id="pet-emoji">🥚</div>
+      <div class="name" id="pet-name">Huevito</div>
+      <div class="gauge"><i id="pet-gauge"></i></div>
+      <div class="small" id="pet-next">Para crecer: 20 puntos</div>
+    </div>
+    <div class="tools">
+      <button class="pill" id="sound-btn-home">🔊 Sonido</button>
+      <button class="pill" id="reset-btn">🗑️ Borrar progreso</button>
+    </div>
+  </section>
+  <section>
+    <div class="levels" id="levels"></div>
+    <div class="tiles" id="tiles"></div>
+  </section>
+</div>
+
+<!-- ===== Juego ===== -->
+<div id="game" class="screen hidden">
+  <div class="topbar">
+    <button class="circle" id="home-btn" title="Volver al inicio">🏠</button>
+    <div class="title" id="game-title"></div>
+    <button class="circle" id="sound-btn" title="Sonido">🔊</button>
+  </div>
+  <div class="stamps" id="stamps"></div>
+  <div class="stage">
+    <div class="left" id="left"></div>
+    <div class="right" id="right"></div>
+  </div>
+</div>
+
+<div id="overlay" class="overlay hidden"><div class="modal" id="modal"></div></div>
+
+<script>
+// ================== Utilidades de tiempo ==================
+const N = ['cero','una','dos','tres','cuatro','cinco','seis','siete','ocho','nueve','diez','once','doce','trece','catorce','quince','dieciséis','diecisiete','dieciocho','diecinueve','veinte','veintiuno','veintidós','veintitrés','veinticuatro','veinticinco','veintiséis','veintisiete','veintiocho','veintinueve','treinta'];
+const NUM = n => n === 1 ? 'uno' : n === 21 ? 'veintiuno' : N[n];
+const pad2 = n => String(n).padStart(2, '0');
+const h12 = h => (h % 12) || 12;
+const rnd = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+
+// Frase en español: "las tres y cuarto", "la una menos veinte"
+function frase(h, m) {
+  let base = h12(h), resto = '';
+  if (m === 0) resto = ' en punto';
+  else if (m === 15) resto = ' y cuarto';
+  else if (m === 30) resto = ' y media';
+  else if (m < 30) resto = ' y ' + NUM(m);
+  else { base = h12(h + 1); resto = m === 45 ? ' menos cuarto' : ' menos ' + NUM(60 - m); }
+  return (base === 1 ? 'la una' : 'las ' + N[base]) + resto;
+}
+function franja(h) {
+  if (h < 6) return 'de la madrugada';
+  if (h < 12) return 'de la mañana';
+  if (h < 14) return 'del mediodía';
+  if (h < 21) return 'de la tarde';
+  return 'de la noche';
+}
+const son = (h, m) => { const f = frase(h, m); return (f.startsWith('la una') ? 'Es ' : 'Son ') + f; };
+const dig = (h, m) => `${h}:${pad2(m)}`;
+const durTxt = (min) => {
+  const h = Math.floor(min / 60), m = min % 60, p = [];
+  if (h) p.push(h === 1 ? '1 hora' : h + ' horas');
+  if (m) p.push(m === 1 ? '1 minuto' : m + ' minutos');
+  return p.join(' y ') || '0 minutos';
+};
+
+// ================== Sonido y voz ==================
+let soundOn = true;
+let ac;
+function beep(freqs, dur = .12, type = 'triangle') {
+  if (!soundOn) return;
+  try {
+    ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+    freqs.forEach((f, i) => {
+      const o = ac.createOscillator(), g = ac.createGain(), t = ac.currentTime + i * dur;
+      o.type = type; o.frequency.value = f;
+      g.gain.setValueAtTime(.18, t); g.gain.exponentialRampToValueAtTime(.001, t + dur * 1.6);
+      o.connect(g).connect(ac.destination); o.start(t); o.stop(t + dur * 1.7);
+    });
+  } catch (e) {}
+}
+const sfx = {
+  ok: () => beep([660, 880, 1320]),
+  bad: () => beep([300, 220], .15, 'square'),
+  tap: () => beep([520], .04),
+  tick: () => beep([1200], .02, 'sine'),
+  win: () => beep([523, 659, 784, 1046, 1318], .13),
+};
+function say(text) {
+  if (!soundOn || !window.speechSynthesis) return;
+  try {
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'es-ES'; u.rate = .95;
+    speechSynthesis.speak(u);
+  } catch (e) {}
+}
+
+// ================== Almacenamiento ==================
+const KEY = 'maestro-tiempo-v1';
+let save = { pts: 0, best: {} };
+try { Object.assign(save, JSON.parse(localStorage.getItem(KEY)) || {}); } catch (e) {}
+const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) {} };
+
+// ================== Mascota ==================
+const PETS = [
+  { at: 0, e: '🥚', n: 'Huevito' },
+  { at: 20, e: '🐣', n: 'Pío' },
+  { at: 60, e: '🐥', n: 'Pollito Tic' },
+  { at: 130, e: '🐓', n: 'Gallo Tac' },
+  { at: 240, e: '🦉', n: 'Búho del Tiempo' },
+];
+const petIndex = p => PETS.reduce((a, x, i) => p >= x.at ? i : a, 0);
+
+// ================== Reloj SVG ==================
+const SVGNS = 'http://www.w3.org/2000/svg';
+function el(tag, attrs, parent) {
+  const e = document.createElementNS(SVGNS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+// t = minutos desde las 12:00 (0..719)
+function makeClock({ interactive = false, mini = false, step = 1, onChange } = {}) {
+  const svg = el('svg', { viewBox: '-128 -128 256 256', class: 'clock' + (mini ? ' mini' : '') });
+  el('circle', { r: 112, fill: '#ffd27a' }, svg);
+  el('circle', { r: 104, fill: '#fff', stroke: '#1f3a5f', 'stroke-width': 4 }, svg);
+  for (let i = 0; i < 60; i++) {
+    const big = i % 5 === 0, a = i * 6 * Math.PI / 180, r1 = big ? 88 : 94;
+    el('line', { x1: Math.sin(a) * r1, y1: -Math.cos(a) * r1, x2: Math.sin(a) * 100, y2: -Math.cos(a) * 100, stroke: big ? '#1f3a5f' : '#9aa7bd', 'stroke-width': big ? 3 : 1.5, 'stroke-linecap': 'round' }, svg);
+  }
+  for (let i = 1; i <= 12; i++) {
+    const a = i * 30 * Math.PI / 180;
+    const t = el('text', { x: Math.sin(a) * 72, y: -Math.cos(a) * 72 + 9, 'text-anchor': 'middle', 'font-size': 26, 'font-weight': 700, fill: '#1f3a5f', 'font-family': 'Fredoka, sans-serif' }, svg);
+    t.textContent = i;
+  }
+  const labels = el('g', { opacity: 0, style: 'transition:opacity .3s' }, svg);
+  for (let i = 0; i < 12; i++) {
+    const a = i * 30 * Math.PI / 180;
+    el('circle', { cx: Math.sin(a) * 120, cy: -Math.cos(a) * 120, r: 9, fill: '#2f6fed' }, labels);
+    const t = el('text', { x: Math.sin(a) * 120, y: -Math.cos(a) * 120 + 4, 'text-anchor': 'middle', 'font-size': 11, 'font-weight': 700, fill: '#fff', 'font-family': 'Fredoka, sans-serif' }, labels);
+    t.textContent = i * 5;
+  }
+  const hourH = el('g', {}, svg);
+  el('line', { x1: 0, y1: 10, x2: 0, y2: -52, stroke: '#e5484d', 'stroke-width': 10, 'stroke-linecap': 'round' }, hourH);
+  const minH = el('g', {}, svg);
+  el('line', { x1: 0, y1: 12, x2: 0, y2: -86, stroke: '#2f6fed', 'stroke-width': 6, 'stroke-linecap': 'round' }, minH);
+  el('circle', { r: 8, fill: '#1f3a5f' }, svg);
+  el('circle', { r: 3, fill: '#fff' }, svg);
+
+  const clock = { svg, t: 0 };
+  clock.set = (t) => {
+    t = ((Math.round(t) % 720) + 720) % 720;
+    clock.t = t;
+    hourH.setAttribute('transform', `rotate(${t / 2})`);
+    minH.setAttribute('transform', `rotate(${(t % 60) * 6})`);
+  };
+  clock.labels = (on) => labels.setAttribute('opacity', on ? 1 : 0);
+
+  if (interactive) {
+    // Zonas de agarre invisibles más anchas
+    el('line', { x1: 0, y1: 0, x2: 0, y2: -88, stroke: 'transparent', 'stroke-width': 30, style: 'cursor:grab' }, minH).dataset.hand = 'm';
+    el('line', { x1: 0, y1: 0, x2: 0, y2: -55, stroke: 'transparent', 'stroke-width': 34, style: 'cursor:grab' }, hourH).dataset.hand = 'h';
+    let drag = null;
+    const angleOf = (ev) => {
+      const r = svg.getBoundingClientRect();
+      const x = ev.clientX - (r.left + r.width / 2), y = ev.clientY - (r.top + r.height / 2);
+      return (Math.atan2(x, -y) * 180 / Math.PI + 360) % 360;
+    };
+    svg.addEventListener('pointerdown', (ev) => {
+      let hand = ev.target.dataset && ev.target.dataset.hand;
+      if (!hand) {
+        // Toque en la esfera: lejos del centro mueve los minutos
+        const r = svg.getBoundingClientRect();
+        const d = Math.hypot(ev.clientX - (r.left + r.width / 2), ev.clientY - (r.top + r.height / 2)) / (r.width / 2) * 128;
+        hand = d > 60 ? 'm' : 'h';
+      }
+      drag = hand; svg.setPointerCapture(ev.pointerId); move(ev);
+    });
+    const move = (ev) => {
+      if (!drag) return;
+      const a = angleOf(ev);
+      let t = clock.t;
+      if (drag === 'm') {
+        const m = Math.round(a / 6 / step) * step % 60;
+        let delta = m - (t % 60);
+        if (delta > 30) delta -= 60;
+        if (delta < -30) delta += 60;
+        t += delta;
+      } else {
+        t = Math.floor(a / 30) * 60 + (t % 60);
+      }
+      if (((t % 720) + 720) % 720 !== clock.t) { clock.set(t); sfx.tick(); onChange && onChange(clock.t); }
+    };
+    svg.addEventListener('pointermove', move);
+    const up = () => { drag = null; };
+    svg.addEventListener('pointerup', up);
+    svg.addEventListener('pointercancel', up);
+  }
+  return clock;
+}
+
+// ================== Definición de modos ==================
+const LEVELS = [
+  { id: 1, name: '★ Nivel 1', sub: 'En punto y medias' },
+  { id: 2, name: '★★ Nivel 2', sub: 'De 5 en 5 minutos' },
+  { id: 3, name: '★★★ Nivel 3', sub: 'Minuto a minuto' },
+];
+const STAGES = [
+  { id: 1, e: '👀', c: '#ffcfa8', t: 'Leer la hora', d: 'Mira el reloj y escribe qué hora es.' },
+  { id: 2, e: '🖐️', c: '#bfe0ff', t: 'Mover las agujas', d: 'Gira las agujas hasta la hora pedida.' },
+  { id: 3, e: '☀️🌙', c: '#dccfff', t: 'Mañana o tarde', d: 'Pasa de 24 horas a a.m./p.m. y al revés.' },
+  { id: 4, e: '⏪⏩', c: '#b8f0d5', t: 'Antes y después', d: '¿Qué hora será dentro de… o era hace…?' },
+  { id: 5, e: '⏳', c: '#ffd6e7', t: '¿Cuánto tiempo pasa?', d: 'Compara dos relojes y calcula la duración.' },
+];
+const ROUND = 10;
+let level = 1;
+
+const minuteFor = (lv) => lv === 1 ? pick([0, 0, 30]) : lv === 2 ? rnd(0, 11) * 5 : rnd(0, 59);
+const ACTIVITIES = [
+  ['el recreo', 'empieza'], ['la clase de música', 'empieza'], ['la película', 'empieza'], ['el partido', 'empieza'],
+  ['la clase de natación', 'empieza'], ['la excursión', 'sale'], ['el tren', 'sale'], ['la fiesta', 'empieza'],
+];
+
+function genQuestion(stage, lv) {
+  if (stage === 1 || stage === 2) {
+    return { h: rnd(1, 12), m: minuteFor(lv) };
+  }
+  if (stage === 3) {
+    let h;
+    do { h = rnd(0, 23); } while (lv < 3 && (h === 0 || h === 12));
+    return { h, m: minuteFor(lv), dir: Math.random() < .5 ? 'to12' : 'to24' };
+  }
+  if (stage === 4) {
+    const h = rnd(1, 12), m = minuteFor(lv);
+    let off;
+    if (lv === 1) off = pick([30, 60, 60, 90, 120, 180]);
+    else if (lv === 2) off = rnd(1, 11) * 5 + (Math.random() < .3 ? 60 : 0);
+    else off = rnd(1, 110);
+    const sign = Math.random() < .5 ? 1 : -1;
+    const start = h * 60 + m;
+    const end = start + sign * off;
+    return { h, m, off, sign, end: ((end % 720) + 720) % 720 };
+  }
+  // stage 5
+  const sh = rnd(8, 19), sm = minuteFor(lv);
+  let dur;
+  if (lv === 1) dur = pick([30, 60, 60, 90, 120, 120, 180]);
+  else if (lv === 2) dur = rnd(2, 20) * 5;
+  else dur = rnd(7, 170);
+  const act = pick(ACTIVITIES);
+  return { sh, sm, dur, act };
+}
+
+// ================== Estado de partida ==================
+let G = null;
+
+function startGame(stage) {
+  G = { stage, i: 0, results: [], q: null, tries: 0 };
+  document.getElementById('home').classList.add('hidden');
+  document.getElementById('game').classList.remove('hidden');
+  const st = STAGES[stage - 1];
+  document.getElementById('game-title').textContent = `${st.e} ${st.t} · ${LEVELS[level - 1].name}`;
+  nextQuestion();
+}
+
+function renderStamps() {
+  const box = document.getElementById('stamps');
+  box.innerHTML = '';
+  for (let k = 0; k < ROUND; k++) {
+    const s = document.createElement('div');
+    const r = G.results[k];
+    s.className = 'stamp' + (r === undefined ? (k === G.i ? ' cur' : '') : ' s' + r);
+    s.textContent = r === 1 ? '⭐' : r === 2 ? '✔️' : r === 0 ? '✖' : k + 1;
+    if (r === 2) s.className = 'stamp s2';
+    box.appendChild(s);
+  }
+}
+
+// Caja de respuesta numérica reutilizable
+function makeInput(fields) {
+  // fields: [{key, label, cls, max}]
+  const st = { vals: {}, active: fields[0].key, fields, boxes: {} };
+  const row = document.createElement('div');
+  row.className = 'answer';
+  fields.forEach((f, idx) => {
+    if (idx > 0 && f.colon) { const c = document.createElement('span'); c.className = 'colon'; c.textContent = ':'; row.appendChild(c); }
+    const b = document.createElement('button');
+    b.className = 'abox ' + (f.cls || '');
+    b.innerHTML = `<span class="n">?</span><span class="u">${f.label}</span>`;
+    b.onclick = () => { st.active = f.key; paint(); sfx.tap(); };
+    st.boxes[f.key] = b; st.vals[f.key] = '';
+    row.appendChild(b);
+  });
+  const paint = () => fields.forEach(f => {
+    st.boxes[f.key].classList.toggle('on', st.active === f.key);
+    st.boxes[f.key].querySelector('.n').textContent = st.vals[f.key] === '' ? '?' : st.vals[f.key];
+  });
+  st.type = (d) => {
+    const f = fields.find(x => x.key === st.active);
+    let v = st.vals[f.key];
+    v = v.length >= 2 ? d : v + d;
+    if (+v > f.max) v = d;
+    st.vals[f.key] = String(+v);
+    // Salto automático a la siguiente casilla si ya no cabe otra cifra
+    const idx = fields.indexOf(f);
+    if (idx < fields.length - 1 && (st.vals[f.key].length === 2 || +st.vals[f.key] * 10 > f.max)) st.active = fields[idx + 1].key;
+    paint();
+  };
+  st.clear = () => {
+    if (st.vals[st.active] === '') { const idx = fields.findIndex(x => x.key === st.active); if (idx > 0) st.active = fields[idx - 1].key; }
+    st.vals[st.active] = ''; paint();
+  };
+  st.reset = () => { fields.forEach(f => st.vals[f.key] = ''); st.active = fields[0].key; paint(); };
+  st.get = (k) => st.vals[k] === '' ? null : +st.vals[k];
+  st.empty = () => fields.every(f => st.vals[f.key] === '');
+  st.el = row;
+  paint();
+  return st;
+}
+
+function makePad(input, onHint) {
+  const pad = document.createElement('div');
+  pad.className = 'pad';
+  [1, 2, 3, 4, 5, 6, 7, 8, 9].forEach(n => addKey(n));
+  const del = document.createElement('button'); del.className = 'key del'; del.textContent = '⌫ Borrar';
+  del.onclick = () => { input.clear(); sfx.tap(); }; pad.appendChild(del);
+  addKey(0);
+  const hint = document.createElement('button'); hint.className = 'key hint'; hint.textContent = '💡 Pista';
+  hint.onclick = onHint; pad.appendChild(hint);
+  function addKey(n) {
+    const b = document.createElement('button'); b.className = 'key'; b.textContent = n;
+    b.onclick = () => { input.type(String(n)); sfx.tap(); }; pad.appendChild(b);
+  }
+  return pad;
+}
+
+function goButton(fn) {
+  const b = document.createElement('button');
+  b.className = 'go'; b.textContent = '¡Comprobar! ✨'; b.onclick = fn;
+  return b;
+}
+function div(cls, html) { const d = document.createElement('div'); if (cls) d.className = cls; if (html !== undefined) d.innerHTML = html; return d; }
+
+// ================== Preguntas ==================
+let UI = {};
+
+function nextQuestion() {
+  if (G.i >= ROUND) return finish();
+  G.tries = 0;
+  G.q = genQuestion(G.stage, level);
+  renderStamps();
+  const L = document.getElementById('left'), R = document.getElementById('right');
+  L.innerHTML = ''; R.innerHTML = ''; L.className = 'left';
+  UI = { L, R };
+  UI.hint = div('hinttext hidden');
+  UI.fb = div('feedback');
+  [renderS1, renderS2, renderS3, renderS4, renderS5][G.stage - 1](G.q);
+}
+
+function showHint(text, clock) {
+  UI.hint.innerHTML = '💡 ' + text;
+  UI.hint.classList.remove('hidden');
+  if (clock) (Array.isArray(clock) ? clock : [clock]).forEach(c => c.labels(true));
+  sfx.tap();
+}
+
+// --- 1. Leer la hora ---
+function renderS1(q) {
+  const { L, R } = UI;
+  L.appendChild(div('prompt', '¿Qué hora marca el reloj?'));
+  const c = makeClock(); c.set(q.h * 60 + q.m); L.appendChild(c.svg);
+  const inp = makeInput([{ key: 'h', label: 'h', cls: 'h', max: 12 }, { key: 'm', label: 'min', cls: 'm', max: 59, colon: true }]);
+  UI.input = inp;
+  R.append(inp.el, makePad(inp, () => showHint(
+    'La <b style="color:var(--hour)">aguja corta (roja)</b> marca la <b>hora</b>: fíjate en el último número que ha pasado. ' +
+    'La <b style="color:var(--min)">aguja larga (azul)</b> marca los <b>minutos</b>: cada número vale 5 minutos.', c)), UI.hint, UI.fb, goButton(() => {
+    if (inp.empty()) return nudge('Escribe la hora con los números.');
+    const h = inp.get('h'), m = inp.get('m') ?? 0;
+    const ok = h % 12 === q.h % 12 && m === q.m;
+    let tip = '';
+    if (!ok) {
+      if (m === q.m && Math.abs(h - q.h) % 12 === 1) tip = 'Los minutos están bien. Mira otra vez la aguja corta: ¿qué número ha pasado ya?';
+      else if (h % 12 === q.h % 12) tip = '¡La hora está bien! Cuenta los minutos de 5 en 5 con la aguja larga.';
+      else if (h === q.m / 5 || m === q.h * 5) tip = '¡Ojo! No confundas las agujas: la corta es la hora y la larga, los minutos.';
+      else tip = 'Fíjate primero en la aguja corta y después en la larga.';
+    }
+    check(ok, tip, `${son(q.h, q.m)}.`, dig(q.h, q.m), `${dig(h, m)}`);
+  }));
+}
+
+// --- 2. Mover las agujas ---
+function renderS2(q) {
+  const { L, R } = UI;
+  const step = level === 3 ? 1 : 5;
+  const c = makeClock({ interactive: true, step });
+  let start;
+  do { start = rnd(0, 11) * 60 + (level === 1 ? 0 : rnd(0, 11) * 5); } while (start === (q.h % 12) * 60 + q.m);
+  c.set(start);
+  L.appendChild(c.svg);
+  L.appendChild(fineButtons(c));
+  R.appendChild(div('prompt', `Pon el reloj en<br><span class="big">${dig(q.h, q.m)}</span><span class="sub">${frase(q.h, q.m)}</span>`));
+  R.append(div('small', '👉 Arrastra la aguja <b style="color:var(--min)">larga</b> para los minutos y la <b style="color:var(--hour)">corta</b> para la hora.'));
+  const hb = document.createElement('button'); hb.className = 'pill'; hb.textContent = '💡 Pista';
+  hb.onclick = () => showHint('Primero pon la aguja <b style="color:var(--min)">larga</b> en los minutos (cada número son 5). Después mira que la <b style="color:var(--hour)">corta</b> esté en la hora correcta: si son más de y media, ya se acerca al número siguiente.', c);
+  R.append(hb, UI.hint, UI.fb, goButton(() => {
+    const t = c.t, target = (q.h % 12) * 60 + q.m;
+    const ok = t === target;
+    const uh = h12(Math.floor(t / 60)), um = t % 60;
+    let tip = '';
+    if (!ok) tip = um === q.m ? 'Los minutos están bien. Revisa la aguja corta (la hora).' : uh === q.h ? 'La hora está bien. Revisa la aguja larga (los minutos).' : 'Mueve primero la aguja larga y luego la corta.';
+    check(ok, tip, `${son(q.h, q.m)}.`, dig(q.h, q.m), dig(uh, um), () => c.set(target));
+  }));
+}
+
+function fineButtons(c) {
+  const f = div('fine');
+  const add = (lbl, d) => { const b = document.createElement('button'); b.textContent = lbl; b.onclick = () => { c.set(c.t + d); sfx.tick(); }; f.appendChild(b); };
+  add('−1 h', -60); add('−5 min', -5);
+  if (level === 3) { add('−1', -1); add('+1', 1); }
+  add('+5 min', 5); add('+1 h', 60);
+  return f;
+}
+
+// --- 3. Mañana o tarde ---
+function renderS3(q) {
+  const { L, R } = UI;
+  const pm = q.h >= 12;
+  if (q.dir === 'to12') {
+    L.appendChild(div('prompt', `El reloj digital marca<br><span class="big" style="font-size:56px">${pad2(q.h)}:${pad2(q.m)}</span><span class="sub">Escríbelo como en un reloj de agujas y elige a.m. o p.m.</span>`));
+    L.appendChild(dayBar(q.h, q.m));
+    const inp = makeInput([{ key: 'h', label: 'h', cls: 'h', max: 12 }, { key: 'm', label: 'min', cls: 'm', max: 59, colon: true }]);
+    UI.input = inp;
+    let sel = null;
+    const ap = div('ampm');
+    const bA = document.createElement('button'); bA.innerHTML = '☀️ a.m.<small>de 0:00 a 11:59</small>';
+    const bP = document.createElement('button'); bP.innerHTML = '🌙 p.m.<small>de 12:00 a 23:59</small>';
+    bA.onclick = () => { sel = 'am'; bA.classList.add('on'); bP.classList.remove('on'); sfx.tap(); };
+    bP.onclick = () => { sel = 'pm'; bP.classList.add('on'); bA.classList.remove('on'); sfx.tap(); };
+    ap.append(bA, bP);
+    R.append(ap, inp.el, makePad(inp, () => showHint('Si la hora es <b>12 o más</b>, es <b>p.m.</b> Para saber la hora del reloj de agujas, <b>resta 12</b>: 15 − 12 = 3. Si es 0, en el reloj de agujas son las 12.')), UI.hint, UI.fb, goButton(() => {
+      if (inp.empty() || !sel) return nudge(!sel ? 'Elige a.m. o p.m.' : 'Escribe la hora.');
+      const h = inp.get('h'), m = inp.get('m') ?? 0;
+      const okH = h === h12(q.h) && m === q.m, okA = (sel === 'pm') === pm;
+      let tip = '';
+      if (!okA) tip = pm ? 'A partir de las 12:00 es p.m. (por la tarde o la noche).' : 'Antes de las 12:00 es a.m. (madrugada o mañana).';
+      else if (!okH) tip = q.h > 12 ? `Resta 12 a las horas: ${q.h} − 12 = ?` : 'Revisa la hora y los minutos.';
+      check(okH && okA, tip, `${pad2(q.h)}:${pad2(q.m)} son ${frase(q.h, q.m)} ${franja(q.h)}.`, `${dig(h12(q.h), q.m)} ${pm ? 'p.m.' : 'a.m.'}`, `${dig(h, m)} ${sel}.`);
+    }));
+  } else {
+    L.appendChild(div('prompt', `Este reloj marca una hora <span style="color:${pm ? '#6c4ce0' : '#e08a00'}">${franja(q.h)}</span>.<span class="sub">¿Qué hora es en formato de 24 horas?</span>`));
+    const c = makeClock(); c.set(q.h * 60 + q.m); L.appendChild(c.svg);
+    L.appendChild(div('context', (q.h < 6 || q.h >= 21 ? '🌙 ' : q.h < 12 ? '🌅 ' : '☀️ ') + franja(q.h)));
+    const inp = makeInput([{ key: 'h', label: 'h', cls: 'h', max: 23 }, { key: 'm', label: 'min', cls: 'm', max: 59, colon: true }]);
+    UI.input = inp;
+    R.append(inp.el, makePad(inp, () => showHint('Por la <b>tarde o la noche</b> (p.m.) <b>suma 12</b> a la hora: las 3 de la tarde → 3 + 12 = 15. Por la mañana se queda igual. Las 12 de la noche son las 0:00.', c)), UI.hint, UI.fb, goButton(() => {
+      if (inp.empty()) return nudge('Escribe la hora.');
+      const h = inp.get('h'), m = inp.get('m') ?? 0;
+      const ok = h === q.h && m === q.m;
+      let tip = '';
+      if (!ok) tip = m !== q.m ? 'Revisa los minutos con la aguja larga.' : h === h12(q.h) && pm ? '¡Es por la tarde/noche! Suma 12 a la hora.' : 'Revisa la aguja corta.';
+      check(ok, tip, `${son(q.h, q.m)} ${franja(q.h)}.`, `${pad2(q.h)}:${pad2(q.m)}`, `${pad2(h)}:${pad2(m)}`);
+    }));
+  }
+}
+
+function dayBar(h, m) {
+  const d = div('', `<div style="width:min(380px,85vw);margin-top:6px">
+    <div style="position:relative;height:16px;border-radius:99px;background:linear-gradient(90deg,#3b3f8f 0%,#ffcf6b 25%,#ffd27a 50%,#ff9a5c 75%,#3b3f8f 100%)">
+      <i style="position:absolute;top:-6px;left:calc(${(h * 60 + m) / 1440 * 100}% - 6px);width:12px;height:28px;border-radius:6px;background:#e5484d;border:2px solid #fff"></i>
+      <b style="position:absolute;left:50%;top:-4px;height:24px;border-left:3px dashed #fff"></b></div>
+    <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-top:2px"><span>0</span><span>6</span><span>12</span><span>18</span><span>24</span></div>
+    <div style="display:flex;justify-content:space-around;font-weight:700;font-size:14px"><span>☀️ a.m.</span><span>🌙 p.m.</span></div></div>`);
+  return d;
+}
+
+// --- 4. Antes y después ---
+function renderS4(q) {
+  const { L, R } = UI;
+  const offTxt = durTxt(q.off);
+  const pregunta = q.sign > 0 ? `¿Qué hora será <b>dentro de ${offTxt}</b>?` : `¿Qué hora era <b>hace ${offTxt}</b>?`;
+  const step = level === 3 ? 1 : 5;
+  const start = q.h * 60 + q.m;
+  const c = makeClock({ interactive: true, step }); c.set(start);
+  L.appendChild(c.svg);
+  L.appendChild(fineButtons(c));
+  R.appendChild(div('prompt', `${q.h === 1 ? 'Ahora es la' : 'Ahora son las'}<br><span class="big">${dig(q.h, q.m)}</span><br>${pregunta}<span class="sub">Mueve las agujas hasta la respuesta.</span>`));
+  const orig = makeClock({ mini: true }); orig.set(start);
+  const ob = div('clockbox'); ob.append(orig.svg, div('lbl', 'Hora de partida'));
+  const rb = document.createElement('button'); rb.className = 'pill'; rb.textContent = '↺ Volver a la hora de partida';
+  rb.onclick = () => { c.set(start); sfx.tap(); };
+  const hb = document.createElement('button'); hb.className = 'pill'; hb.textContent = '💡 Pista';
+  hb.onclick = () => showHint(q.off >= 60
+    ? `Mueve primero las horas enteras con <b>${q.sign > 0 ? '+1 h' : '−1 h'}</b> y después los minutos que faltan.`
+    : `Gira la aguja larga ${q.sign > 0 ? 'hacia delante ⟳' : 'hacia atrás ⟲'} contando de 5 en 5: cada número son 5 minutos. Si pasa por el 12, la hora cambia.`, c);
+  const tools = div('fine'); tools.append(rb, hb);
+  R.append(ob, tools, UI.hint, UI.fb, goButton(() => {
+    const ok = c.t === q.end;
+    const eh = h12(Math.floor(q.end / 60)), em = q.end % 60;
+    const uh = h12(Math.floor(c.t / 60)), um = c.t % 60;
+    let tip = '';
+    if (!ok) {
+      if (c.t === start) tip = '¡Aún no has movido las agujas!';
+      else if (c.t === ((start - q.sign * q.off) % 720 + 720) % 720) tip = q.sign > 0 ? '¡Has ido hacia atrás! «Dentro de» es más tarde.' : '¡Has ido hacia delante! «Hace» es más temprano.';
+      else if (um === em) tip = 'Los minutos están bien. Revisa la hora.';
+      else tip = 'Cuenta otra vez los minutos de 5 en 5.';
+    }
+    check(ok, tip, `${q.sign > 0 ? 'Dentro de' : 'Hace'} ${offTxt} ${q.sign > 0 ? 'serán' : 'eran'} ${frase(eh, em)}.`, dig(eh, em), dig(uh, um), () => c.set(q.end));
+  }));
+}
+
+// --- 5. ¿Cuánto tiempo pasa? ---
+function renderS5(q) {
+  const { L, R } = UI;
+  const s = q.sh * 60 + q.sm, e = s + q.dur;
+  const eh = Math.floor(e / 60) % 24, em = e % 60;
+  const [act, verb] = q.act;
+  L.classList.add('two');
+  L.appendChild(div('prompt', `${act[0].toUpperCase() + act.slice(1)} ${verb} a las ${dig(q.sh, q.sm)} y termina a las ${dig(eh, em)}.<span class="sub">¿Cuánto tiempo dura?</span>`));
+  const c1 = makeClock(), c2 = makeClock();
+  c1.set(s); c2.set(e);
+  const b1 = div('clockbox'); b1.append(c1.svg, div('lbl', '▶ Empieza ' + dig(q.sh, q.sm)));
+  const b2 = div('clockbox'); b2.append(c2.svg, div('lbl', '⏹ Termina ' + dig(eh, em)));
+  const row = div('clocks'); row.append(b1, div('arrow', '➜'), b2);
+  L.appendChild(row);
+  const inp = makeInput([{ key: 'h', label: 'h', cls: 'h', max: 12 }, { key: 'm', label: 'min', cls: 'm', max: 59 }]);
+  UI.input = inp;
+  R.append(div('small', 'Escribe las horas y los minutos (pon 0 si no hay).'), inp.el, makePad(inp, () => showHint(
+    'Cuenta primero las <b>horas enteras</b> desde el inicio sin pasarte. Después cuenta los <b>minutos</b> que faltan con la aguja larga, de 5 en 5. Recuerda: 1 hora = 60 minutos.', [c1, c2])), UI.hint, UI.fb, goButton(() => {
+    if (inp.empty()) return nudge('Escribe cuánto dura.');
+    const h = inp.get('h') ?? 0, m = inp.get('m') ?? 0;
+    const tot = h * 60 + m;
+    const ok = tot === q.dur && m < 60;
+    let tip = '';
+    if (!ok) {
+      if (tot === q.dur) tip = 'Recuerda: 60 minutos son 1 hora.';
+      else if (Math.abs(tot - q.dur) === 60) tip = 'Los minutos están bien. Cuenta otra vez las horas enteras.';
+      else if (Math.abs(tot - q.dur) <= 5) tip = '¡Casi! Cuenta los minutos con cuidado.';
+      else tip = 'Avanza desde la hora de inicio: primero horas enteras, luego minutos.';
+    }
+    check(ok, tip, `De las ${dig(q.sh, q.sm)} a las ${dig(eh, em)} pasan ${durTxt(q.dur)}.`, durTxt(q.dur), durTxt(tot));
+  }));
+}
+
+// ================== Corrección ==================
+function nudge(msg) {
+  UI.fb.className = 'feedback bad'; UI.fb.textContent = msg;
+  UI.fb.classList.remove('shake'); void UI.fb.offsetWidth; UI.fb.classList.add('shake');
+}
+
+function check(ok, tip, sentence, answer, yours, reveal) {
+  if (ok) {
+    sfx.ok();
+    const r = G.tries === 0 ? 1 : 2;
+    G.results[G.i] = r;
+    gainPts(r === 1 ? 2 : 1);
+    say(sentence);
+    showModal({
+      em: pick(['🎉', '🌟', '🥳', '👏', '💯']), title: r === 1 ? pick(['¡Genial!', '¡Perfecto!', '¡Muy bien!', '¡Bravo!']) : '¡Ahora sí!',
+      body: `<p class="frase">${sentence}</p>`,
+      btn: G.i + 1 < ROUND ? 'Siguiente ➜' : 'Ver resultado 🏆',
+    });
+  } else if (G.tries === 0) {
+    G.tries = 1;
+    sfx.bad();
+    UI.fb.className = 'feedback bad'; UI.fb.textContent = '¡Casi! ' + tip;
+    UI.fb.classList.remove('shake'); void UI.fb.offsetWidth; UI.fb.classList.add('shake');
+  } else {
+    sfx.bad();
+    G.results[G.i] = 0;
+    if (reveal) reveal();
+    say('La respuesta correcta es: ' + sentence);
+    showModal({
+      em: '💡', title: 'La respuesta era…',
+      body: `<p class="frase">${answer}</p><p>${sentence}</p><p class="yours">Tu respuesta: ${yours}</p>`,
+      btn: G.i + 1 < ROUND ? 'Siguiente ➜' : 'Ver resultado 🏆',
+    });
+  }
+}
+
+function showModal({ em, title, body, btn, extra }) {
+  const m = document.getElementById('modal');
+  m.innerHTML = `<div class="em">${em}</div><h2>${title}</h2>${body}<div class="btns"><button class="p" id="m-next">${btn}</button>${extra || ''}</div>`;
+  document.getElementById('overlay').classList.remove('hidden');
+  const nb = document.getElementById('m-next');
+  nb.focus();
+  nb.onclick = () => {
+    closeModal();
+    if (G && G.results[G.i] !== undefined) { G.i++; nextQuestion(); }
+  };
+}
+const closeModal = () => document.getElementById('overlay').classList.add('hidden');
+
+function finish() {
+  renderStamps();
+  const good = G.results.filter(r => r > 0).length;
+  const first = G.results.filter(r => r === 1).length;
+  const stars = good >= 9 ? 3 : good >= 7 ? 2 : good >= 5 ? 1 : 0;
+  const k = `${G.stage}-${level}`;
+  const isBest = stars > (save.best[k] || 0);
+  if (isBest) save.best[k] = stars;
+  persist();
+  sfx.win();
+  showModal({
+    em: stars === 3 ? '🏆' : stars ? '🎖️' : '💪',
+    title: stars === 3 ? '¡Eres un maestro del tiempo!' : stars ? '¡Buen trabajo!' : '¡Sigue practicando!',
+    body: `<div class="stars">${'★'.repeat(stars)}${'☆'.repeat(3 - stars)}</div>
+      <p><b>${good}</b> de ${ROUND} aciertos (${first} a la primera)</p>${isBest && stars ? '<p>🎉 ¡Nuevo récord!</p>' : ''}`,
+    btn: '🔁 Jugar otra vez',
+    extra: '<button class="s" id="m-home">🏠 Elegir otro juego</button>',
+  });
+  document.getElementById('m-next').onclick = () => { closeModal(); startGame(G.stage); };
+  document.getElementById('m-home').onclick = () => { closeModal(); goHome(); };
+}
+
+function gainPts(n) {
+  const before = petIndex(save.pts);
+  save.pts += n;
+  persist();
+  const after = petIndex(save.pts);
+  if (after > before) setTimeout(() => toast(`✨ ¡Tu mascota ha crecido! Ahora es ${PETS[after].e} ${PETS[after].n}`), 400);
+}
+function toast(msg) {
+  const t = div('toast', msg); document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3200);
+}
+
+// ================== Portada ==================
+function goHome() {
+  if (window.speechSynthesis) speechSynthesis.cancel();
+  G = null;
+  document.getElementById('game').classList.add('hidden');
+  document.getElementById('home').classList.remove('hidden');
+  renderHome();
+}
+
+function renderHome() {
+  const lv = document.getElementById('levels');
+  lv.innerHTML = '';
+  LEVELS.forEach(l => {
+    const b = document.createElement('button');
+    b.className = 'chip' + (l.id === level ? ' on' : '');
+    b.innerHTML = `${l.name}<small>${l.sub}</small>`;
+    b.onclick = () => { level = l.id; sfx.tap(); renderHome(); };
+    lv.appendChild(b);
+  });
+  const tiles = document.getElementById('tiles');
+  tiles.innerHTML = '';
+  STAGES.forEach(s => {
+    const b = document.createElement('button');
+    b.className = 'tile'; b.style.setProperty('--c', s.c);
+    const best = save.best[`${s.id}-${level}`] || 0;
+    b.innerHTML = `<div class="band">${s.e}</div><div class="tx"><b>${s.id}. ${s.t}</b><span>${s.d}</span><div class="best">${'★'.repeat(best)}${'☆'.repeat(3 - best)}</div></div>`;
+    b.onclick = () => { sfx.tap(); startGame(s.id); };
+    tiles.appendChild(b);
+  });
+  const i = petIndex(save.pts), p = PETS[i], nx = PETS[i + 1];
+  document.getElementById('pet-emoji').textContent = p.e;
+  document.getElementById('pet-name').textContent = p.n;
+  document.getElementById('pet-gauge').style.width = nx ? ((save.pts - p.at) / (nx.at - p.at) * 100) + '%' : '100%';
+  document.getElementById('pet-next').textContent = nx ? `Puntos: ${save.pts} · Para crecer: ${nx.at - save.pts} más` : `Puntos: ${save.pts} · ¡Ha llegado a lo más alto!`;
+  document.getElementById('pet-bubble').textContent = pick(['¡Hoy aprendemos juntos!', '¿Qué hora es? ¡Vamos a jugar!', '¡Cada acierto me hace crecer!', 'Tic, tac… ¡a por ello!']);
+}
+
+function toggleSound() {
+  soundOn = !soundOn;
+  if (!soundOn && window.speechSynthesis) speechSynthesis.cancel();
+  ['sound-btn', 'sound-btn-home'].forEach(id => {
+    const b = document.getElementById(id);
+    b.textContent = id === 'sound-btn' ? (soundOn ? '🔊' : '🔇') : (soundOn ? '🔊 Sonido' : '🔇 Sin sonido');
+  });
+}
+document.getElementById('sound-btn').onclick = toggleSound;
+document.getElementById('sound-btn-home').onclick = toggleSound;
+document.getElementById('home-btn').onclick = goHome;
+document.getElementById('reset-btn').onclick = () => {
+  if (confirm('¿Seguro que quieres borrar las estrellas y la mascota?')) { save = { pts: 0, best: {} }; persist(); renderHome(); }
+};
+
+// Teclado físico
+document.addEventListener('keydown', (ev) => {
+  const ov = !document.getElementById('overlay').classList.contains('hidden');
+  if (ov) { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); document.getElementById('m-next').click(); } return; }
+  if (!G) return;
+  if (ev.key === 'Enter') { ev.preventDefault(); document.querySelector('#right .go').click(); return; }
+  const inp = UI.input;
+  if (!inp || !document.getElementById('right').contains(inp.el)) return;
+  if (/^[0-9]$/.test(ev.key)) inp.type(ev.key);
+  else if (ev.key === 'Backspace') inp.clear();
+  else if (ev.key === 'Tab' || ev.key === ':') {
+    ev.preventDefault();
+    const idx = inp.fields.findIndex(f => f.key === inp.active);
+    inp.active = inp.fields[(idx + 1) % inp.fields.length].key; inp.type && inp.boxes[inp.active].click();
+  }
+});
+
+renderHome();
+</script>
+</body>
+</html>
